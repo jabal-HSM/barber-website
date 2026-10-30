@@ -65,6 +65,47 @@ Not allowed for anyone through the API: changing a role or an email, liking on b
 Customers have no INSERT/UPDATE rights on `bookings`: only the functions above can change it.
 Services without a known duration (`duration_minutes` null) cannot be booked online.
 
+## Phase 3 (part 2) — `20261031090000_phase3_custom_time_gap.sql`
+- Custom times (`request_custom_time`) follow the slot rules except the 15-minute grid: refused when
+  `outside_hours` (closed day, break, after closing) or `too_close` (less than one cut — the service
+  duration, 35 min — from another booking). Example: 16:00 booked → 16:15 refused, 16:35 accepted.
+- A valid custom time is confirmed at once; with an unknown duration it stays `requested` but holds the
+  chair for `min_gap_minutes` (35). The exclusion constraint now covers `requested` too.
+- `booking_settings.booking_enabled` (holidays switch), `min_gap_minutes`.
+- `staff_cancel_booking(id, reason)`: staff only; returns the customer's email, name and language so the
+  dashboard can open a pre-written apology email.
+
+## Phase 4 — `20261031100000_phase4_admin.sql`
+- `set_user_role(user, role)`: admins only, never their own role.
+- `booking_settings` and `payment_settings`: admin-only updates.
+- Storage bucket `gallery` (public read, 5 MB, JPEG/PNG/WebP), staff-only upload/update/delete.
+
+## Phase 5 — loyalty — `20261031110000_phase5_loyalty.sql`
+
+| Table / function | Content |
+|---|---|
+| `loyalty_cards` | One per customer (created at sign-up): random `token` (QR), 8-char `short_code`, `stamps_total` |
+| `loyalty_visits` | Visit log: date (Paris), `stamp` or `reward`, optional booking, `confirmed_by`. Unique per customer per day, unique per booking |
+| `loyalty_rewards` | One per 10 stamps (`cycle` unique per customer), `redeemed_at` set once |
+| `my_loyalty()` | The customer's own card |
+| `loyalty_lookup(code)`, `loyalty_confirm_visit(code, booking)`, `loyalty_redeem_reward(code)` | Staff only |
+
+The QR contains `ZEYD-LOYALTY:<random token>`: no personal data, and showing or scanning it changes
+nothing. Customers have no write access to any loyalty table.
+
+## Payments — `20261031120000_payments.sql` (off by default)
+
+| Table / function | Content |
+|---|---|
+| `payment_settings` | `online_payments_enabled` (false), `hashem_share_cents` (500) |
+| `payments` | One row per Checkout attempt: amount from the service price, `status` (`pending`, `paid`, `failed`, `expired`, `mismatch`, `duplicate`), Stripe ids, `livemode`, Telegram fields. One `paid` per booking |
+| `stripe_events` | Every processed Stripe event id (replays ignored) |
+| `staff_notifications` | "Paiement reçu : 10 €" for the dashboard, one per payment |
+| `payment_create_pending`, `payment_attach_session`, `payment_mark_paid`, `payment_mark_failed`, `claim_telegram_notification`, `record_telegram_error` | **service_role only** (Edge Functions) |
+| `barber_earnings()` | Staff: indicative barber share of paid payments |
+
+Customers read their own payment status only (not the split nor the Telegram fields).
+
 ## Planned tables (not created yet)
 
 | Phase | Table | Purpose |

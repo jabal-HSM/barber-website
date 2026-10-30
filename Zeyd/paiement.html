@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paiement | ZEYD BARBER</title>
+    <meta name="robots" content="noindex">
+    <meta name="theme-color" content="#F6F2EA">
+    <link rel="icon" href="logozeyd.jpeg" type="image/jpeg">
+    <script>
+        (function () {
+            try {
+                var theme = localStorage.getItem('theme');
+                if (theme === 'dark' || theme === 'light') document.documentElement.setAttribute('data-theme', theme);
+                if (localStorage.getItem('lang') === 'ar') {
+                    document.documentElement.lang = 'ar';
+                    document.documentElement.dir = 'rtl';
+                }
+            } catch (e) { }
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <svg class="icon-sprite" aria-hidden="true" focusable="false">
+        <symbol id="i-check" viewBox="0 0 24 24">
+            <path d="M5 12.5l4.5 4.5L19 7.5" />
+        </symbol>
+        <symbol id="i-alert" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7.5v5.5M12 16.5h.01" />
+        </symbol>
+        <symbol id="i-arrow-back" viewBox="0 0 24 24">
+            <path d="M19 12H5M11 6l-6 6 6 6" />
+        </symbol>
+    </svg>
+
+    <main class="payment-page">
+        <div class="payment-card">
+            <img src="logozeyd.jpeg" alt="" class="payment-logo" width="64" height="64">
+            <p class="brand-wordmark payment-wordmark" lang="en" dir="ltr">ZEYD BARBER</p>
+            <h1 class="payment-title" data-i18n="pay.pageTitle">Paiement</h1>
+            <div class="payment-status" id="paymentStatus" role="status" aria-live="polite">
+                <span class="payment-spinner" id="paymentSpinner" aria-hidden="true"></span>
+                <p id="paymentText" data-i18n="pay.checking">Merci ! Nous vérifions votre paiement auprès de Stripe…
+                </p>
+            </div>
+            <a href="index.html#booking" class="btn btn-primary">
+                <svg class="icon icon-dir" aria-hidden="true">
+                    <use href="#i-arrow-back" />
+                </svg>
+                <span data-i18n="pay.back">Retour au site</span>
+            </a>
+        </div>
+    </main>
+
+    <script type="module" src="paiement.js"></script>
+</body>
+
+</html>

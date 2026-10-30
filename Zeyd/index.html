@@ -92,6 +92,15 @@
             <circle cx="12" cy="12" r="9" />
             <path d="M12 7.5v5.5M12 16.5h.01" />
         </symbol>
+        <symbol id="i-qr" viewBox="0 0 24 24">
+            <rect x="3.5" y="3.5" width="6" height="6" rx="1" />
+            <rect x="14.5" y="3.5" width="6" height="6" rx="1" />
+            <rect x="3.5" y="14.5" width="6" height="6" rx="1" />
+            <path d="M14.5 14.5h2.5v2.5M20.5 14.5v.01M14.5 20.5h.01M17 20.5h3.5V17" />
+        </symbol>
+        <symbol id="i-arrow-back" viewBox="0 0 24 24">
+            <path d="M19 12H5M11 6l-6 6 6 6" />
+        </symbol>
         <symbol id="i-arrow-up" viewBox="0 0 24 24">
             <path d="M12 19V5M6 11l6-6 6 6" />
         </symbol>
@@ -557,7 +566,79 @@
         </div>
     </footer>
 
-    <!-- Account: sign in / sign up, upcoming bookings -->
+    <!-- Sign in / sign up: full-screen welcome with the barber chair -->
+    <div class="auth-screen" id="authScreen" role="dialog" aria-modal="true" aria-labelledby="authScreenTitle" hidden>
+        <picture class="auth-bg">
+            <source media="(min-width: 48em)" srcset="login-chair-1200.jpg">
+            <img src="login-chair-720.jpg" alt="" width="720" height="1080" decoding="async">
+        </picture>
+        <div class="auth-scrim"></div>
+
+        <div class="auth-top">
+            <div class="lang-switch lang-switch-on-dark" role="group" data-i18n-attr="aria-label:a11y.language"
+                aria-label="Choisir la langue">
+                <button type="button" class="lang-btn" data-lang="fr" lang="fr" aria-pressed="true">FR</button>
+                <button type="button" class="lang-btn" data-lang="ar" lang="ar" aria-pressed="false">ع</button>
+            </div>
+            <button type="button" class="icon-btn icon-btn-on-dark" id="authCloseBtn"
+                data-i18n-attr="aria-label:account.close" aria-label="Fermer">
+                <svg class="icon" aria-hidden="true">
+                    <use href="#i-close" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="auth-panel">
+            <img src="logozeyd.jpeg" alt="" class="auth-logo" width="88" height="88">
+            <h2 id="authScreenTitle" class="brand-wordmark auth-wordmark" lang="en" dir="ltr">ZEYD BARBER</h2>
+            <p class="auth-tagline" data-i18n="auth.tagline">Votre style. Notre passion.</p>
+            <p class="auth-subtagline" data-i18n="auth.subtagline">Plus qu’une coupe, une identité.</p>
+
+            <div class="auth-choices" id="authChoices">
+                <button type="button" class="btn btn-light" data-auth-mode="signin" data-i18n="auth.signIn">Se
+                    connecter</button>
+                <button type="button" class="btn btn-dark" data-auth-mode="signup" data-i18n="auth.signUp">Créer un
+                    compte</button>
+                <button type="button" class="auth-link" id="authSkipBtn" data-i18n="auth.skip">Continuer sans
+                    compte</button>
+            </div>
+
+            <form class="auth-form" id="authForm" novalidate hidden>
+                <h3 class="auth-form-title" id="authFormTitle" data-i18n="auth.signInTitle">Connexion</h3>
+                <div class="field-group" id="authNameGroup" hidden>
+                    <label class="field-label" for="authName" data-i18n="account.name">Prénom et nom</label>
+                    <input type="text" id="authName" class="field" autocomplete="name" maxlength="80">
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="authEmail" data-i18n="account.email">E-mail</label>
+                    <input type="email" id="authEmail" class="field" autocomplete="email" inputmode="email" required
+                        dir="ltr">
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="authPassword" data-i18n="account.password">Mot de passe</label>
+                    <input type="password" id="authPassword" class="field" autocomplete="current-password" required
+                        minlength="8" dir="ltr" aria-describedby="authPasswordHint">
+                    <p class="field-hint" id="authPasswordHint" data-i18n="account.passwordHint">8 caractères
+                        minimum.</p>
+                </div>
+                <button type="submit" class="btn btn-light auth-submit" id="authSubmit"
+                    data-i18n="account.signInSubmit">Se connecter</button>
+                <div class="form-message" id="authMessage" role="status" aria-live="polite" hidden></div>
+                <button type="button" class="auth-link" id="authSwitchBtn" data-i18n="auth.toSignUp">Pas encore de
+                    compte ? Créer un compte</button>
+                <button type="button" class="auth-link" id="authBackBtn">
+                    <svg class="icon icon-dir" aria-hidden="true">
+                        <use href="#i-arrow-back" />
+                    </svg>
+                    <span data-i18n="auth.back">Retour</span>
+                </button>
+                <p class="field-hint" data-i18n="account.privacy">Votre e-mail sert uniquement à gérer vos
+                    rendez-vous.</p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Account (signed in): loyalty card, upcoming bookings -->
     <dialog class="dialog" id="accountDialog" aria-labelledby="accountTitle">
         <div class="dialog-head">
             <h2 id="accountTitle" data-i18n="account.title">Mon compte</h2>
@@ -569,42 +650,29 @@
             </button>
         </div>
 
-        <div id="authView">
-            <div class="tabs" role="tablist">
-                <button type="button" class="tab" role="tab" id="signInTab" aria-selected="true"
-                    aria-controls="authForm" data-auth-mode="signin" data-i18n="account.signInTab">Se
-                    connecter</button>
-                <button type="button" class="tab" role="tab" id="signUpTab" aria-selected="false"
-                    aria-controls="authForm" data-auth-mode="signup" data-i18n="account.signUpTab">Créer un
-                    compte</button>
-            </div>
-            <form class="auth-form" id="authForm" role="tabpanel" novalidate>
-                <div class="field-group" id="authNameGroup" hidden>
-                    <label class="field-label" for="authName" data-i18n="account.name">Prénom et nom</label>
-                    <input type="text" id="authName" class="field" autocomplete="name" maxlength="80">
-                </div>
-                <div class="field-group">
-                    <label class="field-label" for="authEmail" data-i18n="account.email">E-mail</label>
-                    <input type="email" id="authEmail" class="field" autocomplete="email" required dir="ltr">
-                </div>
-                <div class="field-group">
-                    <label class="field-label" for="authPassword" data-i18n="account.password">Mot de passe</label>
-                    <input type="password" id="authPassword" class="field" autocomplete="current-password" required
-                        minlength="8" dir="ltr" aria-describedby="authPasswordHint">
-                    <p class="field-hint" id="authPasswordHint" data-i18n="account.passwordHint">8 caractères
-                        minimum.</p>
-                </div>
-                <button type="submit" class="btn btn-primary auth-submit" id="authSubmit"
-                    data-i18n="account.signInSubmit">Se connecter</button>
-                <div class="form-message" id="authMessage" role="status" aria-live="polite" hidden></div>
-                <p class="field-hint" data-i18n="account.privacy">Votre e-mail sert uniquement à gérer vos
-                    rendez-vous.</p>
-            </form>
-        </div>
-
-        <div id="accountView" hidden>
+        <div id="accountView">
             <p class="account-who"><span data-i18n="account.signedInAs">Connecté avec</span> <strong id="accountEmail"
                     dir="ltr"></strong></p>
+
+            <section class="loyalty" aria-labelledby="loyaltyTitle">
+                <h3 class="account-subtitle" id="loyaltyTitle" data-i18n="loyalty.title">Ma carte de fidélité</h3>
+                <div id="loyaltyCard"></div>
+                <p class="loyalty-progress" id="loyaltyProgress" aria-live="polite"></p>
+                <button type="button" class="btn btn-primary loyalty-qr-btn" id="loyaltyQrBtn" aria-expanded="false"
+                    aria-controls="loyaltyQr" hidden>
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-qr" />
+                    </svg>
+                    <span id="loyaltyQrBtnText" data-i18n="loyalty.showQr">Afficher mon QR code</span>
+                </button>
+                <div class="loyalty-qr" id="loyaltyQr" hidden>
+                    <div class="loyalty-qr-code" id="loyaltyQrCode"></div>
+                    <p class="loyalty-qr-code-text"><span data-i18n="loyalty.code">Code</span> : <strong dir="ltr"
+                            id="loyaltyShortCode"></strong></p>
+                    <p class="field-hint" data-i18n="loyalty.qrHint">Après votre coupe, montrez ce code à Zeyd.</p>
+                </div>
+            </section>
+
             <h3 class="account-subtitle" data-i18n="account.myBookings">Mes rendez-vous à venir</h3>
             <ul class="my-bookings" id="myBookings"></ul>
             <div class="form-message" id="accountMessage" role="status" aria-live="polite" hidden></div>

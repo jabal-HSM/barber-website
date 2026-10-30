@@ -63,6 +63,14 @@ const KNOWN_ERRORS = [
     'too_late_to_cancel',
     'invalid_status',
     'forbidden',
+    'outside_hours',
+    'too_close',
+    'booking_disabled',
+    'payments_disabled',
+    'payments_not_configured',
+    'live_payments_not_allowed',
+    'already_paid',
+    'stripe_error',
 ];
 
 export function errorCode(error) {
@@ -166,13 +174,17 @@ export async function cancelBooking(bookingId) {
 }
 
 // The signed-in customer's upcoming bookings (RLS returns their own rows only).
-export async function fetchMyBookings() {
+// Staff can read every booking, so the customer filter matters here.
+export async function fetchMyBookings(userId) {
     const supabase = await getSupabase();
-    if (!supabase) return null;
+    if (!supabase || !userId) return null;
     const { data, error } = await supabase
         .from('bookings')
-        .select('id, starts_at, ends_at, status, is_custom_request, services (name_fr, name_ar)')
-        .in('status', ['confirmed', 'requested'])
+        .select(
+            'id, starts_at, ends_at, status, is_custom_request, cancel_reason, cancelled_by, customer_id, services (name_fr, name_ar, price)',
+        )
+        .eq('customer_id', userId)
+        .in('status', ['confirmed', 'requested', 'cancelled'])
         .gte('starts_at', new Date().toISOString())
         .order('starts_at');
     return error ? null : data;
@@ -191,4 +203,48 @@ export async function unlikeHaircut(haircutId) {
     const supabase = await getSupabase();
     if (!supabase) return { error: new Error('No backend configured') };
     return supabase.from('haircut_likes').delete().eq('haircut_id', haircutId);
+}
+
+// --- Loyalty card (stamps are added by the barber only, from the dashboard) ---
+export async function fetchMyLoyalty() {
+    const supabase = await getSupabase();
+    if (!supabase) return null;
+    const { data, error } = await supabase.rpc('my_loyalty');
+    return error ? null : (data?.[0] ?? null);
+}
+
+// --- Online payment (Stripe Checkout through the create-checkout Edge Function) ---
+export async function fetchPaymentSettings() {
+    const supabase = await getSupabase();
+    if (!supabase) return null;
+    const { data } = await supabase.from('payment_settings').select('online_payments_enabled').maybeSingle();
+    return data ?? null;
+}
+
+// Status of the customer's own payments, by booking id (only confirmed "paid" counts as paid)
+export async function fetchMyPayments(bookingIds) {
+    const supabase = await getSupabase();
+    if (!supabase || !bookingIds.length) return {};
+    const { data, error } = await supabase
+        .from('payments')
+        .select('booking_id, status, amount_cents, paid_at')
+        .in('booking_id', bookingIds);
+    if (error) return {};
+    const byBooking = {};
+    for (const row of data) {
+        if (!byBooking[row.booking_id] || row.status === 'paid') byBooking[row.booking_id] = row;
+    }
+    return byBooking;
+}
+
+export async function startCheckout(bookingId) {
+    const supabase = await getSupabase();
+    if (!supabase) return NO_BACKEND;
+    const { data, error } = await supabase.functions.invoke('create-checkout', { body: { booking_id: bookingId } });
+    if (error) {
+        // The function answers { error: '<code>' }; a missing function (not deployed yet) has no body
+        const body = await error.context?.json?.().catch(() => null);
+        return { data: null, error: { message: body?.error ?? 'payments_not_configured' } };
+    }
+    return { data, error: data?.url ? null : { message: 'stripe_error' } };
 }

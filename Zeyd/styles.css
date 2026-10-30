@@ -308,7 +308,14 @@ button {
     transition:
         background-color var(--transition),
         border-color var(--transition),
-        color var(--transition);
+        color var(--transition),
+        transform var(--transition);
+}
+
+/* A hidden button stays hidden whatever its display value */
+.btn[hidden],
+.icon-btn[hidden] {
+    display: none;
 }
 
 .btn-sm {
@@ -350,7 +357,8 @@ button {
     transition:
         border-color var(--transition),
         color var(--transition),
-        background-color var(--transition);
+        background-color var(--transition),
+        transform var(--transition);
 }
 
 .icon-btn:hover {
@@ -434,7 +442,8 @@ button {
     cursor: pointer;
     transition:
         background-color var(--transition),
-        color var(--transition);
+        color var(--transition),
+        transform var(--transition);
 }
 
 .lang-btn[lang="ar"] {
@@ -929,6 +938,7 @@ h2 {
     font-size: var(--text-xs);
     font-weight: 700;
     text-decoration: none;
+    transition: transform var(--transition);
 }
 
 .service-link:hover {
@@ -1183,7 +1193,8 @@ h2 {
     text-decoration: none;
     transition:
         border-color var(--transition),
-        background-color var(--transition);
+        background-color var(--transition),
+        transform var(--transition);
 }
 
 .contact-link:hover {
@@ -1488,7 +1499,8 @@ textarea.field {
     transition:
         background-color var(--transition),
         border-color var(--transition),
-        color var(--transition);
+        color var(--transition),
+        transform var(--transition);
 }
 
 .choice span:hover {
@@ -1575,6 +1587,7 @@ textarea.field {
     font-weight: 600;
     text-align: start;
     cursor: pointer;
+    transition: transform var(--transition);
 }
 
 @media (min-width: 40em) {
@@ -1638,6 +1651,7 @@ textarea.field {
     font-size: var(--text-sm);
     font-weight: 600;
     cursor: pointer;
+    transition: transform var(--transition);
 }
 
 .tab[aria-selected="true"] {
@@ -1725,6 +1739,993 @@ textarea.field {
     margin-bottom: var(--space-4);
 }
 
+/* ==========================================================================
+   Sign-in screen (full screen, barber chair photo)
+   ========================================================================== */
+.auth-screen[hidden],
+.auth-choices[hidden],
+.auth-form[hidden] {
+    display: none;
+}
+
+body.has-overlay {
+    overflow: hidden;
+}
+
+.auth-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: #0b1311;
+    color: #fff;
+}
+
+.auth-bg,
+.auth-scrim {
+    position: fixed;
+    inset: 0;
+}
+
+.auth-bg img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 40%;
+}
+
+/* Dark veil + light blur so the text stays readable on the photo */
+.auth-scrim {
+    background: linear-gradient(180deg, rgb(8 14 13 / 50%) 0%, rgb(8 14 13 / 70%) 50%, rgb(8 14 13 / 88%) 100%);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+}
+
+.auth-top {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: calc(var(--space-4) + env(safe-area-inset-top)) var(--space-4) var(--space-4);
+}
+
+.auth-panel {
+    position: relative;
+    align-self: end;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    max-width: 26rem;
+    margin-inline: auto;
+    padding: var(--space-5) var(--space-5) calc(var(--space-7) + env(safe-area-inset-bottom));
+    text-align: center;
+}
+
+@media (min-width: 48em) {
+    .auth-panel {
+        align-self: center;
+    }
+}
+
+.auth-logo {
+    width: 5.5rem;
+    height: 5.5rem;
+    margin-bottom: var(--space-2);
+    border: 1px solid rgb(255 255 255 / 25%);
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 10px 30px rgb(0 0 0 / 45%);
+}
+
+.auth-wordmark {
+    --brand-gradient: var(--brand-gradient-on-dark);
+    font-size: clamp(2rem, 1.4rem + 3vw, 2.75rem);
+    letter-spacing: 0.12em;
+    line-height: 1.1;
+}
+
+.auth-tagline {
+    margin-top: var(--space-2);
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-style: italic;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+:lang(ar) .auth-tagline {
+    font-style: normal;
+}
+
+.auth-subtagline {
+    color: rgb(255 255 255 / 80%);
+    font-size: var(--text-sm);
+}
+
+.auth-choices {
+    display: grid;
+    gap: var(--space-3);
+    width: 100%;
+    margin-top: var(--space-6);
+}
+
+.btn-light {
+    background: #fffefa;
+    color: #174c45;
+}
+
+.btn-light:hover {
+    background: #ffffff;
+}
+
+.btn-dark {
+    background: rgb(12 20 18 / 82%);
+    border-color: rgb(255 255 255 / 30%);
+    color: #fff;
+}
+
+.btn-dark:hover {
+    border-color: #fff;
+}
+
+.auth-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-height: 2.75rem;
+    padding: 0 var(--space-3);
+    border: 0;
+    background: none;
+    color: rgb(255 255 255 / 88%);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+    cursor: pointer;
+    transition: transform var(--transition);
+}
+
+.auth-link .icon {
+    width: 1rem;
+    height: 1rem;
+}
+
+.auth-screen .auth-form {
+    width: 100%;
+    margin-top: var(--space-5);
+    padding: var(--space-5);
+    border: 1px solid rgb(255 255 255 / 14%);
+    border-radius: var(--radius-lg);
+    background: rgb(12 20 18 / 74%);
+    text-align: start;
+}
+
+.auth-form-title {
+    font-size: var(--text-lg);
+}
+
+.auth-screen .field-label {
+    color: #fff;
+}
+
+.auth-screen .field {
+    border-color: rgb(255 255 255 / 30%);
+    background: rgb(255 254 250 / 96%);
+    color: #24332f;
+}
+
+.auth-screen .field-hint {
+    color: rgb(255 255 255 / 72%);
+}
+
+.auth-screen :focus-visible {
+    outline-color: #fff;
+}
+
+.lang-switch-on-dark {
+    border-color: rgb(255 255 255 / 28%);
+    background: rgb(255 255 255 / 12%);
+}
+
+.lang-switch-on-dark .lang-btn {
+    color: rgb(255 255 255 / 85%);
+}
+
+.lang-switch-on-dark .lang-btn[aria-pressed="true"] {
+    background: #fffefa;
+    color: #174c45;
+}
+
+.icon-btn-on-dark {
+    border-color: rgb(255 255 255 / 28%);
+    background: rgb(255 255 255 / 12%);
+    color: #fff;
+}
+
+/* ==========================================================================
+   Loyalty card: warm white card, purple name, 10 circles, brown 10th with a gift
+   (always light, like a printed card, in both themes)
+   ========================================================================== */
+.loyalty {
+    margin-top: var(--space-5);
+}
+
+.lc {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    width: 100%;
+    max-width: 23rem;
+    /* Bank-card proportions (1.586) as a minimum: the card still grows if its content needs it */
+    min-height: calc(min(100cqw, 23rem) / 1.586);
+    margin-inline: auto;
+    padding: 1.15rem 1.15rem 0.9rem;
+    overflow: hidden;
+    border-radius: 18px;
+    background: radial-gradient(130% 100% at 0% 0%, #ffffff 0%, #fdfaf4 55%, #f4eee3 100%);
+    color: #24332f;
+    box-shadow:
+        0 1px 1px rgb(36 51 47 / 5%),
+        0 10px 28px rgb(36 51 47 / 14%),
+        inset 0 0 0 1px rgb(36 51 47 / 7%);
+}
+
+/* Soft diagonal sheen, like a laminated card */
+.lc::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 35%, rgb(255 255 255 / 55%) 48%, transparent 60%);
+    pointer-events: none;
+}
+
+#loyaltyCard {
+    container-type: inline-size;
+}
+
+.lc > * {
+    flex-shrink: 0;
+}
+
+.lc-stripe {
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 6px;
+    background: linear-gradient(90deg, #174c45 0%, #33695d 35%, #65566f 70%, #a8b9a5 100%);
+}
+
+.lc-stripe::after {
+    content: "";
+    position: absolute;
+    inset-inline: 1.15rem;
+    top: 11px;
+    height: 1px;
+    background: linear-gradient(90deg, rgb(101 86 111 / 0%), rgb(101 86 111 / 35%), rgb(101 86 111 / 0%));
+}
+
+.lc-head {
+    position: relative;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-top: 0.35rem;
+}
+
+.lc-brand {
+    color: #174c45;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+}
+
+.lc-label {
+    color: #65566f;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+:lang(ar) .lc-label {
+    font-size: 0.78rem;
+    letter-spacing: 0;
+}
+
+/* Customer name: deep purple with a bright white-lilac shine */
+.lc-name {
+    position: relative;
+    overflow: hidden;
+    color: #4a3760;
+    font-size: clamp(1.15rem, 0.95rem + 1.2vw, 1.4rem);
+    font-weight: 800;
+    line-height: 1.25;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    background-image: linear-gradient(
+        100deg,
+        #3d2b52 0%,
+        #6a4f86 38%,
+        #b9a3d2 47%,
+        #f4eefa 50%,
+        #b9a3d2 53%,
+        #6a4f86 62%,
+        #3d2b52 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.lc-stamps {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.45rem 0.6rem;
+    margin-top: auto;
+    padding: 0;
+    list-style: none;
+}
+
+.lc-stamp {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    max-width: 2.5rem;
+    aspect-ratio: 1;
+    margin-inline: auto;
+    border: 1.5px solid #b8abc6;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 70%);
+}
+
+.lc-stamp .icon {
+    width: 52%;
+    height: 52%;
+    color: #fff;
+    opacity: 0;
+}
+
+.lc-stamp.is-filled {
+    border-color: #174c45;
+    background: radial-gradient(circle at 32% 28%, #3a7a6d 0%, #174c45 70%);
+    box-shadow: 0 2px 6px rgb(23 76 69 / 30%);
+}
+
+.lc-stamp.is-filled .icon {
+    opacity: 1;
+}
+
+/* The 10th circle: warm brown with a black gift box */
+.lc-stamp.is-reward {
+    border-color: #6b4423;
+    background: radial-gradient(circle at 32% 28%, #b07d4c 0%, #845532 70%);
+    box-shadow: 0 2px 6px rgb(107 68 35 / 30%);
+}
+
+.lc-gift {
+    width: 72%;
+    height: 72%;
+}
+
+.lc.is-complete .lc-stamp.is-reward {
+    box-shadow:
+        0 0 0 3px rgb(176 125 76 / 35%),
+        0 4px 12px rgb(107 68 35 / 40%);
+}
+
+.lc-foot {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    color: #5d6b66;
+    font-size: 0.7rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.06em;
+}
+
+.loyalty-progress {
+    margin-top: var(--space-3);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    text-align: center;
+}
+
+.loyalty-qr-btn {
+    display: flex;
+    width: 100%;
+    margin-top: var(--space-3);
+}
+
+.loyalty-qr-btn[hidden],
+.loyalty-qr[hidden] {
+    display: none;
+}
+
+.loyalty-qr {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    padding: var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    text-align: center;
+}
+
+/* Always dark-on-white so any phone camera can read it */
+.loyalty-qr-code {
+    width: min(100%, 14rem);
+    padding: var(--space-2);
+    border-radius: var(--radius-sm);
+    background: #fff;
+}
+
+.loyalty-qr-code svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.loyalty-qr-code-text strong {
+    font-size: var(--text-lg);
+    letter-spacing: 0.12em;
+}
+
+/* Bookings list additions */
+.my-booking {
+    flex-wrap: wrap;
+}
+
+.my-booking.is-cancelled {
+    border-style: dashed;
+}
+
+.my-booking-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.status-badge.is-paid {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+.status-badge.is-cancelled {
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+}
+
+/* ==========================================================================
+   Touch feedback: a light press on every control, a small lift on hover (mouse only)
+   ========================================================================== */
+
+.btn:active,
+.icon-btn:active,
+.lang-btn:active,
+.contact-link:active,
+.service-link:active,
+.auth-link:active,
+.tab:active,
+.nav-account:active,
+.choice:active input + span {
+    transform: scale(0.96);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .btn:hover,
+    .contact-link:hover {
+        transform: translateY(-1px);
+    }
+}
+
+/* ==========================================================================
+   Payment return page (paiement.html)
+   ========================================================================== */
+.payment-page {
+    display: grid;
+    place-items: center;
+    min-height: 100dvh;
+    padding: var(--space-5) var(--space-4);
+}
+
+.payment-card {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-4);
+    width: 100%;
+    max-width: 26rem;
+    padding: var(--space-7) var(--space-5);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-md);
+    text-align: center;
+}
+
+.payment-logo {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+}
+
+.payment-wordmark {
+    font-size: 1.5rem;
+}
+
+.payment-title {
+    color: var(--color-heading);
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+}
+
+.payment-status {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-muted);
+    text-align: start;
+}
+
+.payment-status.is-error {
+    background: var(--color-danger-soft);
+}
+
+.payment-status.is-success {
+    border-inline-start: 3px solid var(--color-primary);
+}
+
+.payment-spinner {
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 3px solid var(--color-border-strong);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+}
+
+.payment-spinner[hidden] {
+    display: none;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ==========================================================================
+   Barber / admin dashboard (admin.html) — phone first
+   ========================================================================== */
+.admin-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-header-bg);
+}
+
+.admin-header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    max-width: 60rem;
+    margin-inline: auto;
+    padding: var(--space-3) var(--space-4);
+}
+
+.admin-header .brand {
+    flex-shrink: 1;
+}
+
+.admin-title {
+    display: grid;
+    min-width: 0;
+    line-height: 1.2;
+}
+
+.admin-title .brand-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.admin-header .header-actions {
+    flex-shrink: 0;
+}
+
+/* Phones: logo + "Espace Zeyd" is enough, the actions keep their room */
+@media (max-width: 30em) {
+    .admin-title .brand-name {
+        display: none;
+    }
+
+    .admin-subtitle {
+        color: var(--color-heading);
+        font-size: var(--text-sm);
+    }
+}
+
+.admin-subtitle {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    font-weight: 600;
+}
+
+.admin-tabs[hidden],
+.admin-panel[hidden],
+.admin-gate[hidden],
+.scanner[hidden],
+.loyalty-result[hidden],
+.admin-message[hidden] {
+    display: none;
+}
+
+/* Tabs scroll sideways on phones instead of wrapping */
+.admin-tabs {
+    display: flex;
+    gap: var(--space-1);
+    max-width: 60rem;
+    margin-inline: auto;
+    padding: 0 var(--space-4) var(--space-2);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.admin-tab {
+    flex-shrink: 0;
+    min-height: 2.5rem;
+    padding: 0 var(--space-4);
+    border: 1px solid transparent;
+    border-radius: var(--radius-pill);
+    background: none;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color var(--transition),
+        color var(--transition),
+        transform var(--transition);
+}
+
+.admin-tab[aria-current="page"] {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+.admin-tab:active {
+    transform: scale(0.96);
+}
+
+.admin-main {
+    display: grid;
+    gap: var(--space-4);
+    max-width: 60rem;
+    margin-inline: auto;
+    padding: var(--space-4) var(--space-4) var(--space-8);
+}
+
+.admin-panel {
+    display: grid;
+    gap: var(--space-4);
+}
+
+.admin-gate {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-4);
+    padding: var(--space-8) var(--space-4);
+    text-align: center;
+}
+
+.admin-card {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-5) var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.admin-h2 {
+    font-size: var(--text-xl);
+}
+
+.admin-list {
+    display: grid;
+    gap: var(--space-3);
+}
+
+.admin-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.admin-item-body {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.admin-item-title {
+    color: var(--color-heading);
+    font-weight: 700;
+}
+
+.admin-item-meta,
+.admin-empty {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}
+
+.admin-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.admin-row .field {
+    flex: 1 1 8rem;
+    width: auto;
+}
+
+.admin-wide {
+    width: 100%;
+}
+
+.admin-check {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 2.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.admin-check input {
+    width: 1.25rem;
+    height: 1.25rem;
+    accent-color: var(--color-primary);
+}
+
+.admin-field {
+    display: grid;
+    gap: var(--space-1);
+}
+
+.admin-field .field-label {
+    margin-bottom: 0;
+}
+
+.notification.is-unread {
+    border-inline-start: 3px solid var(--color-primary);
+    background: var(--color-surface-muted);
+}
+
+.booking-item.is-cancelled,
+.booking-item.is-no_show {
+    opacity: 0.7;
+    border-style: dashed;
+}
+
+.status-badge.is-completed {
+    background: var(--color-surface-muted);
+    color: var(--color-text-muted);
+}
+
+.status-badge.is-no_show {
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+}
+
+.admin-cancel-form,
+.admin-email {
+    display: grid;
+    flex-basis: 100%;
+    gap: var(--space-2);
+}
+
+/* Earnings: a dark petrol "card" for Zeyd's indicative share */
+.earnings-card {
+    position: relative;
+    display: grid;
+    gap: var(--space-1);
+    overflow: hidden;
+    padding: var(--space-6) var(--space-5);
+    border-radius: 20px;
+    background: radial-gradient(120% 140% at 100% 0%, #33695d 0%, #174c45 45%, #0f3530 100%);
+    color: #fffefa;
+    box-shadow: 0 12px 30px rgb(15 53 48 / 30%);
+}
+
+.earnings-card::after {
+    content: "";
+    position: absolute;
+    inset-inline-end: -3rem;
+    top: -3rem;
+    width: 10rem;
+    height: 10rem;
+    border: 1px solid rgb(255 255 255 / 18%);
+    border-radius: 50%;
+}
+
+.earnings-label {
+    color: #d6e2db;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.earnings-amount {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: clamp(2.5rem, 2rem + 3vw, 3.5rem);
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.earnings-meta,
+.earnings-note {
+    color: #d6e2db;
+    font-size: var(--text-sm);
+}
+
+.earnings-note {
+    font-size: var(--text-xs);
+}
+
+/* Loyalty scanner */
+.scanner video {
+    width: 100%;
+    max-height: 60vh;
+    border-radius: var(--radius-md);
+    background: #000;
+    object-fit: cover;
+}
+
+.loyalty-result {
+    padding: var(--space-4);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-md);
+}
+
+.loyalty-result-body {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.admin-dots {
+    display: flex;
+    gap: 6px;
+    margin-block: var(--space-2);
+    padding: 0;
+    list-style: none;
+}
+
+.admin-dot {
+    width: 1.4rem;
+    height: 1.4rem;
+    border: 1.5px solid #b8abc6;
+    border-radius: 50%;
+}
+
+.admin-dot.is-filled {
+    border-color: #174c45;
+    background: #174c45;
+}
+
+.admin-dot.is-reward {
+    border-color: #6b4423;
+    background: #a0703f;
+}
+
+.btn-reward {
+    background: #845532;
+    color: #fffefa;
+}
+
+/* Services */
+.admin-service {
+    display: grid;
+}
+
+.admin-service-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+}
+
+@media (min-width: 48em) {
+    .admin-service-grid {
+        grid-template-columns: 2fr 2fr 1fr 1fr;
+    }
+}
+
+/* Hours */
+.admin-day {
+    display: grid;
+    gap: var(--space-2);
+    padding-block: var(--space-3);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.admin-segment .field {
+    flex: 0 1 7.5rem;
+}
+
+.admin-grid-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+}
+
+.admin-span {
+    grid-column: 1 / -1;
+}
+
+/* Gallery */
+.admin-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+    gap: var(--space-3);
+}
+
+.admin-photo {
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+}
+
+.admin-photo img {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+}
+
+.admin-photo-body {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3);
+}
+
+.admin-role {
+    width: auto;
+    min-width: 9rem;
+}
+
+.admin-settings .field {
+    max-width: 14rem;
+}
+
+.admin-settings .field-label {
+    margin-top: var(--space-2);
+}
+
 /* Set by script.js for the instant of a theme change */
 .is-theme-switching {
     --transition: 0ms;
@@ -1737,5 +2738,23 @@ textarea.field {
 
     html {
         scroll-behavior: auto;
+    }
+
+    .payment-spinner {
+        animation-duration: 3s;
+    }
+
+    .btn:active,
+    .icon-btn:active,
+    .lang-btn:active,
+    .contact-link:active,
+    .service-link:active,
+    .auth-link:active,
+    .tab:active,
+    .nav-account:active,
+    .choice:active input + span,
+    .btn:hover,
+    .contact-link:hover {
+        transform: none;
     }
 }

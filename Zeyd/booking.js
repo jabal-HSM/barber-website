@@ -6,14 +6,19 @@ import {
     errorCode,
     fetchBookableDays,
     fetchMyBookings,
+    fetchMyLoyalty,
+    fetchMyPayments,
+    fetchPaymentSettings,
     fetchSlots,
     onAuthChange,
     requestCustomTime,
     signIn,
     signOut,
     signUp,
+    startCheckout,
 } from './api.js';
 import { t } from './i18n.js';
+import { renderLoyaltyCard, renderQrCode } from './loyalty.js';
 import { formatDateOf, formatDay, formatTime, parisLocalToIso } from './time.js';
 
 const state = {
@@ -28,8 +33,17 @@ const state = {
     slots: null, // null = loading
     slot: null,
     authMode: 'signin',
+    authStep: 'choices',
+    authKnown: false,
+    authOpener: null,
     bookings: [],
+    payments: {},
+    paymentsEnabled: false,
+    loyalty: null,
+    loyaltyLoaded: false,
+    qrShown: false,
     slotsRequest: null,
+    autoAdvanceDay: true, // on first display only: skip days that have no free time left
     messages: {}, // element id -> { kind, key, params } so messages follow language changes
 };
 
@@ -78,6 +92,7 @@ export async function initBooking({ lang, services, priceFormatter }) {
         loadSlots();
     });
     $('bookingDays')?.addEventListener('change', (e) => {
+        state.autoAdvanceDay = false;
         state.day = e.target.value;
         state.slot = null;
         loadSlots();
@@ -88,13 +103,14 @@ export async function initBooking({ lang, services, priceFormatter }) {
     });
     $('bookingForm')?.addEventListener('submit', onBookingSubmit);
     $('customForm')?.addEventListener('submit', onCustomSubmit);
+    initAuthScreen();
     initAccountDialog();
 
     renderServiceSelect();
     renderSummary();
-    onAuthChange(onUserChange);
 
     state.days = await fetchBookableDays();
+    onAuthChange(onUserChange);
     $('bookingOffline').hidden = state.days !== null;
     $('bookingForm').hidden = state.days === null;
     $('customRequest').hidden = state.days === null;
@@ -110,8 +126,9 @@ export function setBookingLanguage(lang) {
     renderDays();
     renderSlots();
     renderSummary();
-    renderAuthMode();
+    renderAuthStep();
     renderBookings();
+    renderLoyalty();
     for (const id of Object.keys(state.messages)) renderMessage(id);
 }
 
@@ -191,6 +208,14 @@ async function loadSlots() {
     const slots = await fetchSlots(service.dbId, state.day);
     if (state.slotsRequest !== requested) return; // a newer choice was made meanwhile
     state.slots = slots ?? [];
+    const nextDay = state.days[state.days.indexOf(state.day) + 1];
+    if (state.autoAdvanceDay && slots && !slots.length && nextDay) {
+        state.day = nextDay;
+        renderDays();
+        loadSlots();
+        return;
+    }
+    state.autoAdvanceDay = false;
     if (state.slot && !state.slots.some((s) => s.starts_at === state.slot.starts_at)) state.slot = null;
     renderSlots();
     renderSummary();
@@ -275,58 +300,98 @@ async function onCustomSubmit(event) {
         setMessage('customMessage', 'error', !startsAt ? 'error.invalid_time' : 'error.service_unavailable');
         return;
     }
-    const { error } = await requestCustomTime(service.dbId, startsAt, $('customNote').value);
+    const { data, error } = await requestCustomTime(service.dbId, startsAt, $('customNote').value);
     if (error) {
         setMessage('customMessage', 'error', errorKey(error));
         return;
     }
-    setMessage('customMessage', 'success', 'booking.customSuccess');
+    // A valid custom time is confirmed at once; with an unknown duration it waits for Zeyd
+    if (data?.status === 'confirmed') {
+        setMessage('customMessage', 'success', 'booking.success', {
+            day: formatDateOf(data.starts_at, state.lang),
+            time: formatTime(data.starts_at),
+        });
+        loadSlots();
+    } else {
+        setMessage('customMessage', 'success', 'booking.customSuccess');
+    }
     $('customDate').value = '';
     $('customNote').value = '';
     loadMyBookings();
 }
 
-// --- Account dialog ---
-function initAccountDialog() {
-    const dialog = $('accountDialog');
-    if (!dialog) return;
-    document.querySelectorAll('[data-open-account]').forEach((btn) => {
-        btn.addEventListener('click', () => openAccount());
+// --- Sign-in screen (full screen, barber chair) ---
+const WELCOME_KEY = 'welcomeSeen';
+
+function readPref(key) {
+    try {
+        return localStorage.getItem(key);
+    } catch {
+        return null;
+    }
+}
+
+function writePref(key, value) {
+    try {
+        localStorage.setItem(key, value);
+    } catch {
+        // The choice only lasts for this visit
+    }
+}
+
+function initAuthScreen() {
+    const screen = $('authScreen');
+    if (!screen) return;
+    screen.querySelectorAll('[data-auth-mode]').forEach((btn) => {
+        btn.addEventListener('click', () => showAuthScreen(btn.dataset.authMode));
     });
-    $('accountCloseBtn').addEventListener('click', () => dialog.close());
-    // Click on the backdrop closes the dialog
-    dialog.addEventListener('click', (e) => {
-        if (e.target === dialog) dialog.close();
-    });
-    document.querySelectorAll('[data-auth-mode]').forEach((tab) => {
-        tab.addEventListener('click', () => {
-            state.authMode = tab.dataset.authMode;
-            setMessage('authMessage', null);
-            renderAuthMode();
-        });
-    });
+    $('authSkipBtn').addEventListener('click', hideAuthScreen);
+    $('authCloseBtn').addEventListener('click', hideAuthScreen);
+    $('authBackBtn').addEventListener('click', () => showAuthScreen('choices'));
+    $('authSwitchBtn').addEventListener('click', () =>
+        showAuthScreen(state.authMode === 'signup' ? 'signin' : 'signup'),
+    );
     $('authForm').addEventListener('submit', onAuthSubmit);
-    $('signOutBtn').addEventListener('click', async () => {
-        await signOut();
-        setMessage('accountMessage', null);
+    screen.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') hideAuthScreen();
     });
 }
 
-function openAccount(mode) {
-    if (mode) state.authMode = mode;
-    renderAuthMode();
-    const dialog = $('accountDialog');
-    if (!dialog.open) dialog.showModal();
+function showAuthScreen(step = 'choices') {
+    const screen = $('authScreen');
+    if (!screen) return;
+    const opening = screen.hidden;
+    if (opening) state.authOpener = document.activeElement;
+    if (step !== 'choices') state.authMode = step;
+    state.authStep = step;
+    screen.hidden = false;
+    document.body.classList.add('has-overlay');
+    if (step === 'choices') setMessage('authMessage', null);
+    renderAuthStep();
+    const focusTarget = step === 'choices' ? screen.querySelector('[data-auth-mode="signin"]') : $('authEmail');
+    focusTarget?.focus();
 }
 
-function renderAuthMode() {
-    const signup = state.authMode === 'signup';
-    $('signInTab')?.setAttribute('aria-selected', String(!signup));
-    $('signUpTab')?.setAttribute('aria-selected', String(signup));
+function hideAuthScreen() {
+    const screen = $('authScreen');
+    if (!screen || screen.hidden) return;
+    screen.hidden = true;
+    document.body.classList.remove('has-overlay');
+    writePref(WELCOME_KEY, '1');
+    state.authOpener?.focus?.();
+}
+
+function renderAuthStep() {
     if (!$('authForm')) return;
+    const choices = state.authStep === 'choices';
+    const signup = state.authMode === 'signup';
+    $('authChoices').hidden = !choices;
+    $('authForm').hidden = choices;
     $('authNameGroup').hidden = !signup;
     $('authPassword').autocomplete = signup ? 'new-password' : 'current-password';
+    $('authFormTitle').textContent = t(state.lang, signup ? 'auth.signUpTitle' : 'auth.signInTitle');
     $('authSubmit').textContent = t(state.lang, signup ? 'account.signUpSubmit' : 'account.signInSubmit');
+    $('authSwitchBtn').textContent = t(state.lang, signup ? 'auth.toSignIn' : 'auth.toSignUp');
 }
 
 async function onAuthSubmit(event) {
@@ -357,33 +422,133 @@ async function onAuthSubmit(event) {
         // Email confirmation is on: the account is active once the link is opened.
         setMessage('authMessage', 'success', 'account.checkEmail', { email });
         state.authMode = 'signin';
-        renderAuthMode();
+        renderAuthStep();
         return;
     }
     setMessage('authMessage', null);
+    hideAuthScreen();
+}
+
+// --- Account dialog (signed in) ---
+function initAccountDialog() {
+    const dialog = $('accountDialog');
+    if (!dialog) return;
+    document.querySelectorAll('[data-open-account]').forEach((btn) => {
+        btn.addEventListener('click', () => openAccount());
+    });
+    $('accountCloseBtn').addEventListener('click', () => dialog.close());
+    // Click on the backdrop closes the dialog
+    dialog.addEventListener('click', (e) => {
+        if (e.target === dialog) dialog.close();
+    });
+    $('signOutBtn').addEventListener('click', async () => {
+        await signOut();
+        setMessage('accountMessage', null);
+        dialog.close();
+    });
+    $('loyaltyQrBtn').addEventListener('click', toggleQr);
+}
+
+function openAccount(mode) {
+    if (!state.user) {
+        showAuthScreen(mode ?? 'choices');
+        return;
+    }
+    const dialog = $('accountDialog');
+    if (!dialog.open) dialog.showModal();
+    loadMyBookings();
+    loadLoyalty();
 }
 
 function onUserChange(user) {
+    const firstCall = !state.authKnown;
+    state.authKnown = true;
     state.user = user;
     document.querySelectorAll('.account-dot').forEach((dot) => {
         dot.hidden = !user;
     });
-    if ($('authView')) {
-        $('authView').hidden = Boolean(user);
-        $('accountView').hidden = !user;
-        $('accountEmail').textContent = user?.email ?? '';
-    }
+    if ($('accountEmail')) $('accountEmail').textContent = user?.email ?? '';
     renderSummary();
-    if (user) loadMyBookings();
-    else {
+    if (user) {
+        hideAuthScreen();
+        loadMyBookings();
+        loadLoyalty();
+    } else {
         state.bookings = [];
+        state.loyalty = null;
+        state.qrShown = false;
         renderBookings();
+        renderLoyalty();
+        if ($('accountDialog')?.open) $('accountDialog').close();
+        // First visit: welcome screen once (only when accounts can actually be used)
+        if (firstCall && state.days !== null && !readPref(WELCOME_KEY)) showAuthScreen('choices');
     }
 }
 
+// --- Loyalty card ---
+async function loadLoyalty() {
+    if (!state.user) return;
+    state.loyalty = await fetchMyLoyalty();
+    state.loyaltyLoaded = true;
+    renderLoyalty();
+}
+
+function renderLoyalty() {
+    const container = $('loyaltyCard');
+    if (!container) return;
+    const card = state.loyalty;
+    $('loyaltyQrBtn').hidden = !card;
+    if (!card) {
+        container.replaceChildren();
+        $('loyaltyProgress').textContent =
+            state.user && state.loyaltyLoaded ? t(state.lang, 'loyalty.unavailable') : '';
+        $('loyaltyQr').hidden = true;
+        return;
+    }
+    const filled = renderLoyaltyCard(container, card, state.lang);
+    const lines = [];
+    if (filled === 10 || card.available_rewards > 0) lines.push(t(state.lang, 'loyalty.rewardReady'));
+    if (card.available_rewards > 1)
+        lines.push(t(state.lang, 'loyalty.rewardsAvailable', { count: card.available_rewards }));
+    if (filled < 10) lines.push(t(state.lang, 'loyalty.progress', { count: filled, left: 10 - filled }));
+    $('loyaltyProgress').textContent = lines.join(' ');
+    $('loyaltyShortCode').textContent = card.short_code;
+    $('loyaltyQr').hidden = !state.qrShown;
+    $('loyaltyQrBtn').setAttribute('aria-expanded', String(Boolean(state.qrShown)));
+    $('loyaltyQrBtnText').textContent = t(state.lang, state.qrShown ? 'loyalty.hideQr' : 'loyalty.showQr');
+}
+
+async function toggleQr() {
+    state.qrShown = !state.qrShown;
+    renderLoyalty();
+    if (!state.qrShown || !state.loyalty) return;
+    const ok = await renderQrCode($('loyaltyQrCode'), state.loyalty.token);
+    if (!ok) setMessage('accountMessage', 'error', 'loyalty.qrError', { code: state.loyalty.short_code });
+}
+
+// --- Upcoming bookings (with payment) ---
 async function loadMyBookings() {
-    state.bookings = (await fetchMyBookings()) ?? [];
+    if (!state.user) return;
+    const [bookings, settings] = await Promise.all([fetchMyBookings(state.user.id), fetchPaymentSettings()]);
+    // Cancelled bookings are shown only when the salon cancelled them, so the customer knows why
+    state.bookings = (bookings ?? []).filter(
+        (b) => b.status !== 'cancelled' || (b.cancelled_by && b.cancelled_by !== b.customer_id),
+    );
+    state.paymentsEnabled = Boolean(settings?.online_payments_enabled);
+    state.payments = await fetchMyPayments(state.bookings.map((b) => b.id));
     renderBookings();
+}
+
+async function onPay(booking, button) {
+    button.disabled = true;
+    setMessage('accountMessage', 'success', 'pay.redirecting');
+    const { data, error } = await startCheckout(booking.id);
+    if (error) {
+        button.disabled = false;
+        setMessage('accountMessage', 'error', errorKey(error));
+        return;
+    }
+    window.location.assign(data.url);
 }
 
 function renderBookings() {
@@ -399,7 +564,7 @@ function renderBookings() {
     list.replaceChildren(
         ...state.bookings.map((booking) => {
             const item = document.createElement('li');
-            item.className = 'my-booking';
+            item.className = `my-booking${booking.status === 'cancelled' ? ' is-cancelled' : ''}`;
             const day = formatDateOf(booking.starts_at, state.lang);
             const time = formatTime(booking.starts_at);
 
@@ -413,23 +578,54 @@ function renderBookings() {
             what.textContent = (state.lang === 'ar' && names.name_ar) || names.name_fr || '';
             const status = document.createElement('span');
             status.className = `status-badge is-${booking.status}`;
-            status.textContent = t(state.lang, `status.${booking.status}`);
+            status.textContent =
+                booking.status === 'cancelled'
+                    ? t(state.lang, 'account.cancelledBySalon')
+                    : t(state.lang, `status.${booking.status}`);
             info.append(when, what, status);
 
-            const cancel = document.createElement('button');
-            cancel.type = 'button';
-            cancel.className = 'btn btn-ghost btn-sm';
-            cancel.textContent = t(state.lang, 'account.cancel');
-            cancel.setAttribute('aria-label', t(state.lang, 'account.cancelAria', { day, time }));
-            cancel.addEventListener('click', async () => {
-                if (!window.confirm(t(state.lang, 'account.cancelConfirm'))) return;
-                const { error } = await cancelBooking(booking.id);
-                if (error) setMessage('accountMessage', 'error', errorKey(error));
-                else setMessage('accountMessage', 'success', 'account.cancelled');
-                loadMyBookings();
-                loadSlots();
-            });
-            item.append(info, cancel);
+            const payment = state.payments?.[booking.id];
+            if (payment?.status === 'paid') {
+                const paid = document.createElement('span');
+                paid.className = 'status-badge is-paid';
+                paid.textContent = t(state.lang, 'pay.paid');
+                info.append(' ', paid);
+            }
+            if (booking.status === 'cancelled' && booking.cancel_reason) {
+                const reason = document.createElement('p');
+                reason.className = 'my-booking-what';
+                reason.textContent = t(state.lang, 'account.cancelReason', { reason: booking.cancel_reason });
+                info.append(reason);
+            }
+
+            const actions = document.createElement('div');
+            actions.className = 'my-booking-actions';
+            const price = Number(names.price);
+            if (state.paymentsEnabled && booking.status === 'confirmed' && payment?.status !== 'paid' && price > 0) {
+                const pay = document.createElement('button');
+                pay.type = 'button';
+                pay.className = 'btn btn-primary btn-sm';
+                pay.textContent = t(state.lang, 'pay.button', { amount: state.priceFormatter.format(price) });
+                pay.addEventListener('click', () => onPay(booking, pay));
+                actions.append(pay);
+            }
+            if (booking.status === 'confirmed' || booking.status === 'requested') {
+                const cancel = document.createElement('button');
+                cancel.type = 'button';
+                cancel.className = 'btn btn-ghost btn-sm';
+                cancel.textContent = t(state.lang, 'account.cancel');
+                cancel.setAttribute('aria-label', t(state.lang, 'account.cancelAria', { day, time }));
+                cancel.addEventListener('click', async () => {
+                    if (!window.confirm(t(state.lang, 'account.cancelConfirm'))) return;
+                    const { error } = await cancelBooking(booking.id);
+                    if (error) setMessage('accountMessage', 'error', errorKey(error));
+                    else setMessage('accountMessage', 'success', 'account.cancelled');
+                    loadMyBookings();
+                    loadSlots();
+                });
+                actions.append(cancel);
+            }
+            item.append(info, actions);
             return item;
         }),
     );
