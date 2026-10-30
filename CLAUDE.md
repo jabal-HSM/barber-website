@@ -13,6 +13,9 @@ Biome is installed as a dev dependency at the repo root (`package.json`, config 
 
 ## Version control
 
-GitLens is installed in VS Code for the user. It needs Git, which is not installed yet, and the project is not a Git repository. Once Git is set up, use the `git` CLI directly (log, blame, diff) for history questions: GitLens is a UI extension and has no CLI.
+Git repository on branch `main` (no remote). GitLens is installed in VS Code for the user; it is a UI extension with no CLI, so use the `git` CLI directly (log, blame, diff) for history questions.
+
+- Commit before and after each set of changes to the site, so every change can be reverted.
+- `.env`, `node_modules/` and `.backup-before-biome/` are ignored; never commit secrets.
 
 Ruff (Python) is installed on the machine but is not used here: the project has no Python files.
