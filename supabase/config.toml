@@ -1,0 +1,10 @@
+# Supabase CLI settings used when deploying the Edge Functions (npx supabase functions deploy …)
+project_id = "zeyd-barber"
+
+# Stripe calls the webhook without a Supabase login: its signature is checked in the code instead.
+[functions.stripe-webhook]
+verify_jwt = false
+
+# The site calls create-checkout with the signed-in customer's token.
+[functions.create-checkout]
+verify_jwt = true

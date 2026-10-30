@@ -3,8 +3,6 @@ import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 import { as, createDb, rows, signUp } from './helpers.mjs';
 
-const TZ = 'Europe/Paris';
-
 async function serviceId(db, slug) {
     return (await rows(db, 'select id from public.services where slug = $1', [slug]))[0].id;
 }

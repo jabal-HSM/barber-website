@@ -11,3 +11,6 @@ graphify-out/
 
 # Manual backup from before Git was set up
 .backup-before-biome/
+
+# Templates without real secrets are committed
+!.env.example
