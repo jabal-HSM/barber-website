@@ -1,3 +1,4 @@
+import { fetchGallery, fetchServices } from './api.js';
 import { GALLERY, SERVICES } from './data.js';
 import { DEFAULT_LANG, LANGUAGES, t } from './i18n.js';
 
@@ -16,6 +17,9 @@ const priceFormatter = new Intl.NumberFormat('fr-FR', {
 
 const root = document.documentElement;
 let currentLang = DEFAULT_LANG;
+// Built-in content first; replaced by the database content when a backend is configured (config.js).
+let services = SERVICES;
+let gallery = GALLERY;
 
 // localStorage can throw (private mode, blocked storage): preferences are then simply not saved.
 function readPref(key) {
@@ -40,7 +44,21 @@ document.addEventListener('DOMContentLoaded', () => {
     initMenu();
     renderHeroFacts();
     document.getElementById('currentYear').textContent = String(new Date().getFullYear());
+    loadRemoteContent();
 });
+
+async function loadRemoteContent() {
+    const [remoteServices, remoteGallery] = await Promise.all([fetchServices(), fetchGallery()]);
+    if (remoteServices) {
+        services = remoteServices;
+        renderServices();
+        renderHeroFacts();
+    }
+    if (remoteGallery) {
+        gallery = remoteGallery;
+        renderGallery();
+    }
+}
 
 // --- Language ---
 function initLanguage() {
@@ -163,7 +181,7 @@ function renderServices() {
     const template = document.getElementById('serviceCardTemplate');
     if (!list || !template) return;
 
-    const cards = SERVICES.map((service) => {
+    const cards = services.map((service) => {
         const card = template.content.firstElementChild.cloneNode(true);
         const name = service.name[currentLang] ?? service.name.fr;
 
@@ -192,23 +210,23 @@ function renderServices() {
 }
 
 function renderHeroFacts() {
-    const minPrice = Math.min(...SERVICES.map((s) => s.price));
+    const minPrice = Math.min(...services.map((s) => s.price));
     document.getElementById('factMinPrice').textContent = priceFormatter.format(minPrice);
-    document.getElementById('factServiceCount').textContent = String(SERVICES.length);
+    document.getElementById('factServiceCount').textContent = String(services.length);
 }
 
-// --- Gallery: shows real photos once GALLERY is filled, otherwise the empty state ---
+// --- Gallery: shows real photos once there are some, otherwise the empty state ---
 function renderGallery() {
     const grid = document.getElementById('galleryGrid');
     const empty = document.getElementById('galleryEmpty');
     if (!grid || !empty) return;
 
-    const hasPhotos = GALLERY.length > 0;
+    const hasPhotos = gallery.length > 0;
     grid.hidden = !hasPhotos;
     empty.hidden = hasPhotos;
     if (!hasPhotos) return;
 
-    const items = GALLERY.map((photo) => {
+    const items = gallery.map((photo) => {
         const figure = document.createElement('figure');
         figure.className = 'gallery-item';
         if (photo.category) figure.dataset.category = photo.category;

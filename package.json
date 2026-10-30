@@ -8,9 +8,11 @@
     "lint": "biome lint",
     "format": "biome format --write",
     "check": "biome check",
-    "fix": "biome check --write"
+    "fix": "biome check --write",
+    "test": "node --test tests/*.test.mjs"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.4"
+    "@biomejs/biome": "2.6.4",
+    "@electric-sql/pglite": "0.3.16"
   }
 }

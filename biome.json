@@ -1,7 +1,7 @@
 {
     "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
     "files": {
-        "includes": ["Zeyd/**/*.js", "Zeyd/**/*.css"]
+        "includes": ["Zeyd/**/*.js", "Zeyd/**/*.css", "tests/**/*.mjs"]
     },
     "formatter": {
         "enabled": true,
