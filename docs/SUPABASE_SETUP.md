@@ -16,7 +16,8 @@ npm run check
 ## 3. Create the dev project (once, free tier)
 1. https://supabase.com/dashboard → **New project** → name `zeyd-dev`, region close to France (e.g. Paris / Frankfurt).
    Keep the database password in your password manager; it is not needed by the site.
-2. **SQL Editor** → paste the whole content of `supabase/migrations/20261030120000_phase2_core.sql` → **Run**.
+2. **SQL Editor** → run every file of `supabase/migrations/` **in name order**, each one once:
+   `20261030120000_phase2_core.sql`, then `20261030130000_revoke_internal_functions.sql`.
 3. **Authentication → Sign In / Providers → Email**: keep "Confirm email" on.
    **Authentication → URL Configuration**: Site URL `http://127.0.0.1:5501` (dev only).
 4. **Project Settings → API Keys**: copy the project URL and the **publishable** key (`sb_publishable_…`).
@@ -37,4 +38,4 @@ The account screens (sign-up, sign-in, likes buttons) are part of Phase 5; `Zeyd
 ## 5. Production project (later, with approval)
 1. Back up first: **Database → Backups** (or `pg_dump`).
 2. Check the sign-up trigger name (see `docs/DATABASE.md`).
-3. Run the same migration in the production SQL editor, then point `config.js` to production.
+3. Run the same migrations in the production SQL editor, then point `config.js` to production.

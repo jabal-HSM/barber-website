@@ -176,6 +176,22 @@ describe('fresh project', () => {
         });
     });
 
+    test('internal helper functions cannot be called through the API', async () => {
+        for (const who of ['anon', bob]) {
+            await as(db, who, async () => {
+                await assert.rejects(
+                    db.query("select public.reset_policies('public.services')"),
+                    /permission denied for function/,
+                );
+                await assert.rejects(db.query('select public.set_updated_at()'), /permission denied for function/);
+            });
+        }
+        // Public functions stay callable
+        await as(db, 'anon', async () => {
+            await db.query('select * from public.gallery_with_likes()');
+        });
+    });
+
     test('a customer only sees their own profile', async () => {
         await as(db, bob, async () => {
             const visible = await rows(db, 'select id from public.profiles');
