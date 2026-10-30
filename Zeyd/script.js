@@ -2,6 +2,7 @@ import { fetchGallery, fetchServices } from './api.js';
 import { initBooking, selectBookingService, setBookingLanguage, setBookingServices } from './booking.js';
 import { GALLERY, SERVICES } from './data.js';
 import { DEFAULT_LANG, LANGUAGES, t } from './i18n.js';
+import { initSound, playThemeSound } from './sound.js';
 
 // Same storage keys as the previous version, so saved preferences are kept.
 const STORAGE_KEYS = { lang: 'lang', theme: 'theme' };
@@ -43,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     initLanguage();
     initMenu();
+    initSound();
     renderHeroFacts();
     document.getElementById('currentYear').textContent = String(new Date().getFullYear());
     initBooking({ lang: currentLang, services, priceFormatter });
@@ -113,8 +115,11 @@ function initTheme() {
     setTheme(saved === 'dark' ? 'dark' : 'light');
 
     document.getElementById('themeToggleBtn')?.addEventListener('click', () => {
-        setTheme(root.dataset.theme === 'dark' ? 'light' : 'dark');
+        const before = root.dataset.theme;
+        setTheme(before === 'dark' ? 'light' : 'dark');
         writePref(STORAGE_KEYS.theme, root.dataset.theme);
+        // Only a deliberate, real change makes the "switch" sound (never the theme restored at load)
+        if (root.dataset.theme !== before) playThemeSound();
     });
 }
 

@@ -2777,6 +2777,107 @@ body.has-overlay {
     text-align: start;
 }
 
+/* Sound preferences: native checkboxes drawn as switches (keyboard and screen readers keep the real input) */
+.sound-settings {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+    margin: 0 0 var(--space-4);
+    padding: 0;
+    border: 0;
+}
+
+.sound-settings legend {
+    padding: 0;
+}
+
+.switch {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 2.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.switch-sub {
+    padding-inline-start: var(--space-5);
+    font-weight: 500;
+}
+
+.switch input {
+    position: absolute;
+    width: 2.75rem;
+    height: 1.6rem;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.switch-track {
+    position: relative;
+    flex-shrink: 0;
+    width: 2.75rem;
+    height: 1.6rem;
+    border-radius: 999px;
+    background: var(--color-border-strong);
+    transition: background-color var(--transition);
+}
+
+.switch-track::after {
+    content: "";
+    position: absolute;
+    top: 0.2rem;
+    inset-inline-start: 0.2rem;
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+    transition: transform var(--transition);
+}
+
+.switch input:checked + .switch-track {
+    background: var(--color-primary);
+}
+
+.switch input:checked + .switch-track::after {
+    transform: translateX(1.15rem);
+}
+
+[dir="rtl"] .switch input:checked + .switch-track::after {
+    transform: translateX(-1.15rem);
+}
+
+.switch input:focus-visible + .switch-track {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.switch input:disabled + .switch-track,
+.switch input:disabled ~ span:last-child {
+    opacity: 0.5;
+}
+
+.switch input:disabled {
+    cursor: not-allowed;
+}
+
+.switch-on-dark {
+    min-height: 2.5rem;
+    color: var(--color-footer-text);
+    font-size: var(--text-xs);
+}
+
+.switch-on-dark input:not(:checked) + .switch-track {
+    background: rgb(235 230 218 / 28%);
+}
+
+.switch-on-dark input:checked + .switch-track {
+    background: var(--color-secondary);
+}
+
 /* Shown only when index.html is opened from file:// (see the end of index.html) */
 .file-warning {
     position: sticky;

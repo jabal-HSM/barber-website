@@ -124,6 +124,11 @@ export const translations = {
         'auth.toSignUp': 'Pas encore de compte ? Créer un compte',
         'auth.toSignIn': 'Déjà un compte ? Se connecter',
         'auth.resend': 'Renvoyer l’e-mail de confirmation',
+        'sound.title': 'Sons',
+        'sound.enabled': 'Sons de l’interface',
+        'sound.scroll': 'Son du défilement',
+        'sound.theme': 'Son du changement de thème',
+        'sound.hint': 'Des sons discrets, jamais nécessaires pour utiliser le site. Vos choix suivent votre compte.',
         'auth.resent': 'Nouvel e-mail envoyé à {email}. Ouvrez le lien sur l’appareil où le site est ouvert.',
         'account.emailConfirmed': 'Adresse e-mail confirmée : vous êtes connecté.',
         'error.link_expired':
@@ -340,6 +345,11 @@ export const translations = {
         'auth.toSignUp': 'ليس لديك حساب؟ أنشئ حساباً',
         'auth.toSignIn': 'لديك حساب؟ سجّل الدخول',
         'auth.resend': 'إعادة إرسال رسالة التأكيد',
+        'sound.title': 'الأصوات',
+        'sound.enabled': 'أصوات الواجهة',
+        'sound.scroll': 'صوت التمرير',
+        'sound.theme': 'صوت تغيير المظهر',
+        'sound.hint': 'أصوات خفيفة، والموقع يعمل بالكامل بدونها. تُحفظ اختياراتك في حسابك.',
         'auth.resent': 'أُرسلت رسالة جديدة إلى {email}. افتح الرابط على الجهاز الذي فتحت عليه الموقع.',
         'account.emailConfirmed': 'تم تأكيد بريدك الإلكتروني وأنت الآن مسجّل الدخول.',
         'error.link_expired':

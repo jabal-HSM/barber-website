@@ -102,6 +102,13 @@ export async function signUp(email, password, { fullName = '', lang = 'fr' } = {
     });
 }
 
+// Sound preferences follow the account (user_metadata: written by the person only, no security meaning)
+export async function saveSoundPrefs(prefs) {
+    const supabase = await getSupabase();
+    if (!supabase) return { error: null };
+    return supabase.auth.updateUser({ data: { sound_prefs: prefs } });
+}
+
 // New confirmation email, for an account whose link expired or never arrived
 export async function resendConfirmation(email) {
     const supabase = await getSupabase();

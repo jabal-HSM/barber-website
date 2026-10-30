@@ -560,6 +560,12 @@
         <div class="container footer-bottom">
             <p>© <span id="currentYear">2026</span> <span lang="en">ZEYD BARBER</span>. <span
                     data-i18n="footer.rights">Tous droits réservés.</span></p>
+            <!-- Same preference as in « Mon compte », for visitors without an account -->
+            <label class="switch switch-on-dark">
+                <input type="checkbox" role="switch" data-sound-pref="enabled" checked>
+                <span class="switch-track" aria-hidden="true"></span>
+                <span data-i18n="sound.enabled">Sons de l’interface</span>
+            </label>
             <a href="#top" class="back-to-top">
                 <svg class="icon" aria-hidden="true">
                     <use href="#i-arrow-up" />
@@ -693,6 +699,29 @@
             <h3 class="account-subtitle" data-i18n="account.myBookings">Mes rendez-vous à venir</h3>
             <ul class="my-bookings" id="myBookings"></ul>
             <div class="form-message" id="accountMessage" role="status" aria-live="polite" hidden></div>
+
+            <!-- Sound preferences (sound.js binds every [data-sound-pref] switch) -->
+            <fieldset class="sound-settings">
+                <legend class="account-subtitle" data-i18n="sound.title">Sons</legend>
+                <label class="switch">
+                    <input type="checkbox" role="switch" data-sound-pref="enabled" checked>
+                    <span class="switch-track" aria-hidden="true"></span>
+                    <span data-i18n="sound.enabled">Sons de l’interface</span>
+                </label>
+                <label class="switch switch-sub">
+                    <input type="checkbox" role="switch" data-sound-pref="scroll" checked>
+                    <span class="switch-track" aria-hidden="true"></span>
+                    <span data-i18n="sound.scroll">Son du défilement</span>
+                </label>
+                <label class="switch switch-sub">
+                    <input type="checkbox" role="switch" data-sound-pref="theme" checked>
+                    <span class="switch-track" aria-hidden="true"></span>
+                    <span data-i18n="sound.theme">Son du changement de thème</span>
+                </label>
+                <p class="field-hint" data-i18n="sound.hint">Des sons discrets, jamais nécessaires pour utiliser le
+                    site. Vos choix suivent votre compte.</p>
+            </fieldset>
+
             <button type="button" class="btn btn-ghost" id="signOutBtn" data-i18n="account.signOut">Se
                 déconnecter</button>
         </div>

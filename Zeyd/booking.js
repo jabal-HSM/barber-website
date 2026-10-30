@@ -13,6 +13,7 @@ import {
     onAuthChange,
     requestCustomTime,
     resendConfirmation,
+    saveSoundPrefs,
     signIn,
     signOut,
     signUp,
@@ -21,6 +22,8 @@ import {
 import { cleanAuthUrl, parseAuthRedirect } from './authRedirect.js';
 import { t } from './i18n.js';
 import { renderLoyaltyCard, renderQrCode } from './loyalty.js';
+import { adoptSoundPrefs, getSoundPrefs, onSoundPrefsChange } from './sound.js';
+import { mergeSoundPrefs, samePrefs } from './soundCore.js';
 import { formatDateOf, formatDay, formatTime, parisLocalToIso } from './time.js';
 
 const state = {
@@ -111,6 +114,12 @@ export async function initBooking({ lang, services, priceFormatter }) {
     $('customForm')?.addEventListener('submit', onCustomSubmit);
     initAuthScreen();
     initAccountDialog();
+    // A change made while signed in is saved to the account too (debounced: one request per burst of clicks)
+    onSoundPrefsChange((prefs, source) => {
+        if (source !== 'local' || !state.user) return;
+        clearTimeout(state.soundSaveTimer);
+        state.soundSaveTimer = setTimeout(() => saveSoundPrefs(prefs), 800);
+    });
 
     renderServiceSelect();
     renderSummary();
@@ -536,6 +545,7 @@ function onUserChange(user) {
     });
     if ($('accountEmail')) $('accountEmail').textContent = user?.email ?? '';
     renderSummary();
+    if (user) syncSoundPrefs(user);
     if (user && state.confirmPending) {
         // Signed in by the confirmation link: say it, then show the account
         state.confirmPending = false;
@@ -565,6 +575,16 @@ function onUserChange(user) {
         if (firstCall && state.days !== null && !readPref(WELCOME_KEY) && $('authScreen')?.hidden)
             showAuthScreen('choices');
     }
+}
+
+// Sound preferences: this browser vs. the account. The most recent explicit choice wins, and a sound
+// turned off is never turned back on by the other side (see mergeSoundPrefs).
+function syncSoundPrefs(user) {
+    const remote = user.user_metadata?.sound_prefs ?? null;
+    const local = getSoundPrefs();
+    const merged = mergeSoundPrefs(local, remote);
+    if (!samePrefs(merged, local)) adoptSoundPrefs(merged);
+    if (merged.updatedAt && !samePrefs(merged, remote)) saveSoundPrefs(merged);
 }
 
 // --- Loyalty card ---
