@@ -1,0 +1,5 @@
+# Graphify — configuration du projet ZEYD BARBER
+# Une clé=valeur par ligne. Doc : https://docs.graphify.com/reference/configuration
+
+# Afficher tous les nœuds dans graph.html (petit projet)
+viz_node_limit=0

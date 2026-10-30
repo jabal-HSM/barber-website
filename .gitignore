@@ -1,0 +1,13 @@
+# Dependencies
+node_modules/
+
+# Secrets
+.env
+.env.*
+
+# Tool caches and generated output
+.ruff_cache/
+graphify-out/
+
+# Manual backup from before Git was set up
+.backup-before-biome/
