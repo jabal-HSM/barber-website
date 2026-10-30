@@ -718,6 +718,19 @@
     </dialog>
 
     <script type="module" src="script.js"></script>
+    <!-- Opened by double-click (file://): browsers block ES modules there, so no button would work.
+         A classic script still runs and says how to open the site instead. -->
+    <script>
+        if (location.protocol === 'file:') {
+            const note = document.createElement('div');
+            note.className = 'file-warning';
+            note.setAttribute('role', 'alert');
+            note.innerHTML =
+                '<p lang="fr">Le site doit être ouvert avec un serveur local (Live Server, port 5501), pas en double-cliquant sur le fichier : sinon les boutons ne fonctionnent pas.</p>' +
+                '<p lang="ar" dir="rtl">يجب فتح الموقع عبر خادم محلي (Live Server، المنفذ 5501) وليس بالنقر المزدوج على الملف، وإلا فلن تعمل الأزرار.</p>';
+            document.body.prepend(note);
+        }
+    </script>
 </body>
 
 </html>

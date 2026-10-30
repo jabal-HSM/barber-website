@@ -4,10 +4,26 @@ Projects: **zeyd-dev-1** (`eyqlptbocufkxcpblpxu`, development, linked in `Zeyd/c
 production project (`ajvswfsslwwlpsbtoccz`, not linked yet — Phase 7).
 
 ## 1. Run the site locally
-- VS Code Live Server on `Zeyd/index.html` (port 5501), or
-  `python -m http.server 5501 --directory Zeyd --bind 127.0.0.1` then open http://127.0.0.1:5501
-- Dashboard: http://127.0.0.1:5501/admin.html (staff accounts only).
+- Always through a local server, never by double-clicking `index.html` (`file://`): browsers block
+  the JavaScript modules there and no button works (the page now shows a red notice in that case).
+- Until the work branch is merged, the sign-in screen, booking, loyalty and dashboard exist only in the
+  worktree `.claude/worktrees/zeyd-barber-phase-1-28351e/`. The folder `C:\Users\dev\Desktop\zeyd\Zeyd`
+  (branch `main`) is still Phase 1 and has no sign-in at all.
+- With Live Server started at the repository root (port 5501), open
+  http://127.0.0.1:5501/.claude/worktrees/zeyd-barber-phase-1-28351e/Zeyd/index.html
+  or, in a terminal at the worktree root: `python -m http.server 5501 --directory Zeyd --bind 127.0.0.1`
+  (stop Live Server first) then open http://127.0.0.1:5501
+- Dashboard: same folder, `admin.html` (staff accounts only).
 - After pulling new code, reload with **Ctrl+F5**: browsers keep old JavaScript modules in cache.
+
+### Auth → URL Configuration (zeyd-dev-1, one time)
+Email confirmation is on (checked 2026-10-31: `mailer_autoconfirm=false`). The confirmation link goes back
+to the page where the account was created, but only if that address is allowed:
+1. Supabase → zeyd-dev-1 → Authentication → URL Configuration.
+2. **Site URL**: `http://127.0.0.1:5501`
+3. **Redirect URLs** → Add: `http://127.0.0.1:5501/**` and `http://localhost:5501/**` → Save.
+Without it, the link opens the Site URL (the old Phase 1 page) and you must sign in again by hand.
+The built-in email sender only sends a few emails per hour; if no email arrives, wait and retry.
 
 ## 2. Tests and lint (no internet, no Docker)
 ```

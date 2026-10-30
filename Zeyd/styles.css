@@ -2720,6 +2720,21 @@ body.has-overlay {
     text-align: start;
 }
 
+/* Shown only when index.html is opened from file:// (see the end of index.html) */
+.file-warning {
+    position: sticky;
+    top: 0;
+    z-index: 400;
+    display: grid;
+    gap: var(--space-1);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-danger);
+    color: #fff;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-align: center;
+}
+
 /* Bookings list additions */
 .my-booking {
     flex-wrap: wrap;
