@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { fetchGallery, fetchServices, isSafeImageUrl, mapGalleryRow, mapServiceRow, signIn } from '../Zeyd/api.js';
+import { BACKEND } from '../Zeyd/config.js';
 import { SERVICES } from '../Zeyd/data.js';
 
 test('a services row maps to the same shape as data.js', () => {
@@ -54,7 +55,10 @@ test('only https or relative image URLs are accepted', () => {
     }
 });
 
-test('without a configured backend, the site keeps its built-in content', async () => {
+// Only meaningful when config.js has BACKEND = null (the tests never call the real project).
+test('without a configured backend, the site keeps its built-in content', {
+    skip: BACKEND ? 'a backend is configured in config.js' : false,
+}, async () => {
     assert.equal(await fetchServices(), null);
     assert.equal(await fetchGallery(), null);
     assert.ok((await signIn('a@example.test', 'x')).error);
