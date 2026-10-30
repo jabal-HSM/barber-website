@@ -1,4 +1,5 @@
 import { fetchGallery, fetchServices } from './api.js';
+import { initBooking, selectBookingService, setBookingLanguage, setBookingServices } from './booking.js';
 import { GALLERY, SERVICES } from './data.js';
 import { DEFAULT_LANG, LANGUAGES, t } from './i18n.js';
 
@@ -44,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initMenu();
     renderHeroFacts();
     document.getElementById('currentYear').textContent = String(new Date().getFullYear());
+    initBooking({ lang: currentLang, services, priceFormatter });
     loadRemoteContent();
 });
 
@@ -53,6 +55,7 @@ async function loadRemoteContent() {
         services = remoteServices;
         renderServices();
         renderHeroFacts();
+        setBookingServices(services);
     }
     if (remoteGallery) {
         gallery = remoteGallery;
@@ -99,6 +102,7 @@ function applyLanguage(lang) {
 
     renderServices();
     renderGallery();
+    setBookingLanguage(lang);
     updateThemeButton();
     updateMenuButton();
 }
@@ -199,10 +203,26 @@ function renderServices() {
         original.textContent = currentLang === 'fr' ? '' : service.name.fr;
         original.hidden = currentLang === 'fr';
 
+        // Bookable online (known duration, from the database) -> booking form; otherwise WhatsApp.
         const link = card.querySelector('.service-link');
-        link.href = WHATSAPP_URL;
-        link.querySelector('.service-link-text').textContent = t(currentLang, 'services.bookLink');
-        link.setAttribute('aria-label', t(currentLang, 'services.bookLinkAria', { name }));
+        const bookable = Boolean(service.dbId && service.durationMinutes);
+        if (bookable) {
+            link.href = '#booking';
+            link.removeAttribute('target');
+            link.removeAttribute('rel');
+            link.addEventListener('click', () => selectBookingService(service.id));
+        } else {
+            link.href = WHATSAPP_URL;
+        }
+        link.querySelector('use').setAttribute('href', bookable ? '#i-calendar' : '#i-whatsapp');
+        link.querySelector('.service-link-text').textContent = t(
+            currentLang,
+            bookable ? 'services.bookLink' : 'services.whatsappLink',
+        );
+        link.setAttribute(
+            'aria-label',
+            t(currentLang, bookable ? 'services.bookLinkAria' : 'services.whatsappLinkAria', { name }),
+        );
         return card;
     });
 

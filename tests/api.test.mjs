@@ -17,7 +17,7 @@ test('a services row maps to the same shape as data.js', () => {
         duration_minutes: null,
     };
     const expected = SERVICES.find((s) => s.id === 'coupe-enfant');
-    assert.deepEqual(mapServiceRow(row), expected);
+    assert.deepEqual(mapServiceRow(row), { ...expected, dbId: row.id });
 });
 
 test('missing Arabic text falls back to French, missing slug to the id', () => {

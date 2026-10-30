@@ -77,6 +77,21 @@
         <symbol id="i-arrow" viewBox="0 0 24 24">
             <path d="M5 12h14M13 6l6 6-6 6" />
         </symbol>
+        <symbol id="i-user" viewBox="0 0 24 24">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 21a8 8 0 0 1 16 0" />
+        </symbol>
+        <symbol id="i-calendar" viewBox="0 0 24 24">
+            <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
+            <path d="M3.5 10h17M8 3v4M16 3v4" />
+        </symbol>
+        <symbol id="i-check" viewBox="0 0 24 24">
+            <path d="M5 12.5l4.5 4.5L19 7.5" />
+        </symbol>
+        <symbol id="i-alert" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7.5v5.5M12 16.5h.01" />
+        </symbol>
         <symbol id="i-arrow-up" viewBox="0 0 24 24">
             <path d="M12 19V5M6 11l6-6 6 6" />
         </symbol>
@@ -101,7 +116,13 @@
                     <li><a href="#hours" data-i18n="nav.hours">Horaires</a></li>
                     <li><a href="#contact" data-i18n="nav.contact">Contact</a></li>
                 </ul>
-                <a href="#services" class="btn btn-primary nav-cta" data-i18n="cta.book">Prendre rendez-vous</a>
+                <button type="button" class="nav-account" data-open-account>
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-user" />
+                    </svg>
+                    <span data-i18n="account.button">Mon compte</span>
+                </button>
+                <a href="#booking" class="btn btn-primary nav-cta" data-i18n="cta.book">Prendre rendez-vous</a>
             </nav>
 
             <div class="header-actions">
@@ -119,7 +140,14 @@
                         <use href="#i-sun" />
                     </svg>
                 </button>
-                <a href="#services" class="btn btn-primary btn-sm header-cta" data-i18n="cta.book">Prendre
+                <button type="button" class="icon-btn account-btn" data-open-account
+                    data-i18n-attr="aria-label:account.button; title:account.button" aria-label="Mon compte">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-user" />
+                    </svg>
+                    <span class="account-dot" hidden></span>
+                </button>
+                <a href="#booking" class="btn btn-primary btn-sm header-cta" data-i18n="cta.book">Prendre
                     rendez-vous</a>
                 <button type="button" id="menuToggleBtn" class="icon-btn menu-toggle" aria-expanded="false"
                     aria-controls="siteNav" aria-label="Ouvrir le menu">
@@ -244,8 +272,96 @@
             </div>
         </section>
 
+        <!-- Booking (rules enforced by the database: supabase/migrations/*phase3_booking.sql) -->
+        <section class="section" id="booking" aria-labelledby="bookingTitle">
+            <div class="container">
+                <header class="section-head">
+                    <p class="eyebrow" data-i18n="booking.eyebrow">Réservation</p>
+                    <h2 id="bookingTitle" data-i18n="booking.title">Prendre rendez-vous</h2>
+                    <p class="section-lead" data-i18n="booking.lead">Choisissez une prestation, un jour et un
+                        horaire : le rendez-vous est confirmé immédiatement.</p>
+                </header>
+
+                <div class="booking-card">
+                    <div class="form-message is-error" id="bookingOffline" role="status" hidden>
+                        <svg class="icon" aria-hidden="true">
+                            <use href="#i-alert" />
+                        </svg>
+                        <p class="form-message-text"><span data-i18n="booking.offline">La réservation en ligne est momentanément
+                                indisponible.</span>
+                            <a href="https://wa.me/qr/CMYWVONTY3QNG1" target="_blank"
+                                rel="noopener noreferrer">WhatsApp</a></p>
+                    </div>
+
+                    <form class="booking-form" id="bookingForm" novalidate>
+                        <fieldset class="booking-step">
+                            <legend><span class="step-num" aria-hidden="true">1</span><span
+                                    data-i18n="booking.stepService">Prestation</span></legend>
+                            <select id="bookingService" class="field" data-i18n-attr="aria-label:booking.stepService"
+                                aria-label="Prestation"></select>
+                            <p class="field-hint" id="bookingServiceHint" hidden>
+                                <span data-i18n="booking.noDuration">La durée de cette prestation reste à
+                                    confirmer.</span>
+                                <a href="https://wa.me/qr/CMYWVONTY3QNG1" target="_blank"
+                                    rel="noopener noreferrer">WhatsApp</a>
+                            </p>
+                        </fieldset>
+
+                        <fieldset class="booking-step">
+                            <legend><span class="step-num" aria-hidden="true">2</span><span
+                                    data-i18n="booking.stepDay">Jour</span></legend>
+                            <div class="choice-row" id="bookingDays"></div>
+                        </fieldset>
+
+                        <fieldset class="booking-step">
+                            <legend><span class="step-num" aria-hidden="true">3</span><span
+                                    data-i18n="booking.stepTime">Horaire</span></legend>
+                            <div class="choice-grid" id="bookingSlots"></div>
+                            <p class="field-hint" id="bookingSlotsHint" aria-live="polite"></p>
+                            <p class="field-hint" data-i18n="booking.timezone">Horaires à l’heure de Paris.</p>
+                        </fieldset>
+
+                        <fieldset class="booking-step">
+                            <legend><span class="step-num" aria-hidden="true">4</span><span
+                                    data-i18n="booking.stepConfirm">Confirmation</span></legend>
+                            <label class="field-label" for="bookingNote" data-i18n="booking.noteLabel">Remarque pour
+                                Zeyd (facultatif)</label>
+                            <textarea id="bookingNote" class="field" rows="2" maxlength="300"></textarea>
+                            <p class="booking-summary" id="bookingSummary" aria-live="polite"></p>
+                            <button type="submit" class="btn btn-primary booking-submit" id="bookingSubmit">
+                                <svg class="icon" aria-hidden="true">
+                                    <use href="#i-calendar" />
+                                </svg>
+                                <span id="bookingSubmitText" data-i18n="booking.submit">Confirmer le
+                                    rendez-vous</span>
+                            </button>
+                        </fieldset>
+                        <div class="form-message" id="bookingMessage" role="status" aria-live="polite" hidden></div>
+                    </form>
+
+                    <details class="custom-request" id="customRequest">
+                        <summary data-i18n="booking.customSummary">Aucun horaire ne vous convient ?</summary>
+                        <form class="custom-form" id="customForm" novalidate>
+                            <p class="field-hint" data-i18n="booking.customText">Proposez un autre moment : Zeyd vous
+                                confirmera s’il est possible.</p>
+                            <label class="field-label" for="customDate" data-i18n="booking.customDate">Date et heure
+                                souhaitées (heure de Paris)</label>
+                            <input type="datetime-local" id="customDate" class="field" required step="900">
+                            <label class="field-label" for="customNote" data-i18n="booking.noteLabel">Remarque pour
+                                Zeyd (facultatif)</label>
+                            <textarea id="customNote" class="field" rows="2" maxlength="300"></textarea>
+                            <button type="submit" class="btn btn-ghost" data-i18n="booking.customSubmit">Envoyer la
+                                demande</button>
+                            <div class="form-message" id="customMessage" role="status" aria-live="polite" hidden>
+                            </div>
+                        </form>
+                    </details>
+                </div>
+            </div>
+        </section>
+
         <!-- Haircut gallery -->
-        <section class="section" id="gallery" aria-labelledby="galleryTitle">
+        <section class="section section-alt" id="gallery" aria-labelledby="galleryTitle">
             <div class="container">
                 <header class="section-head">
                     <p class="eyebrow" data-i18n="gallery.eyebrow">Réalisations</p>
@@ -278,7 +394,7 @@
         </section>
 
         <!-- About the barber -->
-        <section class="section section-alt" id="about" aria-labelledby="aboutTitle">
+        <section class="section" id="about" aria-labelledby="aboutTitle">
             <div class="container about-grid">
                 <div class="about-mark">
                     <img src="logozeyd.jpeg" alt="Logo ZEYD BARBER : un Z entrelacé avec une paire de ciseaux"
@@ -297,7 +413,7 @@
         </section>
 
         <!-- Hours & contact -->
-        <section class="section" aria-labelledby="hoursTitle">
+        <section class="section section-alt" aria-labelledby="hoursTitle">
             <div class="container">
                 <header class="section-head">
                     <p class="eyebrow" data-i18n="info.eyebrow">Infos pratiques</p>
@@ -440,6 +556,62 @@
             </a>
         </div>
     </footer>
+
+    <!-- Account: sign in / sign up, upcoming bookings -->
+    <dialog class="dialog" id="accountDialog" aria-labelledby="accountTitle">
+        <div class="dialog-head">
+            <h2 id="accountTitle" data-i18n="account.title">Mon compte</h2>
+            <button type="button" class="icon-btn" id="accountCloseBtn" data-i18n-attr="aria-label:account.close"
+                aria-label="Fermer">
+                <svg class="icon" aria-hidden="true">
+                    <use href="#i-close" />
+                </svg>
+            </button>
+        </div>
+
+        <div id="authView">
+            <div class="tabs" role="tablist">
+                <button type="button" class="tab" role="tab" id="signInTab" aria-selected="true"
+                    aria-controls="authForm" data-auth-mode="signin" data-i18n="account.signInTab">Se
+                    connecter</button>
+                <button type="button" class="tab" role="tab" id="signUpTab" aria-selected="false"
+                    aria-controls="authForm" data-auth-mode="signup" data-i18n="account.signUpTab">Créer un
+                    compte</button>
+            </div>
+            <form class="auth-form" id="authForm" role="tabpanel" novalidate>
+                <div class="field-group" id="authNameGroup" hidden>
+                    <label class="field-label" for="authName" data-i18n="account.name">Prénom et nom</label>
+                    <input type="text" id="authName" class="field" autocomplete="name" maxlength="80">
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="authEmail" data-i18n="account.email">E-mail</label>
+                    <input type="email" id="authEmail" class="field" autocomplete="email" required dir="ltr">
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="authPassword" data-i18n="account.password">Mot de passe</label>
+                    <input type="password" id="authPassword" class="field" autocomplete="current-password" required
+                        minlength="8" dir="ltr" aria-describedby="authPasswordHint">
+                    <p class="field-hint" id="authPasswordHint" data-i18n="account.passwordHint">8 caractères
+                        minimum.</p>
+                </div>
+                <button type="submit" class="btn btn-primary auth-submit" id="authSubmit"
+                    data-i18n="account.signInSubmit">Se connecter</button>
+                <div class="form-message" id="authMessage" role="status" aria-live="polite" hidden></div>
+                <p class="field-hint" data-i18n="account.privacy">Votre e-mail sert uniquement à gérer vos
+                    rendez-vous.</p>
+            </form>
+        </div>
+
+        <div id="accountView" hidden>
+            <p class="account-who"><span data-i18n="account.signedInAs">Connecté avec</span> <strong id="accountEmail"
+                    dir="ltr"></strong></p>
+            <h3 class="account-subtitle" data-i18n="account.myBookings">Mes rendez-vous à venir</h3>
+            <ul class="my-bookings" id="myBookings"></ul>
+            <div class="form-message" id="accountMessage" role="status" aria-live="polite" hidden></div>
+            <button type="button" class="btn btn-ghost" id="signOutBtn" data-i18n="account.signOut">Se
+                déconnecter</button>
+        </div>
+    </dialog>
 
     <script type="module" src="script.js"></script>
 </body>

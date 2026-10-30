@@ -17,8 +17,9 @@ npm run check
 1. https://supabase.com/dashboard → **New project** → name `zeyd-dev`, region close to France (e.g. Paris / Frankfurt).
    Keep the database password in your password manager; it is not needed by the site.
 2. **SQL Editor** → run every file of `supabase/migrations/` **in name order**, each one once:
-   `20261030120000_phase2_core.sql`, then `20261030130000_revoke_internal_functions.sql`.
-3. **Authentication → Sign In / Providers → Email**: keep "Confirm email" on.
+   `20261030120000_phase2_core.sql`, `20261030130000_revoke_internal_functions.sql`, then
+   `20261030140000_phase3_booking.sql`.
+3. **Authentication → Sign In / Providers → Email**: keep "Confirm email" on, and set the minimum password length to 8.
    **Authentication → URL Configuration**: Site URL `http://127.0.0.1:5501` (dev only).
 4. **Project Settings → API Keys**: copy the project URL and the **publishable** key (`sb_publishable_…`).
    Never copy the secret / service_role key into the project.
@@ -33,7 +34,8 @@ npm run check
 - Anonymous visitors must not see profiles: open
   `https://<ref>.supabase.co/rest/v1/profiles?select=id&apikey=<publishable key>` → must return `[]` or an error.
 
-The account screens (sign-up, sign-in, likes buttons) are part of Phase 5; `Zeyd/api.js` already contains the functions.
+Booking (Phase 3): create an account in the site's « Mon compte » window, confirm the email, then book in the « Prendre rendez-vous » section.
+Supabase's built-in email sender is limited to a few emails per hour: fine for tests, a real SMTP is needed before launch (Phase 7).
 
 ## 5. Production project (later, with approval)
 1. Back up first: **Database → Backups** (or `pg_dump`).

@@ -47,13 +47,28 @@ Published photos with `like_count` and `liked_by_me`, without revealing who like
 
 Not allowed for anyone through the API: changing a role or an email, liking on behalf of someone else.
 
+## Booking (Phase 3) — `20261030140000_phase3_booking.sql`
+
+| Table / function | Content |
+|---|---|
+| `booking_settings` (single row) | `timezone` Europe/Paris · `slot_step_minutes` 15 · `min_notice_minutes` 60 · `max_days_ahead` 30 · `cancel_notice_minutes` 120 · `max_active_bookings` 2 |
+| `business_hours` | Monday, Friday, Saturday: 09:00–12:00 and 14:00–19:00 (break = gap) |
+| `closures` | Holidays / days off (`starts_on`, `ends_on` inclusive) |
+| `bookings` | `customer_id`, `service_id`, `starts_at`, `ends_at`, `status` (`confirmed`, `requested`, `cancelled`, `completed`, `no_show`), `is_custom_request`, `customer_note` (≤ 300), `cancelled_at`, `cancelled_by` |
+| `bookable_days()`, `available_slots(service, day)` | Public: times only, never who booked |
+| `book_appointment(service, starts_at, note)` | Signed-in customers. Accepted only if the start is one of `available_slots` → confirmed at once |
+| `request_custom_time(service, starts_at, note)` | Signed-in customers. Status `requested`, blocks nothing until confirmed |
+| `cancel_booking(id)` | Own booking, ≥ 2 h before; staff anytime |
+| `set_booking_status(id, status, ends_at)` | Staff only (admin panel in Phase 4) |
+
+**Double booking:** exclusion constraint `bookings_no_overlap` on `tstzrange(starts_at, ends_at)` for confirmed bookings — the database refuses the second booking even if two customers click at the same moment.
+Customers have no INSERT/UPDATE rights on `bookings`: only the functions above can change it.
+Services without a known duration (`duration_minutes` null) cannot be booked online.
+
 ## Planned tables (not created yet)
 
 | Phase | Table | Purpose |
 |---|---|---|
-| 3 | `business_hours` (weekday, opens_at, closes_at) | Several rows per day → morning 09:00–12:00 and afternoon 14:00–19:00; break = gap. Opening days still unknown. |
-| 3 | `closures` (starts_on, ends_on, reason) | Holidays / exceptional closures |
-| 3 | `bookings` (existing prototype table, to be reworked) | `customer_id`, `service_id`, `starts_at`, `ends_at`, `status` (`pending`/`confirmed`/`cancelled`/`completed`/`no_show`), `is_custom_request`. Double booking prevented **in the database** with an exclusion constraint on `tstzrange(starts_at, ends_at)` for non-cancelled bookings. |
 | 5 | `loyalty_cards`, `visits`, `rewards` (prototype `loyalty_cards` exists) | Stamps credited only by staff when a visit is completed, never by the customer |
 | 6 | `products`, `waitlist`, `reminders` | — |
 
