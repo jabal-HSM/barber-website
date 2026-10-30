@@ -41,7 +41,6 @@ const state = {
     paymentsEnabled: false,
     loyalty: null,
     loyaltyLoaded: false,
-    qrShown: false,
     slotsRequest: null,
     autoAdvanceDay: true, // on first display only: skip days that have no free time left
     messages: {}, // element id -> { kind, key, params } so messages follow language changes
@@ -446,7 +445,13 @@ function initAccountDialog() {
         setMessage('accountMessage', null);
         dialog.close();
     });
-    $('loyaltyQrBtn').addEventListener('click', toggleQr);
+    $('loyaltyQrBtn').addEventListener('click', openQr);
+    const qrDialog = $('qrDialog');
+    $('qrCloseBtn').addEventListener('click', () => qrDialog.close());
+    // Click outside the panel (on the backdrop) closes it; Escape is handled by <dialog>
+    qrDialog.addEventListener('click', (e) => {
+        if (e.target === qrDialog) qrDialog.close();
+    });
 }
 
 function openAccount(mode) {
@@ -476,7 +481,7 @@ function onUserChange(user) {
     } else {
         state.bookings = [];
         state.loyalty = null;
-        state.qrShown = false;
+        if ($('qrDialog')?.open) $('qrDialog').close();
         renderBookings();
         renderLoyalty();
         if ($('accountDialog')?.open) $('accountDialog').close();
@@ -502,28 +507,31 @@ function renderLoyalty() {
         container.replaceChildren();
         $('loyaltyProgress').textContent =
             state.user && state.loyaltyLoaded ? t(state.lang, 'loyalty.unavailable') : '';
-        $('loyaltyQr').hidden = true;
+        if ($('qrDialog').open) $('qrDialog').close();
         return;
     }
     const filled = renderLoyaltyCard(container, card, state.lang);
     const lines = [];
-    if (filled === 10 || card.available_rewards > 0) lines.push(t(state.lang, 'loyalty.rewardReady'));
+    const reward = filled === 10 || card.available_rewards > 0;
+    if (reward) lines.push(t(state.lang, 'loyalty.rewardReady'));
     if (card.available_rewards > 1)
         lines.push(t(state.lang, 'loyalty.rewardsAvailable', { count: card.available_rewards }));
     if (filled < 10) lines.push(t(state.lang, 'loyalty.progress', { count: filled, left: 10 - filled }));
     $('loyaltyProgress').textContent = lines.join(' ');
+    $('loyaltyProgress').classList.toggle('is-reward', reward);
     $('loyaltyShortCode').textContent = card.short_code;
-    $('loyaltyQr').hidden = !state.qrShown;
-    $('loyaltyQrBtn').setAttribute('aria-expanded', String(Boolean(state.qrShown)));
-    $('loyaltyQrBtnText').textContent = t(state.lang, state.qrShown ? 'loyalty.hideQr' : 'loyalty.showQr');
 }
 
-async function toggleQr() {
-    state.qrShown = !state.qrShown;
-    renderLoyalty();
-    if (!state.qrShown || !state.loyalty) return;
-    const ok = await renderQrCode($('loyaltyQrCode'), state.loyalty.token);
-    if (!ok) setMessage('accountMessage', 'error', 'loyalty.qrError', { code: state.loyalty.short_code });
+// Only displays the code: no request is sent, so it cannot add a visit.
+async function openQr() {
+    const card = state.loyalty;
+    const dialog = $('qrDialog');
+    if (!card || dialog.open) return;
+    $('loyaltyShortCode').textContent = card.short_code;
+    setMessage('qrMessage', null);
+    dialog.showModal();
+    const ok = await renderQrCode($('loyaltyQrCode'), card.token);
+    if (!ok) setMessage('qrMessage', 'error', 'loyalty.qrError', { code: card.short_code });
 }
 
 // --- Upcoming bookings (with payment) ---

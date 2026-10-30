@@ -1740,7 +1740,8 @@ textarea.field {
 }
 
 /* ==========================================================================
-   Sign-in screen (full screen, barber chair photo)
+   Sign-in screen: full-screen barber chair photo, monogram and wordmark at the
+   top, the chair left visible in the middle, the three choices at the bottom.
    ========================================================================== */
 .auth-screen[hidden],
 .auth-choices[hidden],
@@ -1757,14 +1758,16 @@ body.has-overlay {
     inset: 0;
     z-index: 300;
     display: grid;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto auto minmax(var(--space-6), 1fr) auto;
+    overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
-    background: #0b1311;
+    background: #050506;
     color: #fff;
 }
 
 .auth-bg,
+.auth-blur,
 .auth-scrim {
     position: fixed;
     inset: 0;
@@ -1774,14 +1777,30 @@ body.has-overlay {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: 50% 40%;
+    object-position: 50% 62%;
+    filter: saturate(0.85) brightness(0.95);
 }
 
-/* Dark veil + light blur so the text stays readable on the photo */
+/* Light blur only behind the logo and the buttons: the chair in the middle stays sharp */
+.auth-blur {
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 32%, transparent 62%, #000 88%);
+    mask-image: linear-gradient(180deg, #000 0%, transparent 32%, transparent 62%, #000 88%);
+}
+
+/* Dark veil: deep at the top and bottom for the text, lighter on the chair, with a soft vignette */
 .auth-scrim {
-    background: linear-gradient(180deg, rgb(8 14 13 / 50%) 0%, rgb(8 14 13 / 70%) 50%, rgb(8 14 13 / 88%) 100%);
-    -webkit-backdrop-filter: blur(3px);
-    backdrop-filter: blur(3px);
+    background:
+        radial-gradient(120% 70% at 50% 55%, rgb(0 0 0 / 0%) 35%, rgb(0 0 0 / 55%) 100%),
+        linear-gradient(
+            180deg,
+            rgb(3 3 5 / 82%) 0%,
+            rgb(3 3 5 / 45%) 30%,
+            rgb(3 3 5 / 18%) 50%,
+            rgb(3 3 5 / 55%) 70%,
+            rgb(3 3 5 / 92%) 100%
+        );
 }
 
 .auth-top {
@@ -1789,95 +1808,177 @@ body.has-overlay {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: calc(var(--space-4) + env(safe-area-inset-top)) var(--space-4) var(--space-4);
+    padding: calc(var(--space-3) + env(safe-area-inset-top)) var(--space-4) 0;
 }
 
+.auth-brand,
 .auth-panel {
     position: relative;
-    align-self: end;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-2);
     width: 100%;
-    max-width: 26rem;
+    max-width: 24rem;
     margin-inline: auto;
-    padding: var(--space-5) var(--space-5) calc(var(--space-7) + env(safe-area-inset-bottom));
+    padding-inline: var(--space-5);
     text-align: center;
 }
 
-@media (min-width: 48em) {
-    .auth-panel {
-        align-self: center;
-    }
+.auth-brand {
+    padding-top: clamp(var(--space-2), 4vh, var(--space-7));
 }
 
-.auth-logo {
-    width: 5.5rem;
-    height: 5.5rem;
-    margin-bottom: var(--space-2);
-    border: 1px solid rgb(255 255 255 / 25%);
-    border-radius: 50%;
-    object-fit: cover;
-    box-shadow: 0 10px 30px rgb(0 0 0 / 45%);
+/* Monogram cut from logozeyd.jpeg, kept at its own proportions */
+.auth-mark {
+    width: auto;
+    height: clamp(3.75rem, 10vh, 5.75rem);
+    filter: drop-shadow(0 6px 18px rgb(0 0 0 / 60%));
 }
 
-.auth-wordmark {
-    --brand-gradient: var(--brand-gradient-on-dark);
-    font-size: clamp(2rem, 1.4rem + 3vw, 2.75rem);
-    letter-spacing: 0.12em;
-    line-height: 1.1;
+.auth-logo-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: var(--space-2);
+    font-family: var(--font-brand);
+    font-weight: 600;
+    line-height: 1;
+}
+
+/* Brushed-silver wordmark */
+.auth-logo-zeyd {
+    font-size: clamp(2.6rem, 2rem + 3vw, 3.4rem);
+    letter-spacing: 0.06em;
+    background: linear-gradient(180deg, #ffffff 0%, #e9e9ee 45%, #a9abb4 60%, #f4f4f7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 10px rgb(0 0 0 / 55%));
+}
+
+.auth-logo-barber {
+    margin-top: 0.3rem;
+    margin-inline-end: -0.42em;
+    color: #ececf0;
+    font-size: clamp(0.95rem, 0.85rem + 0.5vw, 1.15rem);
+    letter-spacing: 0.42em;
 }
 
 .auth-tagline {
-    margin-top: var(--space-2);
+    margin-top: clamp(var(--space-4), 3.5vh, var(--space-6));
+    color: #fff;
     font-family: var(--font-display);
-    font-size: 1.5rem;
-    font-style: italic;
-    font-weight: 600;
-    line-height: 1.3;
+    font-size: clamp(1.45rem, 1.2rem + 1.2vw, 1.85rem);
+    font-weight: 500;
+    line-height: 1.25;
+    text-shadow: 0 2px 12px rgb(0 0 0 / 70%);
 }
 
 :lang(ar) .auth-tagline {
-    font-style: normal;
+    font-weight: 700;
 }
 
 .auth-subtagline {
-    color: rgb(255 255 255 / 80%);
+    margin-top: var(--space-2);
+    color: rgb(255 255 255 / 82%);
     font-size: var(--text-sm);
+    text-shadow: 0 1px 8px rgb(0 0 0 / 80%);
+}
+
+.auth-panel {
+    grid-row: 4;
+    padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
 }
 
 .auth-choices {
     display: grid;
-    gap: var(--space-3);
+    gap: var(--space-4);
     width: 100%;
-    margin-top: var(--space-6);
 }
 
-.btn-light {
-    background: #fffefa;
-    color: #174c45;
+/* Big rounded buttons with an arrow at the end, like a native app */
+.auth-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 3.6rem;
+    padding: 0 3.25rem;
+    border: 1px solid transparent;
+    border-radius: 18px;
+    font-family: var(--font-body);
+    font-size: 1.02rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+        transform 0.12s ease,
+        background-color var(--transition),
+        border-color var(--transition),
+        box-shadow var(--transition);
+    -webkit-tap-highlight-color: transparent;
 }
 
-.btn-light:hover {
-    background: #ffffff;
+.auth-btn .icon {
+    position: absolute;
+    inset-inline-end: 1.25rem;
+    width: 1.25rem;
+    height: 1.25rem;
 }
 
-.btn-dark {
-    background: rgb(12 20 18 / 82%);
-    border-color: rgb(255 255 255 / 30%);
+.auth-btn:active {
+    transform: scale(0.97);
+}
+
+.auth-btn:disabled {
+    cursor: progress;
+    opacity: 0.7;
+}
+
+/* White, slightly glossy */
+.auth-btn-light {
+    border-color: rgb(255 255 255 / 90%);
+    background: linear-gradient(180deg, #ffffff 0%, #f1f1f4 55%, #dedee3 100%);
+    color: #111114;
+    box-shadow:
+        inset 0 1px 0 #fff,
+        0 10px 28px -8px rgb(0 0 0 / 70%);
+}
+
+.auth-btn-light .icon {
+    color: #2a2a30;
+}
+
+/* Dark glass with a fine light border */
+.auth-btn-dark {
+    border-color: rgb(255 255 255 / 38%);
+    background: rgb(8 8 10 / 52%);
     color: #fff;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
 }
 
-.btn-dark:hover {
-    border-color: #fff;
+.auth-btn-dark .icon {
+    color: rgb(255 255 255 / 75%);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .auth-btn-light:hover {
+        background: linear-gradient(180deg, #ffffff 0%, #f7f7f9 55%, #e7e7eb 100%);
+    }
+
+    .auth-btn-dark:hover {
+        border-color: rgb(255 255 255 / 70%);
+        background: rgb(8 8 10 / 64%);
+    }
 }
 
 .auth-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: var(--space-2);
+    gap: var(--space-1);
     min-height: 2.75rem;
     padding: 0 var(--space-3);
     border: 0;
@@ -1885,10 +1986,16 @@ body.has-overlay {
     color: rgb(255 255 255 / 88%);
     font-size: var(--text-sm);
     font-weight: 600;
-    text-decoration: underline;
-    text-underline-offset: 0.25em;
     cursor: pointer;
-    transition: transform var(--transition);
+    transition:
+        transform 0.12s ease,
+        color var(--transition);
+}
+
+.auth-link-text {
+    text-decoration: underline;
+    text-decoration-color: rgb(255 255 255 / 45%);
+    text-underline-offset: 0.3em;
 }
 
 .auth-link .icon {
@@ -1896,13 +2003,25 @@ body.has-overlay {
     height: 1rem;
 }
 
+.auth-skip {
+    justify-self: center;
+    margin-top: var(--space-1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .auth-link:hover {
+        color: #fff;
+    }
+}
+
 .auth-screen .auth-form {
     width: 100%;
-    margin-top: var(--space-5);
     padding: var(--space-5);
-    border: 1px solid rgb(255 255 255 / 14%);
-    border-radius: var(--radius-lg);
-    background: rgb(12 20 18 / 74%);
+    border: 1px solid rgb(255 255 255 / 16%);
+    border-radius: 22px;
+    background: rgb(8 8 10 / 68%);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
     text-align: start;
 }
 
@@ -1916,8 +2035,9 @@ body.has-overlay {
 
 .auth-screen .field {
     border-color: rgb(255 255 255 / 30%);
-    background: rgb(255 254 250 / 96%);
-    color: #24332f;
+    border-radius: 14px;
+    background: rgb(255 255 255 / 96%);
+    color: #17171b;
 }
 
 .auth-screen .field-hint {
@@ -1930,7 +2050,9 @@ body.has-overlay {
 
 .lang-switch-on-dark {
     border-color: rgb(255 255 255 / 28%);
-    background: rgb(255 255 255 / 12%);
+    background: rgb(0 0 0 / 35%);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
 }
 
 .lang-switch-on-dark .lang-btn {
@@ -1938,43 +2060,118 @@ body.has-overlay {
 }
 
 .lang-switch-on-dark .lang-btn[aria-pressed="true"] {
-    background: #fffefa;
-    color: #174c45;
+    background: #fff;
+    color: #111114;
 }
 
 .icon-btn-on-dark {
     border-color: rgb(255 255 255 / 28%);
-    background: rgb(255 255 255 / 12%);
+    background: rgb(0 0 0 / 35%);
     color: #fff;
 }
 
+/* Short screens (small phones, landscape): tighter logo so the buttons stay on screen */
+@media (max-height: 40em) {
+    .auth-mark {
+        height: 3rem;
+    }
+
+    .auth-logo-zeyd {
+        font-size: 2.2rem;
+    }
+
+    .auth-tagline {
+        margin-top: var(--space-3);
+        font-size: 1.3rem;
+    }
+}
+
+/* Landscape screens: the portrait photo is shown whole in the centre (the full chair stays visible),
+   a darkened, blurred copy fills the sides */
+@media (min-width: 48em) and (min-aspect-ratio: 1 / 1) {
+    .auth-bg {
+        overflow: hidden;
+    }
+
+    .auth-bg::before {
+        content: "";
+        position: absolute;
+        inset: -40px;
+        background: url("login-chair-1200.jpg") center / cover;
+        filter: blur(28px) brightness(0.45);
+    }
+
+    .auth-bg img {
+        position: relative;
+        object-fit: contain;
+        -webkit-mask-image: linear-gradient(
+            90deg,
+            transparent calc(50% - 40vh),
+            #000 calc(50% - 22vh),
+            #000 calc(50% + 22vh),
+            transparent calc(50% + 40vh)
+        );
+        mask-image: linear-gradient(
+            90deg,
+            transparent calc(50% - 40vh),
+            #000 calc(50% - 22vh),
+            #000 calc(50% + 22vh),
+            transparent calc(50% + 40vh)
+        );
+    }
+
+    .auth-panel {
+        max-width: 25rem;
+    }
+}
+
 /* ==========================================================================
-   Loyalty card: warm white card, purple name, 10 circles, brown 10th with a gift
-   (always light, like a printed card, in both themes)
+   Loyalty card: warm white membership card, purple foil stripe, script name,
+   10 embossed circles, copper 10th circle with a black gift box.
+   Always light, like a printed card, in both themes. Sizes follow the card
+   width (cqw) so it keeps the same proportions on every phone.
    ========================================================================== */
 .loyalty {
     margin-top: var(--space-5);
 }
 
-.lc {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-    width: 100%;
-    max-width: 23rem;
-    /* Bank-card proportions (1.586) as a minimum: the card still grows if its content needs it */
-    min-height: calc(min(100cqw, 23rem) / 1.586);
+#loyaltyCard {
+    max-width: 26rem;
     margin-inline: auto;
-    padding: 1.15rem 1.15rem 0.9rem;
+    container-type: inline-size;
+}
+
+.lc {
+    --lc-purple: #5b2a86;
+    --lc-purple-deep: #34184f;
+    --lc-ink: #2c2233;
+    position: relative;
+    display: grid;
+    grid-template-columns: 24cqw minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-areas:
+        "logo title"
+        "logo identity"
+        "stamps stamps"
+        "foot foot";
+    column-gap: 3cqw;
+    width: 100%;
+    /* Bank-card proportions as a minimum: the card still grows if a long name or Arabic text needs it */
+    min-height: 63cqw;
+    padding: 7cqw 6cqw 4.6cqw;
     overflow: hidden;
-    border-radius: 18px;
-    background: radial-gradient(130% 100% at 0% 0%, #ffffff 0%, #fdfaf4 55%, #f4eee3 100%);
-    color: #24332f;
+    border-radius: max(14px, 4.6cqw);
+    background:
+        radial-gradient(120% 90% at 0% 0%, #ffffff 0%, rgb(255 255 255 / 0%) 60%),
+        repeating-linear-gradient(100deg, rgb(120 100 80 / 2.5%) 0 1px, transparent 1px 3px),
+        linear-gradient(160deg, #fdfbf7 0%, #f6f2ea 55%, #ece6dc 100%);
+    color: var(--lc-ink);
     box-shadow:
-        0 1px 1px rgb(36 51 47 / 5%),
-        0 10px 28px rgb(36 51 47 / 14%),
-        inset 0 0 0 1px rgb(36 51 47 / 7%);
+        0 1px 0 rgb(255 255 255 / 90%) inset,
+        0 0 0 1px rgb(60 40 70 / 9%) inset,
+        0 1px 2px rgb(30 20 40 / 10%),
+        0 8px 18px -6px rgb(30 20 40 / 22%),
+        0 22px 40px -18px rgb(30 20 40 / 30%);
 }
 
 /* Soft diagonal sheen, like a laminated card */
@@ -1982,96 +2179,194 @@ body.has-overlay {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(115deg, transparent 35%, rgb(255 255 255 / 55%) 48%, transparent 60%);
+    background: linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 70%) 45%, transparent 58%);
     pointer-events: none;
 }
 
-#loyaltyCard {
-    container-type: inline-size;
+/* Fine inner border, a few pixels inside the edge */
+.lc::after {
+    content: "";
+    position: absolute;
+    inset: 1.6cqw;
+    border: 1px solid rgb(91 42 134 / 10%);
+    border-radius: max(10px, 3.4cqw);
+    pointer-events: none;
 }
 
 .lc > * {
-    flex-shrink: 0;
-}
-
-.lc-stripe {
-    position: absolute;
-    inset-inline: 0;
-    top: 0;
-    height: 6px;
-    background: linear-gradient(90deg, #174c45 0%, #33695d 35%, #65566f 70%, #a8b9a5 100%);
-}
-
-.lc-stripe::after {
-    content: "";
-    position: absolute;
-    inset-inline: 1.15rem;
-    top: 11px;
-    height: 1px;
-    background: linear-gradient(90deg, rgb(101 86 111 / 0%), rgb(101 86 111 / 35%), rgb(101 86 111 / 0%));
-}
-
-.lc-head {
     position: relative;
+    z-index: 1;
+}
+
+/* Top stripe: two slanted purple foil bars */
+.lc > .lc-stripe {
+    position: absolute;
+    top: 4.2cqw;
+    inset-inline: 30cqw 34cqw;
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--space-2);
-    margin-top: 0.35rem;
+    gap: 1.6cqw;
+    height: 2.3cqw;
+    transform: skewX(-32deg);
 }
 
-.lc-brand {
-    color: #174c45;
+.lc-bar {
+    flex: 1;
+    border-radius: 2px;
+    background: linear-gradient(90deg, rgb(91 42 134 / 0%) 0%, #6d35a3 40%, #9b6cd0 75%, #e9dcf8 100%);
+    box-shadow: 0 1px 3px rgb(91 42 134 / 30%);
+}
+
+.lc-bar:last-child {
+    flex: 2.4;
+    background: linear-gradient(90deg, #3f1d61 0%, #7a43b5 55%, #c7a8ea 85%, rgb(255 255 255 / 0%) 100%);
+}
+
+/* Brand: scissors-Z monogram + ZEYD / BARBER */
+.lc-logo {
+    grid-area: logo;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    align-self: start;
     font-family: "Cormorant Garamond", Georgia, serif;
-    font-size: 0.95rem;
-    font-weight: 700;
-    letter-spacing: 0.16em;
+    line-height: 1;
 }
 
-.lc-label {
-    color: #65566f;
-    font-size: 0.68rem;
+.lc-mark {
+    width: auto;
+    height: max(2.6rem, 15cqw);
+    margin-bottom: 0.8cqw;
+}
+
+.lc-logo-name {
+    color: var(--lc-ink);
+    font-size: max(0.95rem, 6.4cqw);
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.04em;
+}
+
+.lc-logo-sub {
+    margin-top: 0.6cqw;
+    margin-inline-end: -0.42em;
+    color: var(--lc-ink);
+    font-size: max(0.5rem, 2.5cqw);
+    font-weight: 600;
+    letter-spacing: 0.42em;
+}
+
+.lc-title {
+    grid-area: title;
+    display: grid;
+    align-content: start;
+    justify-items: end;
+    gap: 0.8cqw;
+    padding-top: 1.2cqw;
+    text-align: end;
+}
+
+.lc-title-main {
+    color: var(--lc-purple);
+    font-family: "Cormorant Garamond", "Cairo", Georgia, serif;
+    font-size: max(0.72rem, 3.7cqw);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    line-height: 1.1;
     text-transform: uppercase;
 }
 
-:lang(ar) .lc-label {
-    font-size: 0.78rem;
+.lc-title-en {
+    color: var(--lc-ink);
+    font-size: max(0.5rem, 2.2cqw);
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}
+
+:lang(ar) .lc-title-main {
+    font-family: "Cairo", sans-serif;
     letter-spacing: 0;
 }
 
-/* Customer name: deep purple with a bright white-lilac shine */
+/* Customer name: script, deep purple with a bright white shine across it */
+.lc-identity {
+    grid-area: identity;
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    min-width: 0;
+    padding-block: 2cqw 1cqw;
+}
+
+/* Long names wrap onto a second line instead of being cut */
 .lc-name {
-    position: relative;
-    overflow: hidden;
-    color: #4a3760;
-    font-size: clamp(1.15rem, 0.95rem + 1.2vw, 1.4rem);
-    font-weight: 800;
-    line-height: 1.25;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    max-width: 100%;
+    padding-inline: 2cqw;
+    font-family: "Great Vibes", "Cairo", cursive;
+    font-size: max(1.6rem, 10cqw);
+    line-height: 1.2;
+    text-align: center;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
     background-image: linear-gradient(
         100deg,
-        #3d2b52 0%,
-        #6a4f86 38%,
-        #b9a3d2 47%,
-        #f4eefa 50%,
-        #b9a3d2 53%,
-        #6a4f86 62%,
-        #3d2b52 100%
+        #2e1347 0%,
+        #5b2a86 30%,
+        #7f45bd 42%,
+        #c7a3ef 50%,
+        #8f58cc 58%,
+        #5b2a86 72%,
+        #2e1347 100%
     );
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 1px 0 rgb(255 255 255 / 90%)) drop-shadow(0 1px 1.5px rgb(52 24 79 / 25%));
 }
 
+/* Arabic names: Great Vibes has no Arabic letters, so same gradient in bold Cairo */
+.lc-name:dir(rtl) {
+    font-size: max(1.3rem, 7.4cqw);
+    font-weight: 700;
+}
+
+.lc-member {
+    display: flex;
+    align-items: center;
+    gap: 2.4cqw;
+    width: 100%;
+    color: var(--lc-ink);
+    font-size: max(0.5rem, 2.3cqw);
+    font-weight: 600;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+}
+
+.lc-member::before,
+.lc-member::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgb(44 34 51 / 0%), rgb(44 34 51 / 55%));
+}
+
+.lc-member::after {
+    background: linear-gradient(90deg, rgb(44 34 51 / 55%), rgb(44 34 51 / 0%));
+}
+
+:lang(ar) .lc-member {
+    font-size: max(0.62rem, 2.8cqw);
+    letter-spacing: 0;
+}
+
+/* 10 circles: 5 x 2, embossed purple ring */
 .lc-stamps {
-    position: relative;
+    grid-area: stamps;
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 0.45rem 0.6rem;
-    margin-top: auto;
+    gap: 2.4cqw 3.2cqw;
+    align-self: end;
+    width: 72%;
+    margin: 3cqw 0 0;
     padding: 0;
     list-style: none;
 }
@@ -2080,58 +2375,189 @@ body.has-overlay {
     display: grid;
     place-items: center;
     width: 100%;
-    max-width: 2.5rem;
     aspect-ratio: 1;
-    margin-inline: auto;
-    border: 1.5px solid #b8abc6;
+    border: max(1.5px, 0.6cqw) solid transparent;
     border-radius: 50%;
-    background: rgb(255 255 255 / 70%);
+    background:
+        radial-gradient(circle at 50% 35%, #ffffff 0%, #f7f3fa 60%, #ece5f1 100%) padding-box,
+        conic-gradient(from 210deg, #3c1b5c, #b48ee0, #f6efff, #6a3a98, #2c1244, #9e74d0, #3c1b5c) border-box;
+    box-shadow:
+        inset 0 1px 2px rgb(44 18 68 / 18%),
+        0 1px 0 rgb(255 255 255 / 90%),
+        0 2px 5px rgb(44 18 68 / 16%);
 }
 
-.lc-stamp .icon {
-    width: 52%;
-    height: 52%;
-    color: #fff;
-    opacity: 0;
+.lc-num {
+    color: #3a2d48;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: max(0.85rem, 4.6cqw);
+    font-weight: 600;
+    font-variant-numeric: lining-nums;
+    line-height: 1;
 }
 
+/* Visit validated by Zeyd: glossy purple disc, white number */
 .lc-stamp.is-filled {
-    border-color: #174c45;
-    background: radial-gradient(circle at 32% 28%, #3a7a6d 0%, #174c45 70%);
-    box-shadow: 0 2px 6px rgb(23 76 69 / 30%);
+    background:
+        radial-gradient(circle at 35% 28%, #b98be8 0%, #6d35a3 45%, #3c1b5c 100%) padding-box,
+        conic-gradient(from 210deg, #2c1244, #c9a6f0, #ffffff, #6a3a98, #2c1244) border-box;
+    box-shadow:
+        inset 0 1px 1px rgb(255 255 255 / 45%),
+        0 2px 6px rgb(60 27 92 / 35%);
 }
 
-.lc-stamp.is-filled .icon {
-    opacity: 1;
+.lc-stamp.is-filled .lc-num {
+    color: #fff;
+    text-shadow: 0 1px 1px rgb(0 0 0 / 30%);
 }
 
-/* The 10th circle: warm brown with a black gift box */
+/* The 10th circle: warm copper-brown with a black gift box */
 .lc-stamp.is-reward {
-    border-color: #6b4423;
-    background: radial-gradient(circle at 32% 28%, #b07d4c 0%, #845532 70%);
-    box-shadow: 0 2px 6px rgb(107 68 35 / 30%);
+    background:
+        radial-gradient(circle at 34% 28%, #e3ad78 0%, #b5763f 42%, #7a4520 100%) padding-box,
+        conic-gradient(from 200deg, #5c3216, #f0c08f, #fff3e2, #8a5128, #4a280f, #d79a62, #5c3216) border-box;
+    box-shadow:
+        inset 0 1px 1px rgb(255 240 220 / 50%),
+        0 2px 6px rgb(92 50 22 / 35%);
 }
 
 .lc-gift {
-    width: 72%;
-    height: 72%;
+    width: 66%;
+    height: 66%;
+    filter: drop-shadow(0 1px 0 rgb(255 230 200 / 35%));
 }
 
 .lc.is-complete .lc-stamp.is-reward {
     box-shadow:
-        0 0 0 3px rgb(176 125 76 / 35%),
-        0 4px 12px rgb(107 68 35 / 40%);
+        0 0 0 max(2px, 0.8cqw) rgb(227 173 120 / 40%),
+        0 0 18px rgb(227 173 120 / 65%),
+        0 3px 10px rgb(92 50 22 / 45%);
+    animation: lc-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes lc-glow {
+    50% {
+        transform: scale(1.08);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lc.is-complete .lc-stamp.is-reward {
+        animation: none;
+    }
+}
+
+/* "10 visites = 1 coupe gratuite", handwritten, beside the circles */
+.lc-offer {
+    grid-area: stamps;
+    align-self: center;
+    justify-self: end;
+    width: 25%;
+    margin-top: 3cqw;
+    padding-bottom: 1.2cqw;
+    border-bottom: 1px solid rgb(91 42 134 / 45%);
+    color: var(--lc-purple-deep);
+    font-family: "Great Vibes", "Cairo", cursive;
+    font-size: max(0.95rem, 5.2cqw);
+    line-height: 1.05;
+    text-align: center;
+    transform: rotate(-6deg);
+}
+
+:lang(ar) .lc-offer {
+    font-family: "Cairo", sans-serif;
+    font-size: max(0.7rem, 3.2cqw);
+    font-weight: 700;
+    line-height: 1.5;
+    transform: rotate(-3deg);
 }
 
 .lc-foot {
-    position: relative;
+    grid-area: foot;
     display: flex;
-    justify-content: space-between;
-    color: #5d6b66;
-    font-size: 0.7rem;
+    align-items: center;
+    gap: 3cqw;
+    margin-top: 3.4cqw;
+    color: var(--lc-ink);
+    font-size: max(0.5rem, 2.3cqw);
     font-weight: 600;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+}
+
+.lc-slogan {
+    white-space: nowrap;
+}
+
+/* Line between the slogan and the visit count */
+.lc-foot::after {
+    content: "";
+    flex: 1;
+    order: 1;
+    height: 1px;
+    background: rgb(44 34 51 / 35%);
+}
+
+.lc-count {
+    order: 2;
+    color: var(--lc-purple);
     font-variant-numeric: tabular-nums;
+    letter-spacing: 0.08em;
+}
+
+:lang(ar) .lc-foot {
+    font-size: max(0.6rem, 2.7cqw);
+    letter-spacing: 0;
+}
+
+/* Reward unlocked: a copper ribbon takes the place of the handwritten offer */
+.lc.is-complete .lc-offer {
+    display: none;
+}
+
+.lc-reward-badge {
+    grid-area: stamps;
+    align-self: center;
+    justify-self: end;
+    width: 25%;
+    margin-top: 3cqw;
+    padding: 1.6cqw 2cqw;
+    border-radius: 3cqw;
+    line-height: 1.25;
+    text-align: center;
+    background: linear-gradient(135deg, #f0c08f, #b5763f 55%, #7a4520);
+    color: #1d120a;
+    font-size: max(0.55rem, 2.4cqw);
+    font-weight: 800;
     letter-spacing: 0.06em;
+    box-shadow: 0 2px 8px rgb(92 50 22 / 35%);
+}
+
+/* Narrow phones (card under ~340px): the handwritten offer moves under the circles */
+@container (max-width: 21rem) {
+    .lc {
+        grid-template-rows: auto auto 1fr auto auto;
+        grid-template-areas:
+            "logo title"
+            "identity identity"
+            "stamps stamps"
+            "offer offer"
+            "foot foot";
+    }
+
+    .lc-stamps {
+        justify-self: center;
+        width: 88%;
+    }
+
+    .lc-offer,
+    .lc-reward-badge {
+        grid-area: offer;
+        justify-self: center;
+        width: auto;
+        padding-inline: 3cqw;
+        transform: none;
+    }
 }
 
 .loyalty-progress {
@@ -2141,33 +2567,121 @@ body.has-overlay {
     text-align: center;
 }
 
+.loyalty-progress.is-reward {
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid #d79a62;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, rgb(240 192 143 / 22%), rgb(181 118 63 / 12%));
+    color: var(--color-heading);
+    font-weight: 700;
+}
+
+/* "Afficher mon QR": dark purple pill under the card */
 .loyalty-qr-btn {
     display: flex;
     width: 100%;
-    margin-top: var(--space-3);
+    max-width: 26rem;
+    margin: var(--space-3) auto 0;
+    border-color: rgb(255 255 255 / 12%);
+    background: linear-gradient(135deg, #4a2370 0%, #2c1244 100%);
+    color: #fff;
+    box-shadow: 0 6px 16px -6px rgb(44 18 68 / 55%);
 }
 
-.loyalty-qr-btn[hidden],
-.loyalty-qr[hidden] {
+.loyalty-qr-btn:hover {
+    background: linear-gradient(135deg, #5b2a86 0%, #34184f 100%);
+}
+
+.loyalty-qr-btn[hidden] {
     display: none;
 }
 
-.loyalty-qr {
-    display: grid;
-    justify-items: center;
-    gap: var(--space-2);
-    margin-top: var(--space-3);
-    padding: var(--space-4);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
+/* QR window: centred card on a dark blurred backdrop, soft open/close */
+.qr-dialog {
+    width: min(100% - 2rem, 22rem);
+    margin: auto;
+    padding: var(--space-5);
+    border: 0;
+    border-radius: 22px;
+    background: var(--color-surface);
+    color: var(--color-text);
     text-align: center;
+    box-shadow: 0 24px 60px rgb(0 0 0 / 35%);
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+    transition:
+        opacity 0.22s ease,
+        transform 0.22s ease,
+        overlay 0.22s allow-discrete,
+        display 0.22s allow-discrete;
 }
 
-/* Always dark-on-white so any phone camera can read it */
+.qr-dialog[open] {
+    opacity: 1;
+    transform: none;
+}
+
+@starting-style {
+    .qr-dialog[open] {
+        opacity: 0;
+        transform: translateY(12px) scale(0.96);
+    }
+}
+
+.qr-dialog::backdrop {
+    background: rgb(12 8 18 / 0%);
+    transition:
+        background 0.22s ease,
+        overlay 0.22s allow-discrete,
+        display 0.22s allow-discrete;
+}
+
+.qr-dialog[open]::backdrop {
+    background: rgb(12 8 18 / 62%);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+}
+
+@starting-style {
+    .qr-dialog[open]::backdrop {
+        background: rgb(12 8 18 / 0%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .qr-dialog,
+    .qr-dialog::backdrop {
+        transition: none;
+    }
+}
+
+.qr-dialog-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+    text-align: start;
+}
+
+.qr-dialog-head h2 {
+    font-size: var(--text-lg);
+}
+
+/* Purple frame around a pure white square: dark-on-white so any phone camera can read it */
+.qr-frame {
+    width: min(100%, 15rem);
+    margin-inline: auto;
+    padding: 3px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #c9a6f0, #5b2a86 50%, #e9dcf8);
+    box-shadow: 0 10px 24px -10px rgb(44 18 68 / 55%);
+}
+
 .loyalty-qr-code {
-    width: min(100%, 14rem);
-    padding: var(--space-2);
-    border-radius: var(--radius-sm);
+    aspect-ratio: 1;
+    padding: var(--space-3);
+    border-radius: 15px;
     background: #fff;
 }
 
@@ -2177,9 +2691,33 @@ body.has-overlay {
     height: auto;
 }
 
-.loyalty-qr-code-text strong {
+.qr-code-text {
+    margin-top: var(--space-4);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}
+
+.qr-code-text strong {
+    display: block;
+    color: var(--color-heading);
     font-size: var(--text-lg);
-    letter-spacing: 0.12em;
+    letter-spacing: 0.16em;
+}
+
+.qr-hint {
+    margin-top: var(--space-2);
+    font-size: var(--text-sm);
+}
+
+.qr-safe {
+    margin-top: var(--space-2);
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+}
+
+#qrMessage {
+    margin-top: var(--space-3);
+    text-align: start;
 }
 
 /* Bookings list additions */

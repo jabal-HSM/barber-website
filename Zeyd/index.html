@@ -27,7 +27,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Great+Vibes&family=Manrope:wght@400;500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -97,6 +97,9 @@
             <rect x="14.5" y="3.5" width="6" height="6" rx="1" />
             <rect x="3.5" y="14.5" width="6" height="6" rx="1" />
             <path d="M14.5 14.5h2.5v2.5M20.5 14.5v.01M14.5 20.5h.01M17 20.5h3.5V17" />
+        </symbol>
+        <symbol id="i-chevron" viewBox="0 0 24 24">
+            <path d="M9 6l6 6-6 6" />
         </symbol>
         <symbol id="i-arrow-back" viewBox="0 0 24 24">
             <path d="M19 12H5M11 6l-6 6 6 6" />
@@ -572,6 +575,7 @@
             <source media="(min-width: 48em)" srcset="login-chair-1200.jpg">
             <img src="login-chair-720.jpg" alt="" width="720" height="1080" decoding="async">
         </picture>
+        <div class="auth-blur"></div>
         <div class="auth-scrim"></div>
 
         <div class="auth-top">
@@ -588,19 +592,36 @@
             </button>
         </div>
 
-        <div class="auth-panel">
-            <img src="logozeyd.jpeg" alt="" class="auth-logo" width="88" height="88">
-            <h2 id="authScreenTitle" class="brand-wordmark auth-wordmark" lang="en" dir="ltr">ZEYD BARBER</h2>
+        <div class="auth-brand">
+            <img src="logo-mark-light.png" alt="" class="auth-mark" width="234" height="396">
+            <h2 id="authScreenTitle" class="auth-logo-text" lang="en" dir="ltr">
+                <span class="auth-logo-zeyd">ZEYD</span>
+                <span class="auth-logo-barber">BARBER</span>
+            </h2>
             <p class="auth-tagline" data-i18n="auth.tagline">Votre style. Notre passion.</p>
             <p class="auth-subtagline" data-i18n="auth.subtagline">Plus qu’une coupe, une identité.</p>
+        </div>
 
+        <div class="auth-panel">
             <div class="auth-choices" id="authChoices">
-                <button type="button" class="btn btn-light" data-auth-mode="signin" data-i18n="auth.signIn">Se
-                    connecter</button>
-                <button type="button" class="btn btn-dark" data-auth-mode="signup" data-i18n="auth.signUp">Créer un
-                    compte</button>
-                <button type="button" class="auth-link" id="authSkipBtn" data-i18n="auth.skip">Continuer sans
-                    compte</button>
+                <button type="button" class="auth-btn auth-btn-light" data-auth-mode="signin">
+                    <span data-i18n="auth.signIn">Se connecter</span>
+                    <svg class="icon icon-dir" aria-hidden="true">
+                        <use href="#i-arrow" />
+                    </svg>
+                </button>
+                <button type="button" class="auth-btn auth-btn-dark" data-auth-mode="signup">
+                    <span data-i18n="auth.signUp">Créer un compte</span>
+                    <svg class="icon icon-dir" aria-hidden="true">
+                        <use href="#i-arrow" />
+                    </svg>
+                </button>
+                <button type="button" class="auth-link auth-skip" id="authSkipBtn">
+                    <span class="auth-link-text" data-i18n="auth.skip">Continuer sans compte</span>
+                    <svg class="icon icon-dir" aria-hidden="true">
+                        <use href="#i-chevron" />
+                    </svg>
+                </button>
             </div>
 
             <form class="auth-form" id="authForm" novalidate hidden>
@@ -621,7 +642,7 @@
                     <p class="field-hint" id="authPasswordHint" data-i18n="account.passwordHint">8 caractères
                         minimum.</p>
                 </div>
-                <button type="submit" class="btn btn-light auth-submit" id="authSubmit"
+                <button type="submit" class="auth-btn auth-btn-light auth-submit" id="authSubmit"
                     data-i18n="account.signInSubmit">Se connecter</button>
                 <div class="form-message" id="authMessage" role="status" aria-live="polite" hidden></div>
                 <button type="button" class="auth-link" id="authSwitchBtn" data-i18n="auth.toSignUp">Pas encore de
@@ -658,19 +679,13 @@
                 <h3 class="account-subtitle" id="loyaltyTitle" data-i18n="loyalty.title">Ma carte de fidélité</h3>
                 <div id="loyaltyCard"></div>
                 <p class="loyalty-progress" id="loyaltyProgress" aria-live="polite"></p>
-                <button type="button" class="btn btn-primary loyalty-qr-btn" id="loyaltyQrBtn" aria-expanded="false"
-                    aria-controls="loyaltyQr" hidden>
+                <button type="button" class="btn loyalty-qr-btn" id="loyaltyQrBtn" aria-haspopup="dialog"
+                    aria-controls="qrDialog" hidden>
                     <svg class="icon" aria-hidden="true">
                         <use href="#i-qr" />
                     </svg>
-                    <span id="loyaltyQrBtnText" data-i18n="loyalty.showQr">Afficher mon QR code</span>
+                    <span data-i18n="loyalty.showQr">Afficher mon QR</span>
                 </button>
-                <div class="loyalty-qr" id="loyaltyQr" hidden>
-                    <div class="loyalty-qr-code" id="loyaltyQrCode"></div>
-                    <p class="loyalty-qr-code-text"><span data-i18n="loyalty.code">Code</span> : <strong dir="ltr"
-                            id="loyaltyShortCode"></strong></p>
-                    <p class="field-hint" data-i18n="loyalty.qrHint">Après votre coupe, montrez ce code à Zeyd.</p>
-                </div>
             </section>
 
             <h3 class="account-subtitle" data-i18n="account.myBookings">Mes rendez-vous à venir</h3>
@@ -679,6 +694,27 @@
             <button type="button" class="btn btn-ghost" id="signOutBtn" data-i18n="account.signOut">Se
                 déconnecter</button>
         </div>
+    </dialog>
+
+    <!-- Loyalty QR code, opened on demand above the account dialog. Showing it adds no visit. -->
+    <dialog class="qr-dialog" id="qrDialog" aria-labelledby="qrDialogTitle">
+        <div class="qr-dialog-head">
+            <h2 id="qrDialogTitle" data-i18n="loyalty.qrTitle">Mon QR de fidélité</h2>
+            <button type="button" class="icon-btn" id="qrCloseBtn" data-i18n-attr="aria-label:account.close"
+                aria-label="Fermer">
+                <svg class="icon" aria-hidden="true">
+                    <use href="#i-close" />
+                </svg>
+            </button>
+        </div>
+        <div class="qr-frame">
+            <div class="loyalty-qr-code" id="loyaltyQrCode"></div>
+        </div>
+        <p class="qr-code-text"><span data-i18n="loyalty.code">Code</span> <strong dir="ltr"
+                id="loyaltyShortCode"></strong></p>
+        <p class="qr-hint" data-i18n="loyalty.qrHint">Après votre coupe, montrez ce code à Zeyd.</p>
+        <p class="qr-safe" data-i18n="loyalty.qrSafe">Afficher ce code n’ajoute aucune visite.</p>
+        <p class="form-message is-error" id="qrMessage" role="status" aria-live="polite" hidden></p>
     </dialog>
 
     <script type="module" src="script.js"></script>

@@ -4,7 +4,6 @@ import { t } from './i18n.js';
 
 export const QR_PREFIX = 'ZEYD-LOYALTY:';
 const QR_LIBRARY = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
-const SVG_NS = 'http://www.w3.org/2000/svg';
 
 // Static drawing of a black gift box (no user data inside)
 const GIFT_SVG = `<svg viewBox="0 0 32 32" aria-hidden="true" class="lc-gift">
@@ -23,47 +22,57 @@ export function filledCount(stampsTotal, availableRewards) {
     return progress === 0 && stampsTotal > 0 && availableRewards > 0 ? 10 : progress;
 }
 
+function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+}
+
+// Brand block: the scissors-Z monogram (logo-mark-ink.png, cut from logozeyd.jpeg) + ZEYD / BARBER
+function brandBlock() {
+    const logo = el('div', 'lc-logo');
+    logo.lang = 'en';
+    logo.dir = 'ltr';
+    const mark = el('img', 'lc-mark');
+    mark.src = 'logo-mark-ink.png';
+    mark.alt = '';
+    mark.width = 234;
+    mark.height = 396;
+    logo.append(mark, el('span', 'lc-logo-name', 'ZEYD'), el('span', 'lc-logo-sub', 'BARBER'));
+    return logo;
+}
+
 export function renderLoyaltyCard(container, card, lang) {
     const filled = filledCount(card.stamps_total, card.available_rewards);
-    const root = document.createElement('div');
-    root.className = `lc${filled === 10 ? ' is-complete' : ''}`;
+    const root = el('div', `lc${filled === 10 ? ' is-complete' : ''}`);
 
-    const stripe = document.createElement('div');
-    stripe.className = 'lc-stripe';
+    // Top stripe: two slanted purple bars, like the foil band of a membership card
+    const stripe = el('div', 'lc-stripe');
+    stripe.setAttribute('aria-hidden', 'true');
+    stripe.append(el('span', 'lc-bar'), el('span', 'lc-bar'));
 
-    const head = document.createElement('div');
-    head.className = 'lc-head';
-    const brand = document.createElement('span');
-    brand.className = 'lc-brand';
-    brand.lang = 'en';
-    brand.dir = 'ltr';
-    brand.textContent = 'ZEYD BARBER';
-    const label = document.createElement('span');
-    label.className = 'lc-label';
-    label.textContent = t(lang, 'loyalty.cardLabel');
-    head.append(brand, label);
+    const title = el('div', 'lc-title');
+    const english = el('span', 'lc-title-en', 'Loyalty card');
+    english.lang = 'en';
+    title.append(el('span', 'lc-title-main', t(lang, 'loyalty.cardLabel')), english);
 
-    const name = document.createElement('p');
-    name.className = 'lc-name';
-    name.textContent = card.full_name || '—';
+    const identity = el('div', 'lc-identity');
+    const name = el('p', 'lc-name', card.full_name || '—');
+    name.dir = 'auto';
+    identity.append(name, el('p', 'lc-member', t(lang, 'loyalty.member')));
 
-    const stamps = document.createElement('ol');
-    stamps.className = 'lc-stamps';
+    const stamps = el('ol', 'lc-stamps');
     for (let n = 1; n <= 10; n += 1) {
-        const stamp = document.createElement('li');
         const done = n <= filled;
-        stamp.className = `lc-stamp${done ? ' is-filled' : ''}${n === 10 ? ' is-reward' : ''}`;
+        const stamp = el('li', `lc-stamp${done ? ' is-filled' : ''}${n === 10 ? ' is-reward' : ''}`);
         if (n === 10) {
             stamp.innerHTML = GIFT_SVG;
             stamp.setAttribute('aria-label', t(lang, 'loyalty.rewardStamp'));
         } else {
-            const icon = document.createElementNS(SVG_NS, 'svg');
-            icon.setAttribute('class', 'icon');
-            icon.setAttribute('aria-hidden', 'true');
-            const use = document.createElementNS(SVG_NS, 'use');
-            use.setAttribute('href', '#i-scissors');
-            icon.append(use);
-            stamp.append(icon);
+            const num = el('span', 'lc-num', String(n));
+            num.setAttribute('aria-hidden', 'true');
+            stamp.append(num);
             stamp.setAttribute(
                 'aria-label',
                 t(lang, 'loyalty.stamp', { n, state: t(lang, done ? 'loyalty.stampDone' : 'loyalty.stampTodo') }),
@@ -72,17 +81,15 @@ export function renderLoyaltyCard(container, card, lang) {
         stamps.append(stamp);
     }
 
-    const foot = document.createElement('div');
-    foot.className = 'lc-foot';
-    const code = document.createElement('span');
-    code.dir = 'ltr';
-    code.textContent = `N° ${card.short_code}`;
-    const count = document.createElement('span');
-    count.dir = 'ltr';
-    count.textContent = `${filled}/10`;
-    foot.append(code, count);
+    const offer = el('p', 'lc-offer', t(lang, 'loyalty.offer'));
 
-    root.append(stripe, head, name, stamps, foot);
+    const foot = el('div', 'lc-foot');
+    const count = el('span', 'lc-count', `${filled}/10`);
+    count.dir = 'ltr';
+    foot.append(el('span', 'lc-slogan', t(lang, 'auth.tagline')), count);
+
+    root.append(stripe, brandBlock(), title, identity, stamps, offer, foot);
+    if (filled === 10) root.append(el('p', 'lc-reward-badge', t(lang, 'loyalty.rewardTitle')));
     container.replaceChildren(root);
     return filled;
 }
