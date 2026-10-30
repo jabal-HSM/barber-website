@@ -258,8 +258,10 @@ button {
    ========================================================================== */
 .brand-wordmark,
 .brand-name {
+    min-width: 0;
     font-family: var(--font-brand);
     font-weight: 700;
+    overflow-wrap: anywhere;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--color-primary);
@@ -660,6 +662,13 @@ h2 {
     align-items: center;
 }
 
+/* Grid children may shrink below their content width: with enlarged phone text a long word must not
+   widen the page (Android then widens the whole layout viewport and cuts the right side) */
+.hero-grid > *,
+.info-grid > * {
+    min-width: 0;
+}
+
 .hero-title {
     display: flex;
     flex-direction: column;
@@ -672,6 +681,7 @@ h2 {
     letter-spacing: 0.08em;
     /* Wordmark is Latin: keep it LTR and start-aligned in both languages */
     align-self: flex-start;
+    max-width: 100%;
     padding-block: 0.05em;
 }
 
@@ -706,7 +716,8 @@ h2 {
 
 .hero-facts {
     display: grid;
-    grid-template-columns: repeat(3, auto);
+    /* Three columns normally; they wrap instead of overflowing when the phone enlarges text */
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 5.5rem), max-content));
     justify-content: space-between;
     gap: var(--space-4);
     max-width: 30rem;
@@ -1014,9 +1025,10 @@ h2 {
     margin-bottom: var(--space-3);
 }
 
+/* Capped by the screen width so enlarged phone text cannot push the tiles off screen */
 .gallery-empty-art span {
-    width: 3.25rem;
-    height: 4rem;
+    width: min(3.25rem, 18vw);
+    aspect-ratio: 13 / 16;
     border-radius: var(--radius-sm);
     background: var(--color-surface-muted);
 }
@@ -1127,6 +1139,7 @@ h2 {
 
 .hours-row {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-4);
@@ -1176,7 +1189,12 @@ h2 {
 
 .contact-list {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-3);
+}
+
+.contact-link {
+    overflow-wrap: anywhere;
 }
 
 .contact-link {
@@ -1327,9 +1345,11 @@ h2 {
     display: none;
 }
 
+/* min-width: 0 lets the field shrink below its natural ~20-character width inside grid / flex layouts */
 .field {
     display: block;
     width: 100%;
+    min-width: 0;
     min-height: 3rem;
     padding: var(--space-3) var(--space-4);
     border: 1px solid var(--color-border-strong);
@@ -1745,7 +1765,8 @@ textarea.field {
    ========================================================================== */
 .auth-screen[hidden],
 .auth-choices[hidden],
-.auth-form[hidden] {
+.auth-form[hidden],
+.auth-btn[hidden] {
     display: none;
 }
 
@@ -1758,6 +1779,8 @@ body.has-overlay {
     inset: 0;
     z-index: 300;
     display: grid;
+    /* One column never wider than the screen, whatever the text size of the phone */
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto minmax(var(--space-6), 1fr) auto;
     overflow-x: hidden;
     overflow-y: auto;
@@ -1903,9 +1926,13 @@ body.has-overlay {
     align-items: center;
     justify-content: center;
     width: 100%;
+    min-width: 0;
     min-height: 3.6rem;
-    padding: 0 3.25rem;
+    /* Room for the arrow on both sides keeps the label centred; long labels wrap instead of widening the button */
+    padding: var(--space-2) 3.25rem;
     border: 1px solid transparent;
+    text-align: center;
+    overflow-wrap: anywhere;
     border-radius: 18px;
     font-family: var(--font-body);
     font-size: 1.02rem;
@@ -1979,6 +2006,9 @@ body.has-overlay {
     align-items: center;
     justify-content: center;
     gap: var(--space-1);
+    min-width: 0;
+    max-width: 100%;
+    text-align: center;
     min-height: 2.75rem;
     padding: 0 var(--space-3);
     border: 0;
@@ -2015,6 +2045,7 @@ body.has-overlay {
 }
 
 .auth-screen .auth-form {
+    grid-template-columns: minmax(0, 1fr);
     width: 100%;
     padding: var(--space-5);
     border: 1px solid rgb(255 255 255 / 16%);
@@ -2068,6 +2099,32 @@ body.has-overlay {
     border-color: rgb(255 255 255 / 28%);
     background: rgb(0 0 0 / 35%);
     color: #fff;
+}
+
+/* Narrow phones (up to 400px, or any phone with enlarged text): less nested padding,
+   so the fields and buttons get the width instead of the frames around them */
+@media (max-width: 25em) {
+    .auth-brand,
+    .auth-panel {
+        padding-inline: var(--space-4);
+    }
+
+    .auth-screen .auth-form {
+        gap: var(--space-3);
+        padding: var(--space-4);
+        border-radius: 18px;
+    }
+
+    .auth-btn {
+        min-height: 3.25rem;
+        padding-inline: 2.75rem;
+        border-radius: 16px;
+        font-size: 1rem;
+    }
+
+    .auth-btn .icon {
+        inset-inline-end: 1rem;
+    }
 }
 
 /* Short screens (small phones, landscape): tighter logo so the buttons stay on screen */

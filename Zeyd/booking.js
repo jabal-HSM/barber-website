@@ -12,11 +12,13 @@ import {
     fetchSlots,
     onAuthChange,
     requestCustomTime,
+    resendConfirmation,
     signIn,
     signOut,
     signUp,
     startCheckout,
 } from './api.js';
+import { cleanAuthUrl, parseAuthRedirect } from './authRedirect.js';
 import { t } from './i18n.js';
 import { renderLoyaltyCard, renderQrCode } from './loyalty.js';
 import { formatDateOf, formatDay, formatTime, parisLocalToIso } from './time.js';
@@ -78,12 +80,17 @@ function renderMessage(id) {
 
 const errorKey = (error) => `error.${errorCode(error)}`;
 
+// After a confirmation link, how long to wait for supabase-js to restore the session before saying so
+const CONFIRM_TIMEOUT_MS = 15000;
+
 // --- Public API used by script.js ---
 export async function initBooking({ lang, services, priceFormatter }) {
     state.lang = lang;
     state.services = services;
     state.priceFormatter = priceFormatter;
     state.ready = true;
+    // Read before the Supabase client starts: it consumes the tokens of the URL when it is created
+    const authRedirect = parseAuthRedirect(location.hash, location.search);
 
     $('bookingService')?.addEventListener('change', (e) => {
         state.serviceId = e.target.value;
@@ -107,6 +114,7 @@ export async function initBooking({ lang, services, priceFormatter }) {
 
     renderServiceSelect();
     renderSummary();
+    handleAuthRedirect(authRedirect);
 
     state.days = await fetchBookableDays();
     onAuthChange(onUserChange);
@@ -351,6 +359,7 @@ function initAuthScreen() {
         showAuthScreen(state.authMode === 'signup' ? 'signin' : 'signup'),
     );
     $('authForm').addEventListener('submit', onAuthSubmit);
+    $('authResendBtn').addEventListener('click', onResendConfirmation);
     screen.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') hideAuthScreen();
     });
@@ -365,7 +374,10 @@ function showAuthScreen(step = 'choices') {
     state.authStep = step;
     screen.hidden = false;
     document.body.classList.add('has-overlay');
-    if (step === 'choices') setMessage('authMessage', null);
+    if (step === 'choices') {
+        setMessage('authMessage', null);
+        showResend(false);
+    }
     renderAuthStep();
     const focusTarget = step === 'choices' ? screen.querySelector('[data-auth-mode="signin"]') : $('authEmail');
     focusTarget?.focus();
@@ -414,8 +426,10 @@ async function onAuthSubmit(event) {
     button.disabled = false;
     if (result.error) {
         setMessage('authMessage', 'error', errorKey(result.error));
+        showResend(errorCode(result.error) === 'email_not_confirmed');
         return;
     }
+    showResend(false);
     $('authPassword').value = '';
     if (state.authMode === 'signup' && !result.data?.session) {
         // Email confirmation is on: the account is active once the link is opened.
@@ -426,6 +440,54 @@ async function onAuthSubmit(event) {
     }
     setMessage('authMessage', null);
     hideAuthScreen();
+}
+
+function showResend(visible) {
+    if ($('authResendBtn')) $('authResendBtn').hidden = !visible;
+}
+
+async function onResendConfirmation() {
+    const email = $('authEmail').value.trim();
+    if (!email || !$('authEmail').checkValidity()) {
+        setMessage('authMessage', 'error', 'error.email_required');
+        $('authEmail').focus();
+        return;
+    }
+    const button = $('authResendBtn');
+    button.disabled = true;
+    const { error } = await resendConfirmation(email);
+    button.disabled = false;
+    if (error) {
+        setMessage('authMessage', 'error', errorKey(error));
+        return;
+    }
+    setMessage('authMessage', 'success', 'auth.resent', { email });
+}
+
+// Back from the confirmation email (see authRedirect.js).
+// Failure: explained at once. Success: supabase-js restores the session, onUserChange confirms it;
+// if it never does, a message replaces the wait instead of an endless loading.
+function handleAuthRedirect(redirect) {
+    if (!redirect) return;
+    if (redirect.kind === 'error') {
+        history.replaceState(null, '', cleanAuthUrl(location.pathname, location.search));
+        showAuthScreen('signin');
+        showResend(true);
+        setMessage('authMessage', 'error', `error.${redirect.reason}`);
+        return;
+    }
+    state.confirmPending = true;
+    state.confirmTimer = setTimeout(() => confirmFailed(), CONFIRM_TIMEOUT_MS);
+}
+
+function confirmFailed() {
+    if (!state.confirmPending) return;
+    state.confirmPending = false;
+    clearTimeout(state.confirmTimer);
+    history.replaceState(null, '', cleanAuthUrl(location.pathname, location.search));
+    showAuthScreen('signin');
+    showResend(true);
+    setMessage('authMessage', 'error', 'error.session_failed');
 }
 
 // --- Account dialog (signed in) ---
@@ -474,10 +536,23 @@ function onUserChange(user) {
     });
     if ($('accountEmail')) $('accountEmail').textContent = user?.email ?? '';
     renderSummary();
+    if (user && state.confirmPending) {
+        // Signed in by the confirmation link: say it, then show the account
+        state.confirmPending = false;
+        clearTimeout(state.confirmTimer);
+        history.replaceState(null, '', cleanAuthUrl(location.pathname, location.search));
+        hideAuthScreen();
+        openAccount();
+        setMessage('accountMessage', 'success', 'account.emailConfirmed');
+        return;
+    }
     if (user) {
         hideAuthScreen();
         loadMyBookings();
         loadLoyalty();
+    } else if (state.confirmPending) {
+        // The link carried a session that could not be restored
+        confirmFailed();
     } else {
         state.bookings = [];
         state.loyalty = null;
@@ -486,7 +561,9 @@ function onUserChange(user) {
         renderLoyalty();
         if ($('accountDialog')?.open) $('accountDialog').close();
         // First visit: welcome screen once (only when accounts can actually be used)
-        if (firstCall && state.days !== null && !readPref(WELCOME_KEY)) showAuthScreen('choices');
+        // (not over the sign-in form already opened by a confirmation link)
+        if (firstCall && state.days !== null && !readPref(WELCOME_KEY) && $('authScreen')?.hidden)
+            showAuthScreen('choices');
     }
 }
 

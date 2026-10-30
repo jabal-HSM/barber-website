@@ -25,6 +25,28 @@ to the page where the account was created, but only if that address is allowed:
 Without it, the link opens the Site URL (the old Phase 1 page) and you must sign in again by hand.
 The built-in email sender only sends a few emails per hour; if no email arrives, wait and retry.
 
+Measured on 2026-10-31 (an invalid token sent to `/auth/v1/verify`; the `Location` of the answer shows where
+Supabase sends people back):
+
+| `redirect_to` | Supabase sends back to |
+|---|---|
+| `http://127.0.0.1:5501/.claude/worktrees/…/Zeyd/index.html` | that page ✅ |
+| `http://localhost:5501/…` | `http://127.0.0.1:5501/` (not allowed yet) |
+| `http://192.168.1.20:5501/…` (PC address on the Wi-Fi) | `http://127.0.0.1:5501/` (not allowed) |
+
+`127.0.0.1` is "this device": opened on a phone, it points to the phone itself, so the page never loads.
+Supabase confirms the address *before* this redirect, so the account is usually confirmed anyway: sign in.
+
+### Testing from a phone (same Wi-Fi as the PC)
+1. On the PC: `ipconfig` → "IPv4 Address" of the Wi-Fi adapter, e.g. `192.168.1.20`.
+2. Live Server must accept other devices: VS Code settings → `liveServer.settings.host` = `0.0.0.0`
+   (then restart Live Server). Allow Node/VS Code through the Windows firewall on *private* networks if asked.
+3. Supabase → Redirect URLs → Add `http://192.168.1.20:5501/**` (your own address) → Save.
+4. On the phone open `http://192.168.1.20:5501/.claude/worktrees/zeyd-barber-phase-1-28351e/Zeyd/index.html`,
+   create the account there and open the email link **on the phone** (the link brings you back to the page
+   where the account was created).
+5. If a link fails or expired, the sign-in form says so and offers « Renvoyer l’e-mail de confirmation ».
+
 ## 2. Tests and lint (no internet, no Docker)
 ```
 npm install

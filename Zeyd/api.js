@@ -102,6 +102,17 @@ export async function signUp(email, password, { fullName = '', lang = 'fr' } = {
     });
 }
 
+// New confirmation email, for an account whose link expired or never arrived
+export async function resendConfirmation(email) {
+    const supabase = await getSupabase();
+    if (!supabase) return { error: new Error('No backend configured') };
+    return supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: { emailRedirectTo: `${location.origin}${location.pathname}` },
+    });
+}
+
 export async function signIn(email, password) {
     const supabase = await getSupabase();
     if (!supabase) return { error: new Error('No backend configured') };

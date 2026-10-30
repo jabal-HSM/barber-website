@@ -123,6 +123,16 @@ export const translations = {
         'auth.signUpTitle': 'Créer votre compte',
         'auth.toSignUp': 'Pas encore de compte ? Créer un compte',
         'auth.toSignIn': 'Déjà un compte ? Se connecter',
+        'auth.resend': 'Renvoyer l’e-mail de confirmation',
+        'auth.resent': 'Nouvel e-mail envoyé à {email}. Ouvrez le lien sur l’appareil où le site est ouvert.',
+        'account.emailConfirmed': 'Adresse e-mail confirmée : vous êtes connecté.',
+        'error.link_expired':
+            'Ce lien de confirmation est invalide ou déjà utilisé. Essayez de vous connecter : si votre adresse est déjà confirmée, cela fonctionnera. Sinon, demandez un nouveau lien.',
+        'error.link_failed':
+            'La confirmation n’a pas abouti. Connectez-vous avec votre e-mail et votre mot de passe, ou demandez un nouveau lien.',
+        'error.session_failed':
+            'Votre adresse est probablement confirmée, mais la connexion automatique n’a pas abouti. Connectez-vous avec votre e-mail et votre mot de passe.',
+        'error.email_required': 'Saisissez d’abord votre adresse e-mail.',
         'loyalty.title': 'Ma carte de fidélité',
         'loyalty.cardLabel': 'Carte de fidélité',
         'loyalty.progress': '{count} visite(s) sur 10 · encore {left} avant votre coupe offerte',
@@ -329,6 +339,15 @@ export const translations = {
         'auth.signUpTitle': 'إنشاء حسابك',
         'auth.toSignUp': 'ليس لديك حساب؟ أنشئ حساباً',
         'auth.toSignIn': 'لديك حساب؟ سجّل الدخول',
+        'auth.resend': 'إعادة إرسال رسالة التأكيد',
+        'auth.resent': 'أُرسلت رسالة جديدة إلى {email}. افتح الرابط على الجهاز الذي فتحت عليه الموقع.',
+        'account.emailConfirmed': 'تم تأكيد بريدك الإلكتروني وأنت الآن مسجّل الدخول.',
+        'error.link_expired':
+            'رابط التأكيد غير صالح أو استُخدم من قبل. جرّب تسجيل الدخول: إن كان بريدك مؤكَّداً فسينجح. وإلا فاطلب رابطاً جديداً.',
+        'error.link_failed': 'لم يكتمل التأكيد. سجّل الدخول ببريدك وكلمة المرور، أو اطلب رابطاً جديداً.',
+        'error.session_failed':
+            'على الأرجح تم تأكيد بريدك، لكن الدخول التلقائي لم يكتمل. سجّل الدخول ببريدك وكلمة المرور.',
+        'error.email_required': 'أدخل بريدك الإلكتروني أولاً.',
         'loyalty.title': 'بطاقة الولاء',
         'loyalty.cardLabel': 'بطاقة الولاء',
         'loyalty.progress': '{count} من 10 زيارات · بقي {left} للحصول على قصّة مجانية',
