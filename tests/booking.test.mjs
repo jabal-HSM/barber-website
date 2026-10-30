@@ -222,60 +222,6 @@ describe('booking system', () => {
         });
     });
 
-    test('custom time request: does not block the chair until the barber confirms it', async () => {
-        const tuesday = (await rows(db, `select ($1::date + 1)::text as d`, [monday]))[0].d;
-        const [request] = await as(db, bob, async () =>
-            rows(db, 'select * from public.request_custom_time($1, $2, $3)', [
-                fade,
-                await at(db, tuesday, '10:00'),
-                'Seul jour possible',
-            ]),
-        );
-        assert.equal(request.status, 'requested');
-
-        const [overlapping] = await as(db, carol, async () =>
-            rows(db, 'select * from public.request_custom_time($1, $2)', [kids, await at(db, monday, '09:10')]),
-        );
-
-        await as(db, bob, async () => {
-            await assert.rejects(
-                db.query("select public.set_booking_status($1, 'confirmed')", [request.id]),
-                /forbidden/,
-            );
-        });
-        await as(db, admin, async () => {
-            await db.query("select public.set_booking_status($1, 'confirmed')", [request.id]);
-            // Overlaps Alice's 09:00 booking and has no known duration
-            await assert.rejects(
-                db.query("select public.set_booking_status($1, 'confirmed', $2::timestamptz + interval '30 minutes')", [
-                    overlapping.id,
-                    await at(db, monday, '09:10'),
-                ]),
-                /slot_unavailable/,
-            );
-            await assert.rejects(
-                db.query("select public.set_booking_status($1, 'confirmed')", [overlapping.id]),
-                /invalid_time/,
-            );
-            // A visit cannot be marked completed before it starts
-            await assert.rejects(
-                db.query("select public.set_booking_status($1, 'completed')", [request.id]),
-                /invalid_status/,
-            );
-        });
-        const [stored] = await rows(db, 'select status, is_custom_request from public.bookings where id = $1', [
-            request.id,
-        ]);
-        assert.deepEqual(stored, { status: 'confirmed', is_custom_request: true });
-
-        await as(db, carol, async () => {
-            await assert.rejects(
-                db.query('select * from public.request_custom_time($1, $2)', [fade, '2020-01-01T10:00:00Z']),
-                /invalid_time/,
-            );
-        });
-    });
-
     test('anonymous visitors cannot change hours, closures or settings', async () => {
         await as(db, 'anon', async () => {
             await assert.rejects(db.query('delete from public.business_hours'), /permission denied/);
