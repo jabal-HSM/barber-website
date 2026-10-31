@@ -2878,6 +2878,136 @@ body.has-overlay {
     background: var(--color-secondary);
 }
 
+/* Customer cancellation dialog (built on .qr-dialog: same opening, backdrop and close behaviour) */
+.cancel-dialog {
+    width: min(100% - 2rem, 30rem);
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+    text-align: start;
+}
+
+.cancel-dialog .qr-dialog-head h2 {
+    font-size: var(--text-lg);
+    line-height: 1.3;
+}
+
+.cancel-booking-summary {
+    margin-bottom: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-muted);
+    color: var(--color-heading);
+    font-weight: 700;
+}
+
+.cancel-reasons {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+    margin: 0 0 var(--space-4);
+    padding: 0;
+    border: 0;
+}
+
+.reason-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    min-height: 2.75rem;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition:
+        border-color var(--transition),
+        background-color var(--transition);
+}
+
+.reason-row input {
+    flex-shrink: 0;
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-top: 0.15rem;
+    accent-color: var(--color-primary);
+}
+
+.reason-row:has(input:checked) {
+    border-color: var(--color-primary);
+    background: var(--color-surface-muted);
+}
+
+.reason-row:has(input:focus-visible) {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.reschedule-offer {
+    display: grid;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+    padding: var(--space-4);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-muted);
+}
+
+.reschedule-offer[hidden],
+.reschedule-banner[hidden] {
+    display: none;
+}
+
+.cancel-warning {
+    margin-top: var(--space-4);
+    padding: var(--space-3);
+    border-radius: var(--radius-sm);
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+    font-size: var(--text-sm);
+    font-weight: 600;
+}
+
+.cancel-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+}
+
+.cancel-actions .btn {
+    flex: 1 1 12rem;
+}
+
+.btn-danger {
+    border-color: var(--color-danger);
+    background: var(--color-danger);
+    color: #fff;
+}
+
+#cancelMessage {
+    margin-top: var(--space-3);
+}
+
+/* While a booking is being moved: shown above the booking form */
+.reschedule-banner {
+    display: grid;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+    padding: var(--space-4);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-muted);
+}
+
+.reschedule-title {
+    color: var(--color-heading);
+    font-weight: 700;
+}
+
+.reschedule-banner .btn {
+    justify-self: start;
+}
+
 /* Shown only when index.html is opened from file:// (see the end of index.html) */
 .file-warning {
     position: sticky;
@@ -3477,6 +3607,37 @@ body.has-overlay {
     color: var(--color-danger);
     font-size: var(--text-sm);
     font-weight: 700;
+}
+
+/* Telegram delivery status of a staff notification */
+.status-badge.is-telegram-sent {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+.status-badge.is-telegram-failed {
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+}
+
+.status-badge.is-telegram-pending,
+.status-badge.is-telegram-sending,
+.status-badge.is-telegram-not_configured {
+    background: var(--color-surface-muted);
+    color: var(--color-text-muted);
+}
+
+/* History of a booking (who / when / why) */
+.booking-history {
+    display: grid;
+    flex-basis: 100%;
+    gap: var(--space-1);
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    border-inline-start: 2px solid var(--color-border-strong);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    list-style: none;
 }
 
 .admin-dots {

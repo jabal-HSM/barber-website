@@ -71,6 +71,10 @@ const KNOWN_ERRORS = [
     'live_payments_not_allowed',
     'already_paid',
     'stripe_error',
+    'invalid_reason',
+    'details_required',
+    'details_too_long',
+    'same_time',
 ];
 
 export function errorCode(error) {
@@ -191,6 +195,46 @@ export async function cancelBooking(bookingId) {
     return supabase.rpc('cancel_booking', { p_booking_id: bookingId });
 }
 
+const missingFunction = (error) =>
+    error?.code === 'PGRST202' || /could not find the function/i.test(error?.message ?? '');
+
+// Cancellation with a reason (migration 20261101090000). Before that migration is applied on the project,
+// the old cancellation still works, without the reason.
+export async function cancelMyBooking(bookingId, reasonCode, details) {
+    const supabase = await getSupabase();
+    if (!supabase) return NO_BACKEND;
+    const result = await supabase.rpc('cancel_my_booking', {
+        p_booking_id: bookingId,
+        p_reason_code: reasonCode,
+        p_details: details || null,
+    });
+    if (missingFunction(result.error)) return { ...(await cancelBooking(bookingId)), reasonSaved: false };
+    return { ...result, reasonSaved: !result.error };
+}
+
+// Moves a booking to a new slot in one step: if the new slot fails, the old booking is kept as it was.
+export async function rescheduleMyBooking(bookingId, newStartsAt, details) {
+    const supabase = await getSupabase();
+    if (!supabase) return NO_BACKEND;
+    const { data, error } = await supabase.rpc('reschedule_my_booking', {
+        p_booking_id: bookingId,
+        p_new_starts_at: newStartsAt,
+        p_details: details || null,
+    });
+    return { data: data?.[0] ?? null, error };
+}
+
+// Asks the server to tell Zeyd (Telegram). Best effort: the cancellation is already stored and visible in
+// the dashboard whatever happens here, and the server sends each notification at most once.
+export async function notifyStaffOfBooking(bookingId) {
+    try {
+        const supabase = await getSupabase();
+        await supabase?.functions.invoke('notify-staff', { body: { booking_id: bookingId } });
+    } catch {
+        // Function not deployed or offline: the notification stays "pending" in the dashboard
+    }
+}
+
 // The signed-in customer's upcoming bookings (RLS returns their own rows only).
 // Staff can read every booking, so the customer filter matters here.
 export async function fetchMyBookings(userId) {
@@ -199,7 +243,7 @@ export async function fetchMyBookings(userId) {
     const { data, error } = await supabase
         .from('bookings')
         .select(
-            'id, starts_at, ends_at, status, is_custom_request, cancel_reason, cancelled_by, customer_id, services (name_fr, name_ar, price)',
+            'id, service_id, starts_at, ends_at, status, is_custom_request, cancel_reason, cancelled_by, customer_id, services (name_fr, name_ar, price)',
         )
         .eq('customer_id', userId)
         .in('status', ['confirmed', 'requested', 'cancelled'])

@@ -327,7 +327,51 @@ function bookingActions(b) {
             ),
         );
     }
+    actions.append(
+        button(at(state.lang, 'bookings.history'), 'btn btn-ghost btn-sm', (e) => toggleHistory(b, e.currentTarget)),
+    );
     return actions;
+}
+
+// Who created, confirmed, cancelled or moved this booking, when and why (booking_events, staff only)
+async function toggleHistory(b, trigger) {
+    const item = trigger.closest('.admin-item');
+    const existing = item.querySelector('.booking-history');
+    if (existing) {
+        existing.remove();
+        return;
+    }
+    const box = el('ol', 'booking-history');
+    box.append(el('li', 'admin-item-meta', at(state.lang, 'common.loading')));
+    item.append(box);
+    const { data, error } = await state.supabase
+        .from('booking_events')
+        .select('action, by_customer, reason_code, details, created_at')
+        .eq('booking_id', b.id)
+        .order('created_at');
+    if (error || !data?.length) {
+        box.replaceChildren(
+            el(
+                'li',
+                'admin-item-meta',
+                at(state.lang, error ? 'bookings.historyUnavailable' : 'bookings.historyEmpty'),
+            ),
+        );
+        return;
+    }
+    box.replaceChildren(
+        ...data.map((e) => {
+            const who = at(state.lang, e.by_customer ? 'history.byCustomer' : 'history.bySalon');
+            const line = el(
+                'li',
+                '',
+                `${formatDateOf(e.created_at, state.lang)} ${formatTime(e.created_at)} · ${at(state.lang, `history.${e.action}`)} · ${who}`,
+            );
+            if (e.reason_code && e.action === 'cancelled')
+                line.append(` · ${at(state.lang, `reason.${e.reason_code}`)}`);
+            return line;
+        }),
+    );
 }
 
 // --- Home: earnings, today, next appointment, notifications, loyalty to validate, recent activity ---
@@ -456,37 +500,111 @@ function renderEarnings(earnings) {
     $('earningsMeta').textContent = meta.join(' · ');
 }
 
+const NOTIFICATION_COLUMNS = 'id, kind, amount_cents, livemode, created_at, read_at';
+// Added by 20261101090000_phase6_cancellations.sql
+const NOTIFICATION_COLUMNS_PHASE6 = ', booking_id, data, telegram_status, telegram_error';
+
 async function renderNotifications() {
-    const { data: notifications } = await state.supabase
-        .from('staff_notifications')
-        .select('id, amount_cents, livemode, created_at, read_at')
-        .order('created_at', { ascending: false })
-        .limit(20);
+    const query = (columns) =>
+        state.supabase.from('staff_notifications').select(columns).order('created_at', { ascending: false }).limit(20);
+    let result = await query(NOTIFICATION_COLUMNS + NOTIFICATION_COLUMNS_PHASE6);
+    if (missingColumn(result.error)) result = await query(NOTIFICATION_COLUMNS);
+    const notifications = result.data;
     const list = $('notificationList');
+    if (result.error) {
+        list.replaceChildren(el('li', 'admin-empty', at(state.lang, 'common.error')));
+        return;
+    }
     if (!notifications?.length) {
         list.replaceChildren(el('li', 'admin-empty', at(state.lang, 'home.noNotifications')));
         return;
     }
-    list.replaceChildren(
-        ...notifications.map((n) => {
-            const item = el('li', `admin-item notification${n.read_at ? '' : ' is-unread'}`);
-            const text = el('div');
-            const title = el(
-                'p',
-                'admin-item-title',
-                at(state.lang, 'home.paymentReceived', { amount: euros.format(n.amount_cents / 100) }),
-            );
-            if (!n.livemode)
-                title.append(' ', el('span', 'status-badge is-requested', at(state.lang, 'home.testBadge')));
+    list.replaceChildren(...notifications.map(notificationItem));
+}
+
+function notificationItem(n) {
+    const item = el('li', `admin-item notification${n.read_at ? '' : ' is-unread'}`);
+    const text = el('div', 'admin-item-body');
+    const d = n.data ?? {};
+    let title;
+    if (n.kind === 'cancellation' || n.kind === 'reschedule') {
+        title = el('p', 'admin-item-title', at(state.lang, `notify.${n.kind}`, { name: d.customer_name || '—' }));
+        text.append(title);
+        if (d.starts_at) {
             text.append(
-                title,
-                el('p', 'admin-item-meta', `${formatDateOf(n.created_at, state.lang)} · ${formatTime(n.created_at)}`),
+                el(
+                    'p',
+                    'admin-item-meta',
+                    at(state.lang, 'notify.slot', {
+                        date: formatDateOf(d.starts_at, state.lang),
+                        time: formatTime(d.starts_at),
+                    }),
+                ),
             );
-            item.append(text);
-            if (!n.read_at) item.append(markReadButton(n));
-            return item;
-        }),
-    );
+        }
+        if (n.kind === 'reschedule' && d.new_starts_at) {
+            text.append(
+                el(
+                    'p',
+                    'admin-item-meta',
+                    at(state.lang, 'notify.newSlot', {
+                        date: formatDateOf(d.new_starts_at, state.lang),
+                        time: formatTime(d.new_starts_at),
+                    }),
+                ),
+            );
+        }
+        if (n.kind === 'cancellation') {
+            const reason = d.reason_code
+                ? at(state.lang, `reason.${d.reason_code}`)
+                : at(state.lang, 'notify.noReason');
+            text.append(el('p', 'cancel-reason', at(state.lang, 'bookings.reasonLabel', { reason })));
+        }
+        if (d.details)
+            text.append(el('p', 'admin-item-meta', at(state.lang, 'bookings.details', { details: d.details })));
+    } else {
+        title = el(
+            'p',
+            'admin-item-title',
+            at(state.lang, 'home.paymentReceived', { amount: euros.format((n.amount_cents ?? 0) / 100) }),
+        );
+        if (!n.livemode) title.append(' ', el('span', 'status-badge is-requested', at(state.lang, 'home.testBadge')));
+        text.append(title);
+    }
+    text.append(el('p', 'admin-item-meta', `${formatDateOf(n.created_at, state.lang)} · ${formatTime(n.created_at)}`));
+    if (n.telegram_status) {
+        const badge = el(
+            'span',
+            `status-badge is-telegram-${n.telegram_status}`,
+            at(state.lang, `telegram.${n.telegram_status}`),
+        );
+        if (n.telegram_error) badge.title = n.telegram_error;
+        const line = el('p');
+        line.append(badge);
+        text.append(line);
+    }
+    item.append(text);
+    const actions = el('div', 'admin-row');
+    // Pending (function not reached), failed or not configured: Zeyd can ask the server to send it again
+    if (['pending', 'failed', 'not_configured'].includes(n.telegram_status)) {
+        actions.append(
+            button(at(state.lang, 'telegram.retry'), 'btn btn-ghost btn-sm', async (e) => {
+                e.currentTarget.disabled = true;
+                const { data, error } = await state.supabase.functions.invoke('notify-staff', {
+                    body: { notification_id: n.id, retry: true },
+                });
+                setMessage(
+                    'homeMessage',
+                    error ? 'error' : 'success',
+                    error ? 'telegram.unreachable' : `telegram.result.${data?.status ?? 'nothing_to_send'}`,
+                );
+                renderNotifications();
+            }),
+        );
+    }
+    if (!n.read_at) actions.append(markReadButton(n));
+    if (actions.childElementCount) item.append(actions);
+    return item;
 }
 
 function markReadButton(n) {

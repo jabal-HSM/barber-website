@@ -66,6 +66,7 @@ npm run check
 | `20261031100000_phase4_admin.sql` | applied (checked 2026-10-31) | not yet |
 | `20261031110000_phase5_loyalty.sql` | applied (checked 2026-10-31) | not yet |
 | `20261031120000_payments.sql` | applied (checked 2026-10-31) | not yet |
+| `20261101090000_phase6_cancellations.sql` | **to apply** | not yet |
 
 Production only received `supabase/fixes/2026-10-30_profiles_rls.sql` (email leak fix, verified).
 
@@ -83,6 +84,7 @@ npx supabase login
 npx supabase link --project-ref eyqlptbocufkxcpblpxu
 npx supabase functions deploy create-checkout
 npx supabase functions deploy stripe-webhook --no-verify-jwt
+npx supabase functions deploy notify-staff
 ```
 
 ### Secrets
@@ -96,6 +98,17 @@ npx supabase functions deploy stripe-webhook --no-verify-jwt
 3. In `supabase/functions/.env`: `TELEGRAM_BOT_TOKEN=` ← paste the token right after `=`. `TELEGRAM_CHAT_ID=8705155832` is already filled.
 4. Run the `secrets set` command of §5 again.
 The message is sent only for a **real** (live) confirmed payment, once per payment. To try it with a Stripe test payment, set `TELEGRAM_NOTIFY_TEST_PAYMENTS=true`, test, then put it back to `false`.
+
+### Telegram to Zeyd (cancellations and reschedulings, function notify-staff)
+1. Zeyd opens the same bot in Telegram and presses **Start**.
+2. Zeyd finds his own chat id (for example by writing to @userinfobot) and gives it to you.
+3. In `supabase/functions/.env`: `TELEGRAM_STAFF_CHAT_ID=` ← his id; `TELEGRAM_STAFF_LANG=fr` (or `ar`).
+4. `npx supabase secrets set --env-file supabase/functions/.env`, then deploy `notify-staff` (§5).
+Without these steps cancellations still work and are shown in the dashboard (Accueil → Notifications) with
+« Telegram : en attente » or « non configuré »; the button « Renvoyer sur Telegram » sends them later, once.
+WhatsApp is **not** connected: sending WhatsApp messages automatically needs a WhatsApp Business Platform
+account (Meta), a verified business phone number, approved message templates and a server-side token —
+none of this exists in the project yet.
 
 ## 7. Stripe (mother's account)
 Test mode first — no real money:

@@ -305,6 +305,15 @@
                                 rel="noopener noreferrer">WhatsApp</a></p>
                     </div>
 
+                    <!-- Shown while the customer moves an existing appointment (the old one stays booked until then) -->
+                    <div class="reschedule-banner" id="rescheduleBanner" role="status" hidden>
+                        <p class="reschedule-title" data-i18n="reschedule.bannerTitle">Choisissez votre nouvel horaire
+                        </p>
+                        <p id="rescheduleText"></p>
+                        <button type="button" class="btn btn-ghost btn-sm" id="rescheduleAbort"
+                            data-i18n="reschedule.abort">Garder l’horaire actuel</button>
+                    </div>
+
                     <form class="booking-form" id="bookingForm" novalidate>
                         <fieldset class="booking-step">
                             <legend><span class="step-num" aria-hidden="true">1</span><span
@@ -725,6 +734,64 @@
             <button type="button" class="btn btn-ghost" id="signOutBtn" data-i18n="account.signOut">Se
                 déconnecter</button>
         </div>
+    </dialog>
+
+    <!-- Customer cancellation: reason first, then an explicit confirmation (nothing is cancelled before) -->
+    <dialog class="qr-dialog cancel-dialog" id="cancelDialog" aria-labelledby="cancelDialogTitle">
+        <form id="cancelForm" novalidate>
+            <div class="qr-dialog-head">
+                <h2 id="cancelDialogTitle" data-i18n="cancel.title">Pourquoi souhaitez-vous annuler votre rendez-vous ?
+                </h2>
+                <button type="button" class="icon-btn" id="cancelCloseBtn" data-i18n-attr="aria-label:cancel.keep"
+                    aria-label="Garder mon rendez-vous">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-close" />
+                    </svg>
+                </button>
+            </div>
+            <p class="cancel-booking-summary" id="cancelSummary"></p>
+            <fieldset class="cancel-reasons">
+                <legend class="visually-hidden" data-i18n="cancel.reasonLegend">Raison de l’annulation</legend>
+                <label class="reason-row"><input type="radio" name="cancelReason" value="reschedule">
+                    <span data-i18n="cancel.reason.reschedule">Je souhaite changer l’heure du rendez-vous.</span></label>
+                <label class="reason-row"><input type="radio" name="cancelReason" value="unavailable">
+                    <span data-i18n="cancel.reason.unavailable">Je ne suis plus disponible.</span></label>
+                <label class="reason-row"><input type="radio" name="cancelReason" value="time_unsuitable">
+                    <span data-i18n="cancel.reason.time_unsuitable">L’horaire ne me convient pas.</span></label>
+                <label class="reason-row"><input type="radio" name="cancelReason" value="dissatisfied">
+                    <span data-i18n="cancel.reason.dissatisfied">Quelque chose ne me convient pas.</span></label>
+                <label class="reason-row"><input type="radio" name="cancelReason" value="price_service">
+                    <span data-i18n="cancel.reason.price_service">Le prix ou la prestation ne me convient
+                        pas.</span></label>
+                <label class="reason-row"><input type="radio" name="cancelReason" value="other">
+                    <span data-i18n="cancel.reason.other">Autre raison</span></label>
+            </fieldset>
+            <div class="field-group">
+                <label class="field-label" for="cancelDetails" id="cancelDetailsLabel"
+                    data-i18n="cancel.detailsOptional">Précisions (facultatif)</label>
+                <textarea id="cancelDetails" class="field" rows="2" maxlength="500"
+                    aria-describedby="cancelDetailsHint"></textarea>
+                <p class="field-hint" id="cancelDetailsHint" data-i18n="cancel.detailsHint">Inutile de donner des
+                    informations personnelles.</p>
+            </div>
+
+            <!-- "Change the time": the safe path is to pick the new slot first -->
+            <div class="reschedule-offer" id="rescheduleOffer" hidden>
+                <p data-i18n="cancel.rescheduleOffer">Choisissez d’abord votre nouvel horaire : votre rendez-vous
+                    actuel reste réservé jusqu’à la confirmation du nouveau.</p>
+                <button type="button" class="btn btn-primary" id="rescheduleStart"
+                    data-i18n="cancel.rescheduleStart">Choisir un nouvel horaire</button>
+            </div>
+
+            <p class="cancel-warning" id="cancelWarning"></p>
+            <div class="form-message" id="cancelMessage" role="status" aria-live="polite" hidden></div>
+            <div class="cancel-actions">
+                <button type="button" class="btn btn-ghost" id="cancelKeep" data-i18n="cancel.keep">Garder mon
+                    rendez-vous</button>
+                <button type="submit" class="btn btn-danger" id="cancelSubmit" data-i18n="cancel.confirm">Confirmer
+                    l’annulation</button>
+            </div>
+        </form>
     </dialog>
 
     <!-- Loyalty QR code, opened on demand above the account dialog. Showing it adds no visit. -->

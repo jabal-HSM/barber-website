@@ -2,7 +2,7 @@
 // double booking, limits); this file only shows the choices it offers and reports its answers.
 import {
     bookAppointment,
-    cancelBooking,
+    cancelMyBooking,
     errorCode,
     fetchBookableDays,
     fetchMyBookings,
@@ -10,8 +10,10 @@ import {
     fetchMyPayments,
     fetchPaymentSettings,
     fetchSlots,
+    notifyStaffOfBooking,
     onAuthChange,
     requestCustomTime,
+    rescheduleMyBooking,
     resendConfirmation,
     saveSoundPrefs,
     signIn,
@@ -114,6 +116,7 @@ export async function initBooking({ lang, services, priceFormatter }) {
     $('customForm')?.addEventListener('submit', onCustomSubmit);
     initAuthScreen();
     initAccountDialog();
+    initCancelDialog();
     // A change made while signed in is saved to the account too (debounced: one request per burst of clicks)
     onSoundPrefsChange((prefs, source) => {
         if (source !== 'local' || !state.user) return;
@@ -145,6 +148,8 @@ export function setBookingLanguage(lang) {
     renderAuthStep();
     renderBookings();
     renderLoyalty();
+    renderCancelDialog();
+    renderReschedule();
     for (const id of Object.keys(state.messages)) renderMessage(id);
 }
 
@@ -269,7 +274,10 @@ function renderSummary() {
                   time: formatTime(state.slot.starts_at),
               })
             : t(state.lang, 'booking.summaryEmpty');
-    $('bookingSubmitText').textContent = t(state.lang, state.user ? 'booking.submit' : 'booking.signInToBook');
+    $('bookingSubmitText').textContent = t(
+        state.lang,
+        state.rescheduling ? 'reschedule.submit' : state.user ? 'booking.submit' : 'booking.signInToBook',
+    );
 }
 
 async function onBookingSubmit(event) {
@@ -285,6 +293,10 @@ async function onBookingSubmit(event) {
         return;
     }
     const button = $('bookingSubmit');
+    if (state.rescheduling) {
+        await submitReschedule(button);
+        return;
+    }
     button.disabled = true;
     const { data, error } = await bookAppointment(service.dbId, state.slot.starts_at, $('bookingNote').value);
     button.disabled = false;
@@ -566,6 +578,8 @@ function onUserChange(user) {
     } else {
         state.bookings = [];
         state.loyalty = null;
+        stopRescheduling();
+        if ($('cancelDialog')?.open) $('cancelDialog').close();
         if ($('qrDialog')?.open) $('qrDialog').close();
         renderBookings();
         renderLoyalty();
@@ -629,6 +643,152 @@ async function openQr() {
     dialog.showModal();
     const ok = await renderQrCode($('loyaltyQrCode'), card.token);
     if (!ok) setMessage('qrMessage', 'error', 'loyalty.qrError', { code: card.short_code });
+}
+
+// --- Customer cancellation: a reason first, then an explicit confirmation ---
+function initCancelDialog() {
+    const dialog = $('cancelDialog');
+    if (!dialog) return;
+    const close = () => dialog.close();
+    $('cancelCloseBtn').addEventListener('click', close);
+    $('cancelKeep').addEventListener('click', close);
+    dialog.addEventListener('click', (e) => {
+        if (e.target === dialog) close();
+    });
+    $('cancelForm').addEventListener('change', renderCancelDialog);
+    $('cancelForm').addEventListener('submit', onCancelSubmit);
+    $('rescheduleStart').addEventListener('click', startRescheduling);
+    $('rescheduleAbort').addEventListener('click', () => {
+        stopRescheduling();
+        setMessage('bookingMessage', null);
+    });
+}
+
+function openCancelDialog(booking) {
+    state.cancelTarget = booking;
+    $('cancelForm').reset();
+    setMessage('cancelMessage', null);
+    $('cancelSubmit').disabled = false;
+    renderCancelDialog();
+    $('cancelDialog').showModal();
+}
+
+const selectedReason = () => $('cancelForm')?.querySelector('input[name="cancelReason"]:checked')?.value ?? null;
+const canReschedule = (booking) => booking?.status === 'confirmed';
+
+function renderCancelDialog() {
+    const booking = state.cancelTarget;
+    if (!booking || !$('cancelDialog')) return;
+    const day = formatDateOf(booking.starts_at, state.lang);
+    const time = formatTime(booking.starts_at);
+    const names = booking.services ?? {};
+    $('cancelSummary').textContent =
+        `${day} · ${time} · ${(state.lang === 'ar' && names.name_ar) || names.name_fr || ''}`;
+    const reason = selectedReason();
+    const other = reason === 'other';
+    $('cancelDetailsLabel').textContent = t(state.lang, other ? 'cancel.detailsRequired' : 'cancel.detailsOptional');
+    $('cancelDetails').required = other;
+    const offer = reason === 'reschedule' && canReschedule(booking);
+    $('rescheduleOffer').hidden = !offer;
+    $('cancelWarning').textContent = t(state.lang, 'cancel.warning', { day, time });
+    $('cancelSubmit').textContent = t(state.lang, offer ? 'cancel.confirmWithoutNew' : 'cancel.confirm');
+}
+
+async function onCancelSubmit(event) {
+    event.preventDefault();
+    const booking = state.cancelTarget;
+    const button = $('cancelSubmit');
+    if (!booking || button.disabled) return; // one request per confirmation, even after a double tap
+    const reason = selectedReason();
+    const details = $('cancelDetails').value.trim();
+    if (!reason) {
+        setMessage('cancelMessage', 'error', 'error.invalid_reason');
+        return;
+    }
+    if (reason === 'other' && !details) {
+        setMessage('cancelMessage', 'error', 'error.details_required');
+        $('cancelDetails').focus();
+        return;
+    }
+    button.disabled = true;
+    const { error } = await cancelMyBooking(booking.id, reason, details);
+    if (error) {
+        button.disabled = false;
+        setMessage('cancelMessage', 'error', errorKey(error));
+        if (errorCode(error) === 'invalid_status') loadMyBookings(); // already cancelled elsewhere
+        return;
+    }
+    // Only now, confirmed by the database, is the slot free again
+    $('cancelDialog').close();
+    setMessage('accountMessage', 'success', 'account.cancelled');
+    notifyStaffOfBooking(booking.id);
+    loadMyBookings();
+    loadSlots();
+}
+
+// --- Rescheduling: the customer picks the new slot first; the old booking is cancelled only when the new one
+// is confirmed, in one database transaction (reschedule_my_booking) ---
+function startRescheduling() {
+    const booking = state.cancelTarget;
+    const service = state.services.find((s) => s.dbId === booking?.service_id);
+    if (!booking || !isBookable(service)) {
+        setMessage('cancelMessage', 'error', 'reschedule.notPossible');
+        return;
+    }
+    state.rescheduling = { booking, details: $('cancelDetails').value.trim() };
+    $('cancelDialog').close();
+    if ($('accountDialog')?.open) $('accountDialog').close();
+    state.serviceId = service.id;
+    state.slot = null;
+    state.autoAdvanceDay = true;
+    setMessage('bookingMessage', null);
+    renderServiceSelect();
+    renderReschedule();
+    loadSlots();
+    $('booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function stopRescheduling() {
+    if (!state.rescheduling) return;
+    state.rescheduling = null;
+    renderReschedule();
+    renderSummary();
+}
+
+function renderReschedule() {
+    const banner = $('rescheduleBanner');
+    if (!banner) return;
+    const r = state.rescheduling;
+    banner.hidden = !r;
+    $('bookingService').disabled = Boolean(r); // same service: only the time changes
+    if (r) {
+        $('rescheduleText').textContent = t(state.lang, 'reschedule.bannerText', {
+            day: formatDateOf(r.booking.starts_at, state.lang),
+            time: formatTime(r.booking.starts_at),
+        });
+    }
+}
+
+async function submitReschedule(button) {
+    const { booking, details } = state.rescheduling;
+    button.disabled = true;
+    const { data, error } = await rescheduleMyBooking(booking.id, state.slot.starts_at, details);
+    button.disabled = false;
+    if (error) {
+        // Nothing changed in the database: the original appointment is still booked
+        setMessage('bookingMessage', 'error', errorKey(error));
+        if (errorCode(error) === 'slot_unavailable') loadSlots();
+        return;
+    }
+    stopRescheduling();
+    setMessage('bookingMessage', 'success', 'reschedule.success', {
+        day: formatDateOf(data.starts_at, state.lang),
+        time: formatTime(data.starts_at),
+    });
+    notifyStaffOfBooking(booking.id);
+    state.slot = null;
+    loadSlots();
+    loadMyBookings();
 }
 
 // --- Upcoming bookings (with payment) ---
@@ -720,14 +880,7 @@ function renderBookings() {
                 cancel.className = 'btn btn-ghost btn-sm';
                 cancel.textContent = t(state.lang, 'account.cancel');
                 cancel.setAttribute('aria-label', t(state.lang, 'account.cancelAria', { day, time }));
-                cancel.addEventListener('click', async () => {
-                    if (!window.confirm(t(state.lang, 'account.cancelConfirm'))) return;
-                    const { error } = await cancelBooking(booking.id);
-                    if (error) setMessage('accountMessage', 'error', errorKey(error));
-                    else setMessage('accountMessage', 'success', 'account.cancelled');
-                    loadMyBookings();
-                    loadSlots();
-                });
+                cancel.addEventListener('click', () => openCancelDialog(booking));
                 actions.append(cancel);
             }
             item.append(info, actions);

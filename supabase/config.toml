@@ -8,3 +8,7 @@ verify_jwt = false
 # The site calls create-checkout with the signed-in customer's token.
 [functions.create-checkout]
 verify_jwt = true
+
+# The site (customer after a cancellation, or the dashboard) calls notify-staff with the user's token.
+[functions.notify-staff]
+verify_jwt = true
