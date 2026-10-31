@@ -3528,16 +3528,18 @@ body.has-overlay {
     gap: var(--space-3);
 }
 
+/* Wraps on narrow phones: arrows + date on one line, "Aujourd'hui" below */
 .calendar-nav {
     display: flex;
     flex: 1 1 16rem;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--space-2);
     min-width: 0;
 }
 
 .calendar-nav .field {
-    flex: 1 1 8rem;
+    flex: 1 1 7rem;
     width: auto;
 }
 

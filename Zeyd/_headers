@@ -1,0 +1,19 @@
+# Read by Cloudflare Pages and Netlify (ignored by Live Server). See docs/DEPLOYMENT.md.
+# Pages and scripts are revalidated on every visit, so a new version is never mixed with an old cached
+# module (that mix breaks the site: "module does not provide an export named …").
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(self), microphone=(), geolocation=()
+
+/*.html
+  Cache-Control: no-cache
+
+/*.js
+  Cache-Control: no-cache
+
+/*.css
+  Cache-Control: no-cache
+
+/sounds/*
+  Cache-Control: public, max-age=604800
