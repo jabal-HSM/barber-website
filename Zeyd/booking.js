@@ -559,6 +559,11 @@ function onUserChange(user) {
     if ($('accountEmail')) $('accountEmail').textContent = user?.email ?? '';
     renderSummary();
     if (user) syncSoundPrefs(user);
+    if (user && returnTo()) {
+        // Came from the dashboard's sign-in button: go back there once signed in
+        location.replace(returnTo());
+        return;
+    }
     if (user && state.confirmPending) {
         // Signed in by the confirmation link: say it, then show the account
         state.confirmPending = false;
@@ -587,10 +592,16 @@ function onUserChange(user) {
         if ($('accountDialog')?.open) $('accountDialog').close();
         // First visit: welcome screen once (only when accounts can actually be used)
         // (not over the sign-in form already opened by a confirmation link)
-        if (firstCall && state.days !== null && !readPref(WELCOME_KEY) && $('authScreen')?.hidden)
+        if (firstCall && returnTo()) showAuthScreen('signin');
+        else if (firstCall && state.days !== null && !readPref(WELCOME_KEY) && $('authScreen')?.hidden)
             showAuthScreen('choices');
     }
 }
+
+// index.html?next=admin (the dashboard's "Se connecter" button). Only this page is accepted, so the
+// parameter cannot send anyone to another site.
+const RETURN_PAGES = { admin: 'admin.html' };
+const returnTo = () => RETURN_PAGES[new URLSearchParams(location.search).get('next')] ?? null;
 
 // Sound preferences: this browser vs. the account. The most recent explicit choice wins, and a sound
 // turned off is never turned back on by the other side (see mergeSoundPrefs).
