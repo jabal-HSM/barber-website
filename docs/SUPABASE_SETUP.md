@@ -69,6 +69,7 @@ npm run check
 | `20261101090000_phase6_cancellations.sql` | **to apply** | not yet |
 | `20261101100000_phase6_loyalty.sql` | **to apply** | not yet |
 | `20261101110000_phase6_schedule_customers.sql` | **to apply** | not yet |
+| `20261101120000_phase6_allocations.sql` | **to apply** | not yet |
 
 Production only received `supabase/fixes/2026-10-30_profiles_rls.sql` (email leak fix, verified).
 

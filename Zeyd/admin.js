@@ -329,10 +329,88 @@ function bookingActions(b) {
             ),
         );
     }
+    if (b.status === 'confirmed' || b.status === 'completed') {
+        actions.append(
+            button(at(state.lang, 'payments.record'), 'btn btn-ghost btn-sm', () =>
+                actions.replaceWith(paymentForm(b, actions)),
+            ),
+        );
+    }
     actions.append(
         button(at(state.lang, 'bookings.history'), 'btn btn-ghost btn-sm', (e) => toggleHistory(b, e.currentTarget)),
     );
     return actions;
+}
+
+// A payment received outside Stripe. Bank transfer: only after checking it in the bank's own app.
+function paymentForm(b, actions) {
+    const form = el('form', 'admin-cancel-form');
+    const method = el('select', 'field');
+    for (const m of ['cash', 'card_terminal', 'bank_transfer']) {
+        const option = el('option', '', at(state.lang, `method.${m}`));
+        option.value = m;
+        method.append(option);
+    }
+    const amount = input('number', b.services?.price ?? '', {
+        min: '0.5',
+        max: '500',
+        step: '0.5',
+        inputmode: 'decimal',
+    });
+    const reference = input('text', '', { maxlength: '100' });
+    const hint = el('p', 'field-hint', at(state.lang, 'payments.recordHint'));
+    const refresh = () => {
+        hint.textContent = at(
+            state.lang,
+            method.value === 'bank_transfer' ? 'payments.transferHint' : 'payments.recordHint',
+        );
+    };
+    method.addEventListener('change', refresh);
+    const confirm = el('button', 'btn btn-primary btn-sm', at(state.lang, 'payments.confirmRecord'));
+    confirm.type = 'submit';
+    const row = el('div', 'admin-row');
+    row.append(
+        confirm,
+        button(at(state.lang, 'bookings.keep'), 'btn btn-ghost btn-sm', () => form.replaceWith(actions)),
+    );
+    form.append(
+        el('p', 'admin-item-title', at(state.lang, 'payments.recordTitle')),
+        labelled(at(state.lang, 'payments.method'), method),
+        labelled(at(state.lang, 'payments.amount'), amount),
+        labelled(at(state.lang, 'payments.reference'), reference),
+        hint,
+        row,
+    );
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (confirm.disabled) return;
+        const cents = Math.round(Number(amount.value) * 100);
+        if (!Number.isInteger(cents) || cents <= 0) {
+            setMessage('bookingsMessage', 'error', 'error.validation');
+            return;
+        }
+        confirm.disabled = true;
+        const { data, error } = await state.supabase.rpc('staff_record_payment', {
+            p_booking_id: b.id,
+            p_amount_cents: cents,
+            p_method: method.value,
+            p_reference: reference.value.trim() || null,
+        });
+        if (error) {
+            confirm.disabled = false;
+            setMessage('bookingsMessage', 'error', errorKey(error));
+            return;
+        }
+        const r = data?.[0];
+        setMessage(
+            'bookingsMessage',
+            'success',
+            r?.allocation_status === 'recorded' ? 'payments.recorded' : 'payments.recordedReview',
+            { zeyd: euros.format((r?.zeyd_cents ?? 0) / 100), mother: euros.format((r?.mother_cents ?? 0) / 100) },
+        );
+        form.replaceWith(actions);
+    });
+    return form;
 }
 
 // Who created, confirmed, cancelled or moved this booking, when and why (booking_events, staff only)
@@ -385,28 +463,35 @@ loaders.home = async () => {
     $('activityList').replaceChildren(loading());
     $('loyaltyTodoList').replaceChildren(loading());
 
-    const [{ data: earnings }, todays, { data: nextRows }, { data: recent, error: recentError }, { data: visits }] =
-        await Promise.all([
-            sb.rpc('barber_earnings'),
-            fetchBookingsBetween(today, nextDay(today)),
-            sb
-                .from('bookings')
-                .select('starts_at, profiles:customer_id (full_name), services (name_fr, name_ar)')
-                .eq('status', 'confirmed')
-                .gte('starts_at', new Date().toISOString())
-                .order('starts_at')
-                .limit(1),
-            sb
-                .from('bookings')
-                .select(
-                    'id, status, starts_at, created_at, updated_at, cancelled_by, customer_id, profiles:customer_id (full_name)',
-                )
-                .order('updated_at', { ascending: false })
-                .limit(8),
-            sb.from('loyalty_visits').select('customer_id').eq('visit_date', today),
-        ]);
+    const [
+        { data: earnings },
+        todays,
+        { data: nextRows },
+        { data: recent, error: recentError },
+        { data: visits },
+        summary,
+    ] = await Promise.all([
+        sb.rpc('barber_earnings'),
+        fetchBookingsBetween(today, nextDay(today)),
+        sb
+            .from('bookings')
+            .select('starts_at, profiles:customer_id (full_name), services (name_fr, name_ar)')
+            .eq('status', 'confirmed')
+            .gte('starts_at', new Date().toISOString())
+            .order('starts_at')
+            .limit(1),
+        sb
+            .from('bookings')
+            .select(
+                'id, status, starts_at, created_at, updated_at, cancelled_by, customer_id, profiles:customer_id (full_name)',
+            )
+            .order('updated_at', { ascending: false })
+            .limit(8),
+        sb.from('loyalty_visits').select('customer_id').eq('visit_date', today),
+        sb.rpc('allocation_summary'),
+    ]);
 
-    renderEarnings(earnings);
+    renderEarnings(earnings, summary.error ? null : summary.data);
 
     const day = todays.data ?? [];
     const count = (status) => day.filter((b) => b.status === status).length;
@@ -486,7 +571,17 @@ loaders.home = async () => {
     await renderNotifications();
 };
 
-function renderEarnings(earnings) {
+function renderEarnings(earnings, summary) {
+    if (summary?.length) {
+        const live = summary.find((row) => row.livemode);
+        const test = summary.find((row) => !row.livemode);
+        $('earningsAmount').textContent = cents(live?.zeyd_cents ?? 0);
+        const meta = [at(state.lang, 'home.payments', { count: live?.payments_count ?? 0 })];
+        if (test)
+            meta.push(at(state.lang, 'home.test', { amount: cents(test.zeyd_cents), count: test.payments_count }));
+        $('earningsMeta').textContent = meta.join(' · ');
+        return;
+    }
     const live = earnings?.find((row) => row.livemode) ?? { payments_count: 0, barber_share_cents: 0 };
     const test = earnings?.find((row) => !row.livemode);
     $('earningsAmount').textContent = euros.format(Number(live.barber_share_cents ?? 0) / 100);
@@ -564,6 +659,9 @@ function notificationItem(n) {
         }
         if (d.details)
             text.append(el('p', 'admin-item-meta', at(state.lang, 'bookings.details', { details: d.details })));
+    } else if (n.kind === 'payment_issue') {
+        title = el('p', 'admin-item-title', at(state.lang, 'notify.paymentIssue', { amount: cents(n.amount_cents) }));
+        text.append(title, el('p', 'cancel-reason', at(state.lang, `paystatus.${d.status ?? 'failed'}`)));
     } else if (n.kind === 'reward') {
         title = el('p', 'admin-item-title', at(state.lang, 'notify.reward', { name: d.customer_name || '—' }));
         text.append(title);
@@ -984,6 +1082,127 @@ async function loadLoyaltyHistory(box) {
 loaders.loyalty = () => {
     // The scanner starts only on demand (camera permission)
 };
+
+// --- Payments: received, allocated, really transferred ---
+const cents = (value) => euros.format(Number(value ?? 0) / 100);
+
+loaders.payments = async () => {
+    const sb = state.supabase;
+    const list = $('paymentsList');
+    list.replaceChildren(el('li', 'admin-empty', at(state.lang, 'common.loading')));
+    const [summary, records] = await Promise.all([
+        sb.rpc('allocation_summary'),
+        sb.rpc('payment_records', { p_limit: 100 }),
+    ]);
+    if (records.error) {
+        $('allocationSummary').replaceChildren();
+        list.replaceChildren(el('li', 'admin-empty', at(state.lang, 'payments.unavailable')));
+        return;
+    }
+    $('allocationSummary').replaceChildren(
+        ...(summary.data ?? []).map((s) => {
+            const box = el('div', `allocation-box${s.livemode ? '' : ' is-test'}`);
+            box.append(
+                el('p', 'next-label', at(state.lang, s.livemode ? 'payments.real' : 'payments.test')),
+                el(
+                    'p',
+                    '',
+                    at(state.lang, 'payments.received', { amount: cents(s.amount_cents), count: s.payments_count }),
+                ),
+                el('p', '', at(state.lang, 'payments.zeydTotal', { amount: cents(s.zeyd_cents) })),
+                el('p', '', at(state.lang, 'payments.motherTotal', { amount: cents(s.mother_cents) })),
+                el(
+                    'p',
+                    'admin-item-title',
+                    at(state.lang, 'payments.toTransfer', { amount: cents(s.mother_to_transfer_cents) }),
+                ),
+            );
+            if (s.needs_review_count)
+                box.append(
+                    el('p', 'cancel-reason', at(state.lang, 'payments.needsReview', { count: s.needs_review_count })),
+                );
+            return box;
+        }),
+    );
+    if (!records.data.length) {
+        list.replaceChildren(el('li', 'admin-empty', at(state.lang, 'payments.empty')));
+        return;
+    }
+    list.replaceChildren(...records.data.map(paymentItem));
+};
+
+function paymentItem(p) {
+    const item = el('li', `admin-item payment-item is-${p.status}`);
+    const body = el('div', 'admin-item-body');
+    const service = (state.lang === 'ar' && p.service_name_ar) || p.service_name_fr || '';
+    const title = el('p', 'admin-item-title', `${cents(p.amount_cents)} · ${p.customer_name || '—'}`);
+    if (!p.livemode) title.append(' ', el('span', 'status-badge is-requested', at(state.lang, 'home.testBadge')));
+    body.append(title);
+    if (p.booking_starts_at) {
+        body.append(
+            el(
+                'p',
+                'admin-item-meta',
+                `${service} · ${formatDateOf(p.booking_starts_at, state.lang)} ${formatTime(p.booking_starts_at)}`,
+            ),
+        );
+    }
+    const when = p.paid_at ?? p.created_at;
+    body.append(
+        el(
+            'p',
+            'admin-item-meta',
+            `${at(state.lang, `method.${p.method}`)} · ${formatDateOf(when, state.lang)} ${formatTime(when)}${p.reference ? ` · ${p.reference}` : ''}`,
+        ),
+    );
+    const badges = el('p');
+    badges.append(el('span', `status-badge is-payment-${p.status}`, at(state.lang, `paystatus.${p.status}`)));
+    if (p.allocation_status === 'recorded') {
+        badges.append(
+            ' ',
+            el(
+                'span',
+                'status-badge',
+                at(state.lang, 'payments.split', { zeyd: cents(p.zeyd_cents), mother: cents(p.mother_cents) }),
+            ),
+        );
+        if (p.mother_transfer !== 'not_due') {
+            badges.append(
+                ' ',
+                el(
+                    'span',
+                    `status-badge is-transfer-${p.mother_transfer}`,
+                    at(state.lang, `transfer.${p.mother_transfer}`),
+                ),
+            );
+        }
+    } else if (p.allocation_status === 'needs_review') {
+        badges.append(' ', el('span', 'status-badge is-payment-mismatch', at(state.lang, 'payments.reviewBadge')));
+    }
+    body.append(badges);
+    item.append(body);
+    // Recorded by hand once the 5 € have really been sent to the mother (admin only, also checked by the database)
+    if (state.isAdmin && p.mother_transfer === 'to_transfer') {
+        item.append(
+            button(at(state.lang, 'payments.markTransferred'), 'btn btn-ghost btn-sm', async (e) => {
+                const reference = window.prompt(at(state.lang, 'payments.transferPrompt'));
+                if (reference === null) return;
+                e.currentTarget.disabled = true;
+                const { error } = await state.supabase.rpc('staff_mark_mother_transfer', {
+                    p_payment_id: p.payment_id,
+                    p_reference: reference.trim() || null,
+                });
+                setMessage(
+                    'paymentsMessage',
+                    error ? 'error' : 'success',
+                    error ? errorKey(error) : 'payments.transferred',
+                );
+                loaders.payments();
+            }),
+        );
+    }
+    return item;
+}
 
 // --- Services and prices ---
 function initServices() {

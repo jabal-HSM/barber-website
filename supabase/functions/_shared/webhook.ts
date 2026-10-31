@@ -1,5 +1,6 @@
 // What to do with a verified Stripe event. Pure logic: the database calls and the Telegram sender
 // are passed in, so the same code runs in the Edge Function and in the Node tests.
+import { allocate } from './allocation.ts';
 import { PAYMENT_MESSAGE } from './telegram.ts';
 
 type Rpc = (name: string, args: Record<string, unknown>) => Promise<unknown>;
@@ -20,11 +21,11 @@ export type StripeEvent = {
     };
 };
 
-type PaidRow = { payment_id: string | null; newly_paid: boolean; livemode: boolean };
+type PaidRow = { payment_id: string | null; newly_paid: boolean; livemode: boolean; amount_cents?: number | null };
 
 export type Outcome =
     | { action: 'ignored'; reason: string }
-    | { action: 'paid'; newlyPaid: boolean; telegram: 'sent' | 'skipped' | 'already_sent' | 'failed' }
+    | { action: 'paid'; newlyPaid: boolean; telegram: 'sent' | 'skipped' | 'already_sent' | 'failed' | 'not_due' }
     | { action: 'failed' | 'expired' };
 
 export async function handleStripeEvent(
@@ -51,6 +52,10 @@ export async function handleStripeEvent(
             const row = rows?.[0];
             if (!row?.newly_paid || !row.payment_id) {
                 return { action: 'paid', newlyPaid: false, telegram: 'skipped' };
+            }
+            // The message announces the 5 € share: only for a payment that has one (15 €, not 10 €)
+            if ((allocate(Number(row.amount_cents ?? session.amount_total)).motherCents ?? 0) <= 0) {
+                return { action: 'paid', newlyPaid: true, telegram: 'not_due' };
             }
             // Telegram only for real payments, unless explicitly enabled for a test
             if (!event.livemode && !deps.notifyTestPayments) {

@@ -95,6 +95,7 @@
             <button type="button" class="admin-tab" data-panel="home" aria-current="page" data-i18n="tab.home">Accueil</button>
             <button type="button" class="admin-tab" data-panel="bookings" data-i18n="tab.bookings">Rendez-vous</button>
             <button type="button" class="admin-tab" data-panel="loyalty" data-i18n="tab.loyalty">Fidélité</button>
+            <button type="button" class="admin-tab" data-panel="payments" data-i18n="tab.payments">Paiements</button>
             <button type="button" class="admin-tab" data-panel="services" data-i18n="tab.services">Prestations</button>
             <button type="button" class="admin-tab" data-panel="hours" data-i18n="tab.hours">Horaires</button>
             <button type="button" class="admin-tab" data-panel="gallery" data-i18n="tab.gallery">Galerie</button>
@@ -219,6 +220,19 @@
                 <ul class="admin-list" id="loyaltySearchResults"></ul>
                 <div class="admin-message" id="loyaltyMessage" role="status" aria-live="polite" hidden></div>
                 <div class="loyalty-result" id="loyaltyResult" hidden></div>
+            </div>
+        </section>
+
+        <!-- Payments: what was received, how it is allocated, what was really transferred -->
+        <section class="admin-panel" data-panel="payments" hidden>
+            <div class="admin-card">
+                <h2 class="admin-h2" data-i18n="payments.title">Paiements et répartition</h2>
+                <p class="field-hint" data-i18n="payments.rule">Règle : paiement de 10 € → 10 € pour Zeyd ; paiement de 15 €
+                    → 10 € pour Zeyd et 5 € pour la mère. La répartition est un calcul enregistré : elle ne déplace pas
+                    d’argent.</p>
+                <div class="allocation-summary" id="allocationSummary"></div>
+                <div class="admin-message" id="paymentsMessage" role="status" aria-live="polite" hidden></div>
+                <ul class="admin-list" id="paymentsList"></ul>
             </div>
         </section>
 

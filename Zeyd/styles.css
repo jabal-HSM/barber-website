@@ -3627,6 +3627,40 @@ body.has-overlay {
     color: var(--color-text-muted);
 }
 
+/* Payments: totals per mode and statuses */
+.allocation-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    gap: var(--space-3);
+}
+
+.allocation-box {
+    display: grid;
+    gap: 2px;
+    padding: var(--space-3) var(--space-4);
+    border-inline-start: 3px solid var(--color-primary);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-muted);
+}
+
+.allocation-box.is-test {
+    border-inline-start-color: var(--color-border-strong);
+}
+
+.status-badge.is-payment-paid,
+.status-badge.is-transfer-transferred {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+.status-badge.is-payment-failed,
+.status-badge.is-payment-mismatch,
+.status-badge.is-payment-duplicate,
+.status-badge.is-transfer-to_transfer {
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+}
+
 .schedule-warning {
     display: grid;
     gap: var(--space-2);
