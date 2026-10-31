@@ -3281,6 +3281,7 @@ body.has-overlay {
 .admin-tabs[hidden],
 .admin-panel[hidden],
 .admin-gate[hidden],
+.gate-form[hidden],
 .scanner[hidden],
 .loyalty-result[hidden],
 .admin-message[hidden] {
@@ -3343,6 +3344,12 @@ body.has-overlay {
     gap: var(--space-4);
     padding: var(--space-8) var(--space-4);
     text-align: center;
+}
+
+/* Sign-in form of the gate: same card as the panels, narrow and aligned like the rest of the forms */
+.gate-form {
+    width: min(100%, 22rem);
+    text-align: start;
 }
 
 .admin-card {

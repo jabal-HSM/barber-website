@@ -110,8 +110,22 @@
     <main class="admin-main" id="adminMain">
         <div class="admin-gate" id="adminGate">
             <p id="gateText" data-i18n="gate.loading">Vérification de votre accès…</p>
-            <a href="index.html?next=admin" class="btn btn-primary" id="gateLink" data-i18n="gate.signInLink" hidden>Se connecter
-                sur le site</a>
+            <!-- Sign-in on this page itself: the session is per address, and the dashboard opens right after -->
+            <form class="admin-card gate-form" id="gateForm" novalidate hidden>
+                <div class="field-group">
+                    <label class="field-label" for="gateEmail" data-i18n="gate.email">E-mail</label>
+                    <input type="email" id="gateEmail" class="field" autocomplete="email" inputmode="email" required
+                        dir="ltr">
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="gatePassword" data-i18n="gate.password">Mot de passe</label>
+                    <input type="password" id="gatePassword" class="field" autocomplete="current-password" required
+                        dir="ltr">
+                </div>
+                <button type="submit" class="btn btn-primary" id="gateSubmit" data-i18n="gate.submit">Se
+                    connecter</button>
+                <div class="admin-message" id="gateMessage" role="status" aria-live="polite" hidden></div>
+            </form>
         </div>
 
         <!-- Home: earnings card and notifications -->

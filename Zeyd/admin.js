@@ -149,10 +149,32 @@ function initTheme() {
 }
 
 // --- Access gate ---
-function gate(key, withLink = false) {
+function gate(key, withForm = false) {
     $('gateText').textContent = at(state.lang, key);
     $('gateText').dataset.i18n = key;
-    $('gateLink').hidden = !withLink;
+    $('gateForm').hidden = !withForm;
+}
+
+// Sign-in form shown by the gate: the session is stored per address (127.0.0.1 and 192.168.x.x are two
+// separate sessions), so Zeyd signs in here and the dashboard opens without going through the site.
+function initGateForm(supabase) {
+    const form = $('gateForm');
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const email = $('gateEmail').value.trim();
+        const password = $('gatePassword').value;
+        if (!email || !password) return setMessage('gateMessage', 'error', 'gate.missing');
+        $('gateSubmit').disabled = true;
+        setMessage('gateMessage', null);
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        $('gateSubmit').disabled = false;
+        if (error) {
+            const key = `gate.error.${error.code ?? ''}`;
+            return setMessage('gateMessage', 'error', at(state.lang, key) === key ? 'gate.error.other' : key);
+        }
+        $('gatePassword').value = '';
+        openDashboard(supabase, data.session);
+    });
 }
 
 async function init() {
@@ -168,13 +190,26 @@ async function init() {
     const supabase = await getSupabase();
     if (!supabase) return gate('gate.offline');
     state.supabase = supabase;
+    initGateForm(supabase);
     const {
         data: { session },
     } = await supabase.auth.getSession();
     if (!session) return gate('gate.signIn', true);
-    state.user = session.user;
+    openDashboard(supabase, session);
+}
 
-    const [{ data: staff }, { data: admin }] = await Promise.all([supabase.rpc('is_staff'), supabase.rpc('is_admin')]);
+// Same check after a stored session or a sign-in on this page: the role comes from the database only
+async function openDashboard(supabase, session) {
+    gate('gate.loading');
+    state.user = session.user;
+    const [{ data: staff, error }, { data: admin }] = await Promise.all([
+        supabase.rpc('is_staff'),
+        supabase.rpc('is_admin'),
+    ]);
+    if (error) {
+        state.user = null;
+        return gate('gate.unreachable');
+    }
     if (!staff) {
         state.user = null;
         return gate('gate.forbidden');
