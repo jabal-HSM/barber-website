@@ -23,7 +23,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Great+Vibes&family=Manrope:wght@400;500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -53,6 +53,9 @@
         <symbol id="i-mail" viewBox="0 0 24 24">
             <rect x="3" y="5.5" width="18" height="13" rx="2" />
             <path d="M3.5 7l8.5 6 8.5-6" />
+        </symbol>
+        <symbol id="i-close" viewBox="0 0 24 24">
+            <path d="M6 6l12 12M18 6 6 18" />
         </symbol>
         <symbol id="i-chevron" viewBox="0 0 24 24">
             <path d="M9 6l6 6-6 6" />
@@ -134,6 +137,20 @@
                 <button type="button" class="btn btn-ghost btn-sm" data-goto="bookings"
                     data-i18n="home.openCalendar">Ouvrir le calendrier</button>
             </div>
+            <!-- Overview: every figure comes from the database, with its period -->
+            <div class="admin-card">
+                <div class="card-head">
+                    <h2 class="admin-h2" data-i18n="stats.title">Vue d’ensemble</h2>
+                    <label class="visually-hidden" for="statsPeriod" data-i18n="stats.period">Période</label>
+                    <select id="statsPeriod" class="field stats-period">
+                        <option value="7" data-i18n="stats.last7">7 derniers jours</option>
+                        <option value="30" data-i18n="stats.last30">30 derniers jours</option>
+                        <option value="month" data-i18n="stats.thisMonth">Ce mois-ci</option>
+                    </select>
+                </div>
+                <div class="stat-grid" id="statsGrid" aria-live="polite"></div>
+                <p class="field-hint" id="statsNote"></p>
+            </div>
             <div class="admin-card">
                 <h2 class="admin-h2" data-i18n="home.notifications">Notifications</h2>
                 <div class="admin-message" id="homeMessage" role="status" aria-live="polite" hidden></div>
@@ -160,6 +177,8 @@
                             data-i18n="bookings.viewDay">Jour</button>
                         <button type="button" class="segmented-btn" data-view="week" aria-pressed="false"
                             data-i18n="bookings.viewWeek">Semaine</button>
+                        <button type="button" class="segmented-btn" data-view="month" aria-pressed="false"
+                            data-i18n="bookings.viewMonth">Mois</button>
                     </div>
                     <div class="calendar-nav">
                         <button type="button" class="icon-btn" id="calPrev" data-i18n-attr="aria-label:bookings.prev"
@@ -181,6 +200,8 @@
                     </div>
                 </div>
                 <p class="admin-item-meta" id="calRange"></p>
+                <div class="filter-chips" id="calFilters" role="group" data-i18n-attr="aria-label:filter.label"
+                    aria-label="Filtrer par état"></div>
                 <div class="admin-message" id="bookingsMessage" role="status" aria-live="polite" hidden></div>
                 <ul class="admin-list" id="bookingsList"></ul>
             </div>
@@ -285,6 +306,7 @@
                 <form class="admin-grid-form" id="galleryForm" novalidate>
                     <input type="file" id="galleryFile" class="field admin-span" accept="image/jpeg,image/png,image/webp"
                         required>
+                    <img class="gallery-preview admin-span" id="galleryPreview" alt="" hidden>
                     <div><label class="field-label" for="galleryTitleFr" data-i18n="gallery.titleFr">Titre (FR)</label>
                         <input type="text" id="galleryTitleFr" class="field" maxlength="80">
                     </div>
@@ -307,7 +329,24 @@
             <div class="admin-card">
                 <label class="field-label" for="customerSearch" data-i18n="customers.search">Rechercher un
                     client</label>
-                <input type="search" id="customerSearch" class="field">
+                <input type="search" id="customerSearch" class="field" autocomplete="off"
+                    data-i18n-attr="placeholder:customers.searchHint" placeholder="Nom, e-mail ou code fidélité">
+                <div class="admin-row customers-tools">
+                    <label class="admin-field"><span class="field-label" data-i18n="customers.show">Afficher</span>
+                        <select id="customerFilter" class="field">
+                            <option value="all" data-i18n="customers.filterAll">Tous les comptes</option>
+                            <option value="customer" data-i18n="customers.filterCustomers">Clients</option>
+                            <option value="staff" data-i18n="customers.filterStaff">Salon (Zeyd, admins)</option>
+                            <option value="reward" data-i18n="customers.filterReward">Avec coupe offerte</option>
+                        </select></label>
+                    <label class="admin-field"><span class="field-label" data-i18n="customers.sort">Trier</span>
+                        <select id="customerSort" class="field">
+                            <option value="recent" data-i18n="customers.sortRecent">Inscription récente</option>
+                            <option value="name" data-i18n="customers.sortName">Nom</option>
+                            <option value="visits" data-i18n="customers.sortVisits">Visites</option>
+                        </select></label>
+                </div>
+                <p class="admin-item-meta" id="customersCount"></p>
                 <div class="admin-message" id="customersMessage" role="status" aria-live="polite" hidden></div>
                 <ul class="admin-list" id="customersList"></ul>
             </div>
@@ -346,8 +385,30 @@
                     les réglages</button>
                 <div class="admin-message" id="settingsMessage" role="status" aria-live="polite" hidden></div>
             </form>
+            <!-- What is really set up: read from the database and from the server, never assumed -->
+            <div class="admin-card">
+                <h2 class="admin-h2" data-i18n="status.title">Compte et services connectés</h2>
+                <ul class="status-list" id="statusList"></ul>
+                <p class="field-hint" data-i18n="status.soundHint">Les sons de l’interface se règlent depuis le site
+                    (Mon compte → Sons).</p>
+            </div>
         </section>
     </main>
+
+    <!-- Booking details: side panel on a computer, bottom sheet on a phone -->
+    <dialog class="booking-sheet" id="bookingSheet" aria-labelledby="bookingSheetTitle">
+        <div class="sheet-head">
+            <h2 id="bookingSheetTitle" class="admin-h2" dir="auto"></h2>
+            <button type="button" class="icon-btn" id="bookingSheetClose" data-i18n-attr="aria-label:sheet.close"
+                aria-label="Fermer">
+                <svg class="icon" aria-hidden="true">
+                    <use href="#i-close" />
+                </svg>
+            </button>
+        </div>
+        <div class="admin-message" id="sheetMessage" role="status" aria-live="polite" hidden></div>
+        <div class="sheet-body" id="bookingSheetBody"></div>
+    </dialog>
 
     <script type="module" src="admin.js"></script>
 </body>

@@ -22,6 +22,7 @@ import {
     startCheckout,
 } from './api.js';
 import { cleanAuthUrl, parseAuthRedirect } from './authRedirect.js';
+import { createHoldButton } from './holdButton.js';
 import { t } from './i18n.js';
 import { renderLoyaltyCard, renderQrCode } from './loyalty.js';
 import { adoptSoundPrefs, getSoundPrefs, onSoundPrefsChange } from './sound.js';
@@ -656,7 +657,18 @@ function initCancelDialog() {
         if (e.target === dialog) close();
     });
     $('cancelForm').addEventListener('change', renderCancelDialog);
-    $('cancelForm').addEventListener('submit', onCancelSubmit);
+    // Enter in a field does not cancel: only holding the button does
+    $('cancelForm').addEventListener('submit', (e) => e.preventDefault());
+    // "Hold to cancel": the appointment is cancelled only after the button is held for 1.2 s
+    const hold = createHoldButton({
+        ...cancelLabels(false),
+        className: 'btn btn-danger',
+        duration: 1200,
+        canStart: validateCancel,
+        onConfirm: confirmCancel,
+    });
+    hold.id = 'cancelSubmit';
+    $('cancelSubmit').replaceWith(hold);
     $('rescheduleStart').addEventListener('click', startRescheduling);
     $('rescheduleAbort').addEventListener('click', () => {
         stopRescheduling();
@@ -668,7 +680,7 @@ function openCancelDialog(booking) {
     state.cancelTarget = booking;
     $('cancelForm').reset();
     setMessage('cancelMessage', null);
-    $('cancelSubmit').disabled = false;
+    $('cancelSubmit').resetHold?.();
     renderCancelDialog();
     $('cancelDialog').showModal();
 }
@@ -691,32 +703,43 @@ function renderCancelDialog() {
     const offer = reason === 'reschedule' && canReschedule(booking);
     $('rescheduleOffer').hidden = !offer;
     $('cancelWarning').textContent = t(state.lang, 'cancel.warning', { day, time });
-    $('cancelSubmit').textContent = t(state.lang, offer ? 'cancel.confirmWithoutNew' : 'cancel.confirm');
+    $('cancelSubmit').setLabels?.(cancelLabels(offer));
 }
 
-async function onCancelSubmit(event) {
-    event.preventDefault();
-    const booking = state.cancelTarget;
-    const button = $('cancelSubmit');
-    if (!booking || button.disabled) return; // one request per confirmation, even after a double tap
+function cancelLabels(withoutNew) {
+    return {
+        label: t(state.lang, withoutNew ? 'cancel.holdWithoutNew' : 'cancel.hold'),
+        holdingLabel: t(state.lang, 'cancel.holding'),
+        busyLabel: t(state.lang, 'cancel.busy'),
+        hint: t(state.lang, 'cancel.holdHint'),
+    };
+}
+
+// Checked before the hold starts: a reason is required, and a few words for "other"
+function validateCancel() {
     const reason = selectedReason();
-    const details = $('cancelDetails').value.trim();
     if (!reason) {
         setMessage('cancelMessage', 'error', 'error.invalid_reason');
-        return;
+        return false;
     }
-    if (reason === 'other' && !details) {
+    if (reason === 'other' && !$('cancelDetails').value.trim()) {
         setMessage('cancelMessage', 'error', 'error.details_required');
         $('cancelDetails').focus();
-        return;
+        return false;
     }
-    button.disabled = true;
-    const { error } = await cancelMyBooking(booking.id, reason, details);
+    setMessage('cancelMessage', null);
+    return true;
+}
+
+// Runs once the hold is complete. Returns false on failure: nothing was cancelled, the button can be held again
+async function confirmCancel() {
+    const booking = state.cancelTarget;
+    if (!booking || !validateCancel()) return false;
+    const { error } = await cancelMyBooking(booking.id, selectedReason(), $('cancelDetails').value.trim());
     if (error) {
-        button.disabled = false;
         setMessage('cancelMessage', 'error', errorKey(error));
         if (errorCode(error) === 'invalid_status') loadMyBookings(); // already cancelled elsewhere
-        return;
+        return false;
     }
     // Only now, confirmed by the database, is the slot free again
     $('cancelDialog').close();
@@ -724,6 +747,7 @@ async function onCancelSubmit(event) {
     notifyStaffOfBooking(booking.id);
     loadMyBookings();
     loadSlots();
+    return true;
 }
 
 // --- Rescheduling: the customer picks the new slot first; the old booking is cancelled only when the new one

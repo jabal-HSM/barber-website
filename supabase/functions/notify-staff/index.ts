@@ -53,7 +53,21 @@ Deno.serve(async (req) => {
         booking_id?: string;
         notification_id?: string;
         retry?: boolean;
+        status?: boolean;
     };
+
+    // Dashboard "Services connectés": which secrets are set (yes / no only, never their value). Staff only.
+    if (body.status) {
+        if (!(await callerIsStaff(authorization))) return reply(403, { error: 'forbidden' });
+        const stripeKey = env('STRIPE_SECRET_KEY') ?? '';
+        return reply(200, {
+            telegram_bot: Boolean(env('TELEGRAM_BOT_TOKEN')),
+            telegram_staff_chat: Boolean(env('TELEGRAM_STAFF_CHAT_ID')),
+            stripe: stripeKey.startsWith('sk_live_') ? 'live' : stripeKey.startsWith('sk_test_') ? 'test' : 'none',
+            stripe_webhook: Boolean(env('STRIPE_WEBHOOK_SECRET')),
+            live_payments_allowed: env('ALLOW_LIVE_PAYMENTS') === 'true',
+        });
+    }
     const bookingId = body.booking_id && UUID.test(body.booking_id) ? body.booking_id : null;
     const notificationId = body.notification_id && UUID.test(body.notification_id) ? body.notification_id : null;
     if (!bookingId && !notificationId) return reply(400, { error: 'not_found' });

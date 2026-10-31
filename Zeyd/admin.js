@@ -1,6 +1,8 @@
 // Barber / admin dashboard. Every action is checked by the database (RLS policies and functions
 // that verify the role): this page only shows what the signed-in account is allowed to do.
 import { at } from './admin-i18n.js';
+import { createHoldButton } from './holdButton.js';
+import { renderLoyaltyCard } from './loyalty.js';
 import { getSupabase } from './supabaseClient.js';
 import { formatDateOf, formatTime, parisLocalToIso, SALON_TIME_ZONE } from './time.js';
 
@@ -266,6 +268,17 @@ function cancellationInfo(b) {
     return box;
 }
 
+// Status shown with an icon AND a word, never by colour alone
+const STATUS_ICON = { confirmed: '✓', requested: '…', completed: '✔', cancelled: '✕', no_show: '!' };
+
+function statusBadge(status) {
+    const badge = el('span', `status-badge is-${status}`);
+    badge.append(el('span', 'status-icon', STATUS_ICON[status] ?? '•'), at(state.lang, `status.${status}`));
+    badge.firstChild.setAttribute('aria-hidden', 'true');
+    return badge;
+}
+
+// Calendar card: the essentials, and a button that opens the details panel
 function bookingItem(b, { compact = false } = {}) {
     const item = el('li', `admin-item booking-item is-${b.status}`);
     const info = el('div', 'admin-item-body');
@@ -277,42 +290,147 @@ function bookingItem(b, { compact = false } = {}) {
     when.dir = 'ltr';
     info.append(when, el('p', '', `${b.profiles?.full_name || '—'} · ${serviceName(b)}`));
     if (!compact) {
-        if (b.profiles?.email) {
-            const mail = el('a', 'admin-item-meta', b.profiles.email);
-            mail.href = `mailto:${String(b.profiles.email).replace(/[^\w.+@-]/g, '')}`;
-            mail.dir = 'ltr';
-            info.append(mail);
-        }
-        const facts = [];
-        if (b.services?.price != null) facts.push(euros.format(Number(b.services.price)));
-        if (b.ends_at)
-            facts.push(
-                at(state.lang, 'bookings.minutes', {
-                    count: Math.round((new Date(b.ends_at) - new Date(b.starts_at)) / 60000),
-                }),
-            );
-        if (facts.length) info.append(el('p', 'admin-item-meta', facts.join(' · ')));
+        const facts = bookingFacts(b);
+        if (facts) info.append(el('p', 'admin-item-meta', facts));
     }
-    const badges = el('p');
-    badges.append(el('span', `status-badge is-${b.status}`, at(state.lang, `status.${b.status}`)));
-    if (b.is_custom_request)
-        badges.append(' ', el('span', 'status-badge is-requested', at(state.lang, 'bookings.custom')));
-    if (b.rescheduled_from) badges.append(' ', el('span', 'status-badge', at(state.lang, 'bookings.rescheduled')));
+    const badges = el('p', 'badge-row');
+    badges.append(statusBadge(b.status));
+    if (state.paidBookings?.has(b.id))
+        badges.append(el('span', 'status-badge is-payment-paid', at(state.lang, 'paystatus.paid')));
+    if (b.is_custom_request) badges.append(el('span', 'status-badge is-requested', at(state.lang, 'bookings.custom')));
+    if (b.rescheduled_from) badges.append(el('span', 'status-badge', at(state.lang, 'bookings.rescheduled')));
     info.append(badges);
-    if (b.customer_note)
-        info.append(el('p', 'admin-item-meta', at(state.lang, 'bookings.note', { note: b.customer_note })));
+    if (b.customer_note) info.append(noteBlock(b.customer_note, true));
     if (b.status === 'cancelled') info.append(cancellationInfo(b));
-    item.append(info);
-    if (!compact) item.append(bookingActions(b));
+    item.append(
+        info,
+        button(at(state.lang, 'bookings.open'), 'btn btn-ghost btn-sm', () => openBookingSheet(b)),
+    );
     return item;
+}
+
+function bookingFacts(b) {
+    const facts = [];
+    if (b.services?.price != null) facts.push(euros.format(Number(b.services.price)));
+    if (b.ends_at) {
+        facts.push(
+            at(state.lang, 'bookings.minutes', {
+                count: Math.round((new Date(b.ends_at) - new Date(b.starts_at)) / 60000),
+            }),
+        );
+    }
+    return facts.join(' · ');
+}
+
+// The customer's own words (written when booking): shown as typed, never interpreted as HTML
+function noteBlock(note, short = false) {
+    const box = el('blockquote', `customer-note${short ? ' is-short' : ''}`);
+    // In the list the block carries its own label; in the details panel the section title says it
+    if (short) box.append(el('span', 'customer-note-label', at(state.lang, 'bookings.noteLabel')));
+    const text = el('span', 'customer-note-text', note);
+    text.dir = 'auto'; // an Arabic message reads right to left even on the French dashboard
+    box.append(text);
+    return box;
+}
+
+// --- Details panel (side sheet on a computer, bottom sheet on a phone); the calendar stays where it was ---
+function openBookingSheet(b) {
+    state.sheetBooking = b;
+    const sheet = $('bookingSheet');
+    renderBookingSheet(b);
+    if (!sheet.open) sheet.showModal();
+}
+
+function closeBookingSheet() {
+    const sheet = $('bookingSheet');
+    if (sheet.open) sheet.close();
+}
+
+function sheetSection(titleKey, ...children) {
+    const section = el('section', 'sheet-section');
+    section.append(el('h3', 'sheet-section-title', at(state.lang, titleKey)), ...children);
+    return section;
+}
+
+function renderBookingSheet(b) {
+    const body = $('bookingSheetBody');
+    setMessage('sheetMessage', null);
+    $('bookingSheetTitle').textContent = `${formatDateOf(b.starts_at, state.lang)} · ${formatTime(b.starts_at)}`;
+    const badges = el('p', 'badge-row');
+    badges.append(statusBadge(b.status));
+    if (b.is_custom_request) badges.append(el('span', 'status-badge is-requested', at(state.lang, 'bookings.custom')));
+    if (b.rescheduled_from) badges.append(el('span', 'status-badge', at(state.lang, 'bookings.rescheduled')));
+
+    const customer = [el('p', 'admin-item-title', b.profiles?.full_name || '—')];
+    if (b.profiles?.email) {
+        const mail = el('a', 'admin-item-meta', b.profiles.email);
+        mail.href = `mailto:${String(b.profiles.email).replace(/[^\w.+@-]/g, '')}`;
+        mail.dir = 'ltr';
+        customer.push(mail);
+    }
+    const payment = el('p', 'admin-item-meta', at(state.lang, 'common.loading'));
+    const history = el('ol', 'booking-history');
+    const sections = [
+        badges,
+        sheetSection('sheet.customer', ...customer),
+        sheetSection('sheet.service', el('p', '', serviceName(b)), el('p', 'admin-item-meta', bookingFacts(b))),
+        sheetSection('sheet.payment', payment),
+    ];
+    sections.push(
+        b.customer_note
+            ? sheetSection('bookings.noteLabel', noteBlock(b.customer_note))
+            : sheetSection('bookings.noteLabel', el('p', 'admin-item-meta', at(state.lang, 'sheet.noNote'))),
+    );
+    if (b.status === 'cancelled') sections.push(sheetSection('sheet.cancellation', cancellationInfo(b)));
+    sections.push(sheetSection('sheet.actions', bookingActions(b)), sheetSection('bookings.history', history));
+    body.replaceChildren(...sections);
+    loadSheetPayment(b, payment);
+    loadHistory(b, history);
+}
+
+// Payment state from the payments table (only "paid" counts as paid)
+async function loadSheetPayment(b, target) {
+    const { data, error } = await state.supabase
+        .from('payments')
+        .select('status, amount_cents, paid_at')
+        .eq('booking_id', b.id)
+        .order('created_at', { ascending: false });
+    if (error) {
+        target.textContent = at(state.lang, 'common.error');
+        return;
+    }
+    const paid = data.find((p) => p.status === 'paid');
+    target.textContent = paid
+        ? at(state.lang, 'sheet.paidOn', {
+              amount: cents(paid.amount_cents),
+              date: formatDateOf(paid.paid_at, state.lang),
+              time: formatTime(paid.paid_at),
+          })
+        : at(state.lang, data.length ? 'sheet.notPaidAttempts' : 'sheet.notPaid', { count: data.length });
+}
+
+// After an action: the database answered, so the calendar and the panel show the new state
+async function refreshAfterAction() {
+    await loaders.bookings();
+    const current = state.sheetBooking && state.calendarRows?.find((r) => r.id === state.sheetBooking.id);
+    if (current && $('bookingSheet').open) {
+        state.sheetBooking = current;
+        renderBookingSheet(current);
+    }
 }
 
 function bookingActions(b) {
     const actions = el('div', 'admin-row admin-actions');
-    const setStatus = (status) => async () => {
+    const setStatus = (status) => async (e) => {
+        e.currentTarget.disabled = true; // one request per tap
         const { error } = await state.supabase.rpc('set_booking_status', { p_booking_id: b.id, p_status: status });
-        if (error) setMessage('bookingsMessage', 'error', errorKey(error));
-        loaders.bookings();
+        if (error) {
+            e.currentTarget.disabled = false;
+            setMessage('sheetMessage', 'error', errorKey(error));
+            return;
+        }
+        await refreshAfterAction();
+        setMessage('sheetMessage', 'success', 'bookings.statusSaved');
     };
     if (b.status === 'requested')
         actions.append(button(at(state.lang, 'bookings.confirm'), 'btn btn-primary btn-sm', setStatus('confirmed')));
@@ -336,9 +454,7 @@ function bookingActions(b) {
             ),
         );
     }
-    actions.append(
-        button(at(state.lang, 'bookings.history'), 'btn btn-ghost btn-sm', (e) => toggleHistory(b, e.currentTarget)),
-    );
+    if (!actions.childElementCount) actions.append(el('p', 'admin-item-meta', at(state.lang, 'sheet.noAction')));
     return actions;
 }
 
@@ -359,13 +475,12 @@ function paymentForm(b, actions) {
     });
     const reference = input('text', '', { maxlength: '100' });
     const hint = el('p', 'field-hint', at(state.lang, 'payments.recordHint'));
-    const refresh = () => {
+    method.addEventListener('change', () => {
         hint.textContent = at(
             state.lang,
             method.value === 'bank_transfer' ? 'payments.transferHint' : 'payments.recordHint',
         );
-    };
-    method.addEventListener('change', refresh);
+    });
     const confirm = el('button', 'btn btn-primary btn-sm', at(state.lang, 'payments.confirmRecord'));
     confirm.type = 'submit';
     const row = el('div', 'admin-row');
@@ -384,46 +499,42 @@ function paymentForm(b, actions) {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (confirm.disabled) return;
-        const cents = Math.round(Number(amount.value) * 100);
-        if (!Number.isInteger(cents) || cents <= 0) {
-            setMessage('bookingsMessage', 'error', 'error.validation');
+        const value = Math.round(Number(amount.value) * 100);
+        if (!Number.isInteger(value) || value <= 0) {
+            setMessage('sheetMessage', 'error', 'error.validation');
             return;
         }
         confirm.disabled = true;
         const { data, error } = await state.supabase.rpc('staff_record_payment', {
             p_booking_id: b.id,
-            p_amount_cents: cents,
+            p_amount_cents: value,
             p_method: method.value,
             p_reference: reference.value.trim() || null,
         });
         if (error) {
+            // The form keeps what was typed, so nothing has to be entered again
             confirm.disabled = false;
-            setMessage('bookingsMessage', 'error', errorKey(error));
+            setMessage('sheetMessage', 'error', errorKey(error));
             return;
         }
         const r = data?.[0];
+        await refreshAfterAction();
         setMessage(
-            'bookingsMessage',
+            'sheetMessage',
             'success',
             r?.allocation_status === 'recorded' ? 'payments.recorded' : 'payments.recordedReview',
-            { zeyd: euros.format((r?.zeyd_cents ?? 0) / 100), mother: euros.format((r?.mother_cents ?? 0) / 100) },
+            {
+                zeyd: cents(r?.zeyd_cents ?? 0),
+                mother: cents(r?.mother_cents ?? 0),
+            },
         );
-        form.replaceWith(actions);
     });
     return form;
 }
 
 // Who created, confirmed, cancelled or moved this booking, when and why (booking_events, staff only)
-async function toggleHistory(b, trigger) {
-    const item = trigger.closest('.admin-item');
-    const existing = item.querySelector('.booking-history');
-    if (existing) {
-        existing.remove();
-        return;
-    }
-    const box = el('ol', 'booking-history');
-    box.append(el('li', 'admin-item-meta', at(state.lang, 'common.loading')));
-    item.append(box);
+async function loadHistory(b, box) {
+    box.replaceChildren(el('li', 'admin-item-meta', at(state.lang, 'common.loading')));
     const { data, error } = await state.supabase
         .from('booking_events')
         .select('action, by_customer, reason_code, details, created_at')
@@ -569,7 +680,82 @@ loaders.home = async () => {
     }
 
     await renderNotifications();
+    renderOverview();
 };
+
+// Start of the chosen period, as an ISO date-time (Paris calendar)
+function periodStart(period) {
+    const today = todayInParis();
+    if (period === 'month') return parisLocalToIso(`${today.slice(0, 8)}01T00:00`);
+    return parisLocalToIso(`${addDays(today, -(Number(period) - 1))}T00:00`);
+}
+
+async function renderOverview() {
+    const sb = state.supabase;
+    const grid = $('statsGrid');
+    const period = $('statsPeriod').value;
+    const since = periodStart(period);
+    const now = new Date();
+    const in7 = new Date(now.getTime() + 7 * 864e5).toISOString();
+    grid.replaceChildren(el('p', 'admin-item-meta', at(state.lang, 'common.loading')));
+    const count = (query) => query.then((r) => (r.error ? null : r.count));
+    const head = (table) => sb.from(table).select('*', { count: 'exact', head: true });
+
+    const [upcoming, completed, cancelled, customers, rewards, records] = await Promise.all([
+        count(
+            head('bookings')
+                .in('status', ['confirmed', 'requested'])
+                .gte('starts_at', now.toISOString())
+                .lt('starts_at', in7),
+        ),
+        count(head('bookings').eq('status', 'completed').gte('starts_at', since)),
+        count(head('bookings').eq('status', 'cancelled').gte('cancelled_at', since)),
+        count(head('profiles').eq('role', 'customer').gte('created_at', since)),
+        count(head('loyalty_rewards').is('redeemed_at', null)),
+        sb.rpc('payment_records', { p_limit: 500 }),
+    ]);
+
+    // Money: payments the database marked "paid" in the period, and what was calculated for each side
+    let money = null;
+    if (!records.error) {
+        const inPeriod = records.data.filter((p) => (p.paid_at ?? p.created_at) >= since);
+        const paid = inPeriod.filter((p) => p.status === 'paid');
+        money = {
+            received: paid.reduce((s, p) => s + p.amount_cents, 0),
+            zeyd: paid.reduce((s, p) => s + (p.zeyd_cents ?? 0), 0),
+            mother: paid.reduce((s, p) => s + (p.mother_cents ?? 0), 0),
+            review: inPeriod.filter(
+                (p) => p.allocation_status === 'needs_review' || ['mismatch', 'duplicate'].includes(p.status),
+            ).length,
+            test: paid.some((p) => !p.livemode),
+        };
+    }
+    const periodLabel = at(state.lang, period === 'month' ? 'stats.thisMonth' : `stats.last${period}`);
+    const stat = (value, labelKey, caption, tone = '') => {
+        const box = el('div', `stat${tone ? ` is-${tone}` : ''}`);
+        const number = el('p', 'stat-value', value ?? '—');
+        number.dir = 'ltr';
+        box.append(number, el('p', 'stat-label', at(state.lang, labelKey)), el('p', 'stat-caption', caption));
+        if (value === null || value === undefined) box.classList.add('is-unavailable');
+        return box;
+    };
+    const fmt = (n) => (n === null || n === undefined ? null : String(n));
+    grid.replaceChildren(
+        stat(fmt(upcoming), 'stats.upcoming', at(state.lang, 'stats.next7')),
+        stat(fmt(completed), 'stats.completed', periodLabel),
+        stat(fmt(cancelled), 'stats.cancelled', periodLabel, cancelled ? 'warn' : ''),
+        stat(fmt(customers), 'stats.newCustomers', periodLabel),
+        stat(money ? cents(money.received) : null, 'stats.received', periodLabel),
+        stat(money ? cents(money.zeyd) : null, 'stats.zeyd', at(state.lang, 'stats.calculated')),
+        stat(money ? cents(money.mother) : null, 'stats.mother', at(state.lang, 'stats.calculated')),
+        stat(money ? fmt(money.review) : null, 'stats.review', periodLabel, money?.review ? 'warn' : ''),
+        stat(fmt(rewards), 'stats.rewards', at(state.lang, 'stats.now')),
+    );
+    const notes = [at(state.lang, 'stats.noteSource')];
+    if (money?.test) notes.push(at(state.lang, 'stats.noteTest'));
+    if (!money) notes.push(at(state.lang, 'stats.noteMoneyUnavailable'));
+    $('statsNote').textContent = notes.join(' ');
+}
 
 function renderEarnings(earnings, summary) {
     if (summary?.length) {
@@ -729,8 +915,14 @@ function initBookings() {
         });
     }
     const move = (sign) => () => {
-        const step = state.calendarView === 'week' ? 7 : 1;
-        $('bookingsDay').value = addDays($('bookingsDay').value || todayInParis(), sign * step);
+        const current = $('bookingsDay').value || todayInParis();
+        if (state.calendarView === 'month') {
+            const d = new Date(`${current.slice(0, 7)}-01T12:00:00Z`);
+            d.setUTCMonth(d.getUTCMonth() + sign);
+            $('bookingsDay').value = d.toISOString().slice(0, 10);
+        } else {
+            $('bookingsDay').value = addDays(current, sign * (state.calendarView === 'week' ? 7 : 1));
+        }
         loaders.bookings();
     };
     $('calPrev').addEventListener('click', move(-1));
@@ -742,6 +934,13 @@ function initBookings() {
     for (const link of document.querySelectorAll('[data-goto]')) {
         link.addEventListener('click', () => openPanel(link.dataset.goto));
     }
+    $('statsPeriod').addEventListener('change', renderOverview);
+    // Details panel: close button, Escape (native), or a tap outside it
+    const sheet = $('bookingSheet');
+    $('bookingSheetClose').addEventListener('click', closeBookingSheet);
+    sheet.addEventListener('click', (e) => {
+        if (e.target === sheet) closeBookingSheet();
+    });
 }
 
 function cancellationEmail(info, reason) {
@@ -770,63 +969,104 @@ function cancelForm(booking, actions) {
         el('p', 'field-hint', at(state.lang, 'bookings.cancelWarning')),
         labelled(at(state.lang, 'bookings.reason'), reason),
     );
+    // Hold for 1.2 s to cancel: a quick tap never cancels an appointment by mistake
+    const hold = createHoldButton({
+        label: at(state.lang, 'bookings.holdCancel'),
+        holdingLabel: at(state.lang, 'bookings.holding'),
+        busyLabel: at(state.lang, 'bookings.cancelling'),
+        hint: at(state.lang, 'bookings.holdHint'),
+        className: 'btn btn-danger btn-sm',
+        duration: 1200,
+        onConfirm: async () => {
+            const { data, error } = await state.supabase.rpc('staff_cancel_booking', {
+                p_booking_id: booking.id,
+                p_reason: reason.value.trim() || null,
+            });
+            if (error) {
+                setMessage('sheetMessage', 'error', errorKey(error));
+                return false;
+            }
+            // The database confirmed the cancellation: the slot is free again for everybody
+            const info = data?.[0];
+            await refreshAfterAction();
+            setMessage('sheetMessage', 'success', 'bookings.cancelled');
+            if (info?.customer_email) {
+                const done = el('div', 'admin-email');
+                const link = el('a', 'btn btn-primary btn-sm');
+                link.href = cancellationEmail(info, reason.value.trim());
+                const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                icon.setAttribute('class', 'icon');
+                icon.setAttribute('aria-hidden', 'true');
+                const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+                use.setAttribute('href', '#i-mail');
+                icon.append(use);
+                link.append(icon, el('span', '', at(state.lang, 'bookings.emailCustomer')));
+                done.append(link, el('p', 'field-hint', at(state.lang, 'bookings.emailHint')));
+                $('bookingSheetBody').prepend(done);
+            }
+            return true;
+        },
+    });
     const row = el('div', 'admin-row');
-    const confirm = el('button', 'btn btn-primary btn-sm', at(state.lang, 'bookings.confirmCancel'));
-    confirm.type = 'submit';
     row.append(
-        confirm,
+        hold,
         button(at(state.lang, 'bookings.keep'), 'btn btn-ghost btn-sm', () => form.replaceWith(actions)),
     );
-    form.append(row);
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (confirm.disabled) return; // one request per click, even if pressed twice
-        confirm.disabled = true;
-        const { data, error } = await state.supabase.rpc('staff_cancel_booking', {
-            p_booking_id: booking.id,
-            p_reason: reason.value.trim() || null,
-        });
-        if (error) {
-            confirm.disabled = false;
-            setMessage('bookingsMessage', 'error', errorKey(error));
-            return;
-        }
-        // The database confirmed the cancellation: the slot is free again for everybody
-        setMessage('bookingsMessage', 'success', 'bookings.cancelled');
-        const info = data?.[0];
-        const done = el('div', 'admin-email');
-        if (info?.customer_email) {
-            const link = el('a', 'btn btn-primary btn-sm');
-            link.href = cancellationEmail(info, reason.value.trim());
-            const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            icon.setAttribute('class', 'icon');
-            icon.setAttribute('aria-hidden', 'true');
-            const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-            use.setAttribute('href', '#i-mail');
-            icon.append(use);
-            link.append(icon, el('span', '', at(state.lang, 'bookings.emailCustomer')));
-            done.append(link, el('p', 'field-hint', at(state.lang, 'bookings.emailHint')));
-        }
-        form.closest('.admin-item').querySelector('.status-badge').textContent = at(state.lang, 'status.cancelled');
-        form.replaceWith(done);
-    });
+    form.append(row, el('p', 'hold-hint', at(state.lang, 'bookings.holdHint')));
+    form.addEventListener('submit', (e) => e.preventDefault());
     return form;
+}
+
+const CALENDAR_FILTERS = ['all', 'confirmed', 'requested', 'completed', 'cancelled', 'no_show'];
+const parisDay = (iso) => new Intl.DateTimeFormat('en-CA', { timeZone: SALON_TIME_ZONE }).format(new Date(iso));
+
+function calendarRange(view, day) {
+    if (view === 'week') {
+        const from = weekStart(day);
+        return { from, to: addDays(from, 7) };
+    }
+    if (view === 'month') {
+        const first = `${day.slice(0, 7)}-01`;
+        const next = new Date(`${first}T12:00:00Z`);
+        next.setUTCMonth(next.getUTCMonth() + 1);
+        return { from: first, to: next.toISOString().slice(0, 10) };
+    }
+    return { from: day, to: addDays(day, 1) };
+}
+
+function renderFilters() {
+    const box = $('calFilters');
+    const current = state.calendarFilter ?? 'all';
+    box.replaceChildren(
+        ...CALENDAR_FILTERS.map((f) => {
+            const chip = button(at(state.lang, `filter.${f}`), 'filter-chip', () => {
+                state.calendarFilter = f;
+                loaders.bookings();
+            });
+            chip.setAttribute('aria-pressed', String(f === current));
+            return chip;
+        }),
+    );
 }
 
 loaders.bookings = async () => {
     const view = state.calendarView ?? 'day';
     for (const b of document.querySelectorAll('[data-view]'))
         b.setAttribute('aria-pressed', String(b.dataset.view === view));
+    renderFilters();
     const day = $('bookingsDay').value || todayInParis();
-    const from = view === 'week' ? weekStart(day) : day;
-    const to = addDays(from, view === 'week' ? 7 : 1);
+    const { from, to } = calendarRange(view, day);
+    const dateLabel = (d) => formatDateOf(parisLocalToIso(`${d}T12:00`), state.lang);
     $('calRange').textContent =
         view === 'week'
-            ? at(state.lang, 'bookings.weekRange', {
-                  from: formatDateOf(parisLocalToIso(`${from}T12:00`), state.lang),
-                  to: formatDateOf(parisLocalToIso(`${addDays(to, -1)}T12:00`), state.lang),
-              })
-            : formatDateOf(parisLocalToIso(`${day}T12:00`), state.lang);
+            ? at(state.lang, 'bookings.weekRange', { from: dateLabel(from), to: dateLabel(addDays(to, -1)) })
+            : view === 'month'
+              ? new Intl.DateTimeFormat(state.lang === 'ar' ? 'ar-u-nu-latn' : 'fr-FR', {
+                    timeZone: SALON_TIME_ZONE,
+                    month: 'long',
+                    year: 'numeric',
+                }).format(new Date(`${from}T12:00:00Z`))
+              : dateLabel(day);
 
     const list = $('bookingsList');
     list.replaceChildren(el('li', 'admin-empty', at(state.lang, 'common.loading')));
@@ -835,10 +1075,26 @@ loaders.bookings = async () => {
         list.replaceChildren(el('li', 'admin-empty', at(state.lang, 'common.error')));
         return;
     }
+    state.calendarRows = data;
+    // Paid bookings (badge): only payments the database marked "paid"
+    const ids = data.map((b) => b.id);
+    const { data: paid } = ids.length
+        ? await state.supabase.from('payments').select('booking_id').eq('status', 'paid').in('booking_id', ids)
+        : { data: [] };
+    state.paidBookings = new Set((paid ?? []).map((p) => p.booking_id));
+
+    const filter = state.calendarFilter ?? 'all';
+    const rows = filter === 'all' ? data : data.filter((b) => b.status === filter);
+    list.classList.toggle('is-month', view === 'month');
+
+    if (view === 'month') {
+        list.replaceChildren(...monthGrid(from, to, rows));
+        return;
+    }
     if (view === 'day') {
         list.replaceChildren(
-            ...(data.length
-                ? data.map((b) => bookingItem(b))
+            ...(rows.length
+                ? rows.map((b) => bookingItem(b))
                 : [el('li', 'admin-empty', at(state.lang, 'bookings.empty'))]),
         );
         return;
@@ -847,19 +1103,52 @@ loaders.bookings = async () => {
     const items = [];
     for (let i = 0; i < 7; i += 1) {
         const d = addDays(from, i);
-        const ofDay = data.filter(
-            (b) => new Intl.DateTimeFormat('en-CA', { timeZone: SALON_TIME_ZONE }).format(new Date(b.starts_at)) === d,
-        );
+        const ofDay = rows.filter((b) => parisDay(b.starts_at) === d);
         const active = ofDay.filter((b) => b.status !== 'cancelled').length;
         const head = el('li', `calendar-day${d === todayInParis() ? ' is-today' : ''}`);
         head.append(
-            el('span', 'calendar-day-name', formatDateOf(parisLocalToIso(`${d}T12:00`), state.lang)),
+            el('span', 'calendar-day-name', dateLabel(d)),
             el('span', 'calendar-day-count', at(state.lang, 'bookings.dayCount', { count: active })),
         );
         items.push(head, ...ofDay.map((b) => bookingItem(b)));
     }
     list.replaceChildren(...items);
 };
+
+// Month: a grid of days (Monday first); a day opens its day view
+function monthGrid(from, to, rows) {
+    const cells = [];
+    const weekdayFmt = new Intl.DateTimeFormat(state.lang === 'ar' ? 'ar' : 'fr-FR', {
+        weekday: 'short',
+        timeZone: 'UTC',
+    });
+    for (let i = 0; i < 7; i += 1) {
+        cells.push(el('li', 'month-head', weekdayFmt.format(new Date(Date.UTC(2026, 10, 2 + i)))));
+    }
+    const lead = (new Date(`${from}T12:00:00Z`).getUTCDay() + 6) % 7;
+    for (let i = 0; i < lead; i += 1) cells.push(el('li', 'month-cell is-empty'));
+    for (let d = from; d < to; d = addDays(d, 1)) {
+        const ofDay = rows.filter((b) => parisDay(b.starts_at) === d);
+        const active = ofDay.filter((b) => b.status !== 'cancelled').length;
+        const cancelled = ofDay.length - active;
+        const cell = el('li', `month-cell${d === todayInParis() ? ' is-today' : ''}`);
+        const open = button('', 'month-day', () => {
+            $('bookingsDay').value = d;
+            state.calendarView = 'day';
+            loaders.bookings();
+        });
+        open.append(el('span', 'month-num', String(Number(d.slice(8)))));
+        if (active) open.append(el('span', 'month-count', String(active)));
+        if (cancelled) open.append(el('span', 'month-cancelled', `✕${cancelled}`));
+        open.setAttribute(
+            'aria-label',
+            `${formatDateOf(parisLocalToIso(`${d}T12:00`), state.lang)} · ${at(state.lang, 'bookings.dayCount', { count: active })}`,
+        );
+        cell.append(open);
+        cells.push(cell);
+    }
+    return cells;
+}
 
 // --- Loyalty: scan a customer's QR code, confirm the visit ---
 function initLoyalty() {
@@ -1003,9 +1292,9 @@ function renderCustomerCard(card) {
         card.stamps_total % 10 === 0 && card.stamps_total > 0 && card.available_rewards > 0
             ? 10
             : card.stamps_total % 10;
-    const dots = el('ol', 'admin-dots');
-    for (let n = 1; n <= 10; n += 1)
-        dots.append(el('li', `admin-dot${n <= progress ? ' is-filled' : ''}${n === 10 ? ' is-reward' : ''}`));
+    // The same card the customer sees on the site (10 circles, copper 10th with the gift)
+    const dots = el('div', 'admin-loyalty-card');
+    renderLoyaltyCard(dots, card, state.lang);
 
     const body = el('div', 'loyalty-result-body');
     // Before confirming, Zeyd checks that the person in front of him is this customer
@@ -1235,6 +1524,14 @@ loaders.services = async () => {
         list.replaceChildren(el('li', 'admin-empty', at(state.lang, 'common.error')));
         return;
     }
+    // What a change touches: the upcoming bookings of each service
+    const { data: upcoming } = await state.supabase
+        .from('bookings')
+        .select('service_id')
+        .in('status', ['confirmed', 'requested'])
+        .gte('starts_at', new Date().toISOString());
+    const upcomingBy = {};
+    for (const b of upcoming ?? []) upcomingBy[b.service_id] = (upcomingBy[b.service_id] ?? 0) + 1;
     list.replaceChildren(
         ...data.map((s) => {
             const item = el('li', 'admin-item admin-service');
@@ -1306,7 +1603,14 @@ loaders.services = async () => {
             );
             const row = el('div', 'admin-row');
             row.append(activeLabel, save);
-            item.append(grid, row);
+            const impact = el(
+                'p',
+                'field-hint',
+                at(state.lang, upcomingBy[s.id] ? 'services.impact' : 'services.noImpact', {
+                    count: upcomingBy[s.id] ?? 0,
+                }),
+            );
+            item.append(grid, impact, row);
             return item;
         }),
     );
@@ -1464,6 +1768,18 @@ async function resizeImage(file) {
 }
 
 function initGallery() {
+    $('galleryFile').addEventListener('change', () => {
+        const file = $('galleryFile').files?.[0];
+        const preview = $('galleryPreview');
+        if (preview.dataset.url) URL.revokeObjectURL(preview.dataset.url);
+        if (!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) {
+            preview.hidden = true;
+            return;
+        }
+        preview.dataset.url = URL.createObjectURL(file);
+        preview.src = preview.dataset.url;
+        preview.hidden = false;
+    });
     $('galleryForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const file = $('galleryFile').files?.[0];
@@ -1509,15 +1825,34 @@ function initGallery() {
 loaders.gallery = async () => {
     const { data } = await state.supabase
         .from('haircuts')
-        .select('id, image_url, title_fr, title_ar, is_published')
+        .select('id, image_url, title_fr, title_ar, is_published, sort_order')
+        .order('sort_order')
         .order('created_at', { ascending: false });
     const list = $('galleryList');
     if (!data?.length) {
         list.replaceChildren(el('li', 'admin-empty', at(state.lang, 'gallery.empty')));
         return;
     }
+    // Swap the position of two photos (order shown on the site)
+    const move = async (index, delta) => {
+        const other = data[index + delta];
+        if (!other) return;
+        const ordered = data.map((p, i) => ({ id: p.id, sort_order: i * 10 }));
+        [ordered[index].sort_order, ordered[index + delta].sort_order] = [
+            ordered[index + delta].sort_order,
+            ordered[index].sort_order,
+        ];
+        const results = await Promise.all(
+            [ordered[index], ordered[index + delta]].map((p) =>
+                state.supabase.from('haircuts').update({ sort_order: p.sort_order }).eq('id', p.id),
+            ),
+        );
+        const failed = results.find((r) => r.error);
+        if (failed) setMessage('galleryMessage', 'error', errorKey(failed.error));
+        loaders.gallery();
+    };
     list.replaceChildren(
-        ...data.map((photo) => {
+        ...data.map((photo, index) => {
             const item = el('li', 'admin-photo');
             const img = el('img');
             img.src = photo.image_url;
@@ -1549,21 +1884,35 @@ loaders.gallery = async () => {
                     at(state.lang, photo.is_published ? 'gallery.unpublish' : 'gallery.publish'),
                     'btn btn-primary btn-sm',
                     async () => {
-                        await state.supabase
+                        const { error } = await state.supabase
                             .from('haircuts')
                             .update({ is_published: !photo.is_published })
                             .eq('id', photo.id);
+                        if (error) setMessage('galleryMessage', 'error', errorKey(error));
                         loaders.gallery();
                     },
                 ),
                 button(at(state.lang, 'gallery.delete'), 'btn btn-ghost btn-sm', async () => {
                     if (!window.confirm(at(state.lang, 'gallery.deleteConfirm'))) return;
-                    await state.supabase.from('haircuts').delete().eq('id', photo.id);
+                    const { error } = await state.supabase.from('haircuts').delete().eq('id', photo.id);
+                    if (error) {
+                        setMessage('galleryMessage', 'error', errorKey(error));
+                        return;
+                    }
+                    // The file is removed only once the database row is gone
                     const path = photo.image_url.split('/gallery/')[1];
                     if (path) await state.supabase.storage.from('gallery').remove([decodeURIComponent(path)]);
+                    setMessage('galleryMessage', 'success', 'gallery.deleted');
                     loaders.gallery();
                 }),
             );
+            const order = el('div', 'admin-row');
+            const up = button(at(state.lang, 'gallery.moveUp'), 'btn btn-ghost btn-sm', () => move(index, -1));
+            const down = button(at(state.lang, 'gallery.moveDown'), 'btn btn-ghost btn-sm', () => move(index, 1));
+            up.disabled = index === 0;
+            down.disabled = index === data.length - 1;
+            order.append(up, down);
+            caption.append(order);
             caption.append(row);
             item.append(img, caption);
             return item;
@@ -1574,23 +1923,54 @@ loaders.gallery = async () => {
 // --- Customers and roles ---
 function initCustomers() {
     $('customerSearch').addEventListener('input', renderCustomers);
+    $('customerFilter').addEventListener('change', renderCustomers);
+    $('customerSort').addEventListener('change', renderCustomers);
 }
 
 loaders.customers = async () => {
     const { data } = await state.supabase
         .from('profiles')
-        .select('id, full_name, email, role, created_at, loyalty_cards (stamps_total)')
+        .select('id, full_name, email, role, created_at, loyalty_cards (stamps_total, short_code)')
         .order('created_at', { ascending: false });
     state.customers = data ?? [];
+    // Free haircuts waiting to be used, per customer (for the "Avec coupe offerte" filter)
+    const { data: rewards } = await state.supabase
+        .from('loyalty_rewards')
+        .select('customer_id')
+        .is('redeemed_at', null);
+    state.customersWithReward = new Set((rewards ?? []).map((r) => r.customer_id));
     renderCustomers();
 };
 
+const cardOf = (c) => (Array.isArray(c.loyalty_cards) ? c.loyalty_cards[0] : c.loyalty_cards);
+
 function renderCustomers() {
     const query = $('customerSearch').value.trim().toLowerCase();
+    const filter = $('customerFilter').value;
+    const sort = $('customerSort').value;
     const list = $('customersList');
-    const rows = state.customers.filter(
-        (c) => !query || `${c.full_name ?? ''} ${c.email ?? ''}`.toLowerCase().includes(query),
-    );
+    const rows = state.customers
+        .filter((c) => {
+            const text = `${c.full_name ?? ''} ${c.email ?? ''} ${cardOf(c)?.short_code ?? ''} ${c.id}`.toLowerCase();
+            if (query && !text.includes(query)) return false;
+            if (filter === 'customer') return c.role === 'customer';
+            if (filter === 'staff') return c.role !== 'customer';
+            if (filter === 'reward') return state.customersWithReward?.has(c.id);
+            return true;
+        })
+        .sort((a, b) => {
+            if (sort === 'name') return (a.full_name ?? '').localeCompare(b.full_name ?? '', state.lang);
+            if (sort === 'visits') return (cardOf(b)?.stamps_total ?? 0) - (cardOf(a)?.stamps_total ?? 0);
+            return b.created_at.localeCompare(a.created_at);
+        });
+    $('customersCount').textContent = at(state.lang, 'customers.count', {
+        count: rows.length,
+        total: state.customers.length,
+    });
+    if (!rows.length) {
+        list.replaceChildren(el('li', 'admin-empty', at(state.lang, 'customers.none')));
+        return;
+    }
     list.replaceChildren(
         ...rows.map((c) => {
             const item = el('li', 'admin-item');
@@ -1684,6 +2064,29 @@ async function toggleCustomerDetails(c, item) {
     );
     box.append(history);
 
+    // Payments of this customer (only "paid" counts as paid)
+    const { data: payments, error: payError } = await sb
+        .from('payments')
+        .select('amount_cents, status, paid_at, created_at')
+        .eq('customer_id', c.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+    if (!payError) {
+        const pays = el('ul', 'booking-history');
+        pays.append(
+            ...(payments.length
+                ? payments.map((p) =>
+                      el(
+                          'li',
+                          '',
+                          `${formatDateOf(p.paid_at ?? p.created_at, state.lang)} · ${cents(p.amount_cents)} · ${at(state.lang, `paystatus.${p.status}`)}`,
+                      ),
+                  )
+                : [el('li', '', at(state.lang, 'customers.noPayments'))]),
+        );
+        box.append(el('p', 'admin-item-title', at(state.lang, 'customers.payments')), pays);
+    }
+
     // Private note: only if the notes table exists (migration of stage D)
     if (!note.error) {
         const text = el('textarea', 'field');
@@ -1748,7 +2151,65 @@ function initSettings() {
     });
 }
 
+// Account and connected services: each line says what is set up, what is not, or that it cannot be checked
+async function renderConnectedStatus() {
+    const list = $('statusList');
+    list.replaceChildren(el('li', 'admin-item-meta', at(state.lang, 'common.loading')));
+    const row = (labelKey, value, ok) => {
+        const item = el('li', `status-line is-${ok === true ? 'ok' : ok === false ? 'off' : 'unknown'}`);
+        item.append(el('span', 'status-line-label', at(state.lang, labelKey)), el('span', 'status-line-value', value));
+        return item;
+    };
+    const role = state.isAdmin ? 'role.admin' : 'role.barber';
+    const lines = [row('status.account', `${state.user.email ?? '—'} · ${at(state.lang, role)}`, true)];
+    const { data: pay } = await state.supabase.from('payment_settings').select('online_payments_enabled').maybeSingle();
+    lines.push(
+        row(
+            'status.onlinePayments',
+            at(state.lang, pay?.online_payments_enabled ? 'status.shown' : 'status.hidden'),
+            pay ? pay.online_payments_enabled : null,
+        ),
+    );
+    const { data: server, error } = await state.supabase.functions.invoke('notify-staff', { body: { status: true } });
+    if (error || !server) {
+        lines.push(row('status.server', at(state.lang, 'status.serverUnreachable'), null));
+    } else {
+        const stripe =
+            { test: 'status.stripeTest', live: 'status.stripeLive', none: 'status.notSet' }[server.stripe] ??
+            'status.notSet';
+        lines.push(
+            row(
+                'status.stripe',
+                at(state.lang, stripe),
+                server.stripe === 'test' ? true : server.stripe === 'live' ? null : false,
+            ),
+            row(
+                'status.webhook',
+                at(state.lang, server.stripe_webhook ? 'status.set' : 'status.notSet'),
+                server.stripe_webhook,
+            ),
+            row(
+                'status.livePayments',
+                at(state.lang, server.live_payments_allowed ? 'status.liveAllowed' : 'status.liveBlocked'),
+                !server.live_payments_allowed,
+            ),
+            row(
+                'status.telegramBot',
+                at(state.lang, server.telegram_bot ? 'status.set' : 'status.notSet'),
+                server.telegram_bot,
+            ),
+            row(
+                'status.telegramZeyd',
+                at(state.lang, server.telegram_staff_chat ? 'status.set' : 'status.notSet'),
+                server.telegram_staff_chat,
+            ),
+        );
+    }
+    list.replaceChildren(...lines);
+}
+
 loaders.settings = async () => {
+    renderConnectedStatus();
     const sb = state.supabase;
     const [{ data: booking }, { data: payment }] = await Promise.all([
         sb.from('booking_settings').select('*').maybeSingle(),
