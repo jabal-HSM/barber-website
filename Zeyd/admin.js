@@ -562,6 +562,9 @@ function notificationItem(n) {
         }
         if (d.details)
             text.append(el('p', 'admin-item-meta', at(state.lang, 'bookings.details', { details: d.details })));
+    } else if (n.kind === 'reward') {
+        title = el('p', 'admin-item-title', at(state.lang, 'notify.reward', { name: d.customer_name || '—' }));
+        text.append(title);
     } else {
         title = el(
             'p',
@@ -765,6 +768,10 @@ function initLoyalty() {
         e.preventDefault();
         lookup($('codeInput').value);
     });
+    $('loyaltySearchForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        searchCustomers($('loyaltySearchInput').value);
+    });
 }
 
 let jsqrPromise = null;
@@ -858,6 +865,38 @@ async function lookup(rawCode) {
     renderCustomerCard(data[0]);
 }
 
+// Manual fallback: name, e-mail or code → the customer is chosen from the list, then checked on the card
+async function searchCustomers(query) {
+    const list = $('loyaltySearchResults');
+    list.replaceChildren(el('li', 'admin-empty', at(state.lang, 'common.loading')));
+    const { data, error } = await state.supabase.rpc('loyalty_search', { p_query: query });
+    if (error) {
+        list.replaceChildren();
+        setMessage('loyaltyMessage', 'error', errorKey(error));
+        return;
+    }
+    setMessage('loyaltyMessage', null);
+    if (!data.length) {
+        list.replaceChildren(el('li', 'admin-empty', at(state.lang, 'loyalty.noMatch')));
+        return;
+    }
+    list.replaceChildren(
+        ...data.map((c) => {
+            const item = el('li', 'admin-item');
+            const body = el('div', 'admin-item-body');
+            body.append(el('p', 'admin-item-title', c.full_name || '—'), el('p', 'admin-item-meta', c.email ?? ''));
+            item.append(
+                body,
+                button(at(state.lang, 'loyalty.open'), 'btn btn-ghost btn-sm', () => {
+                    list.replaceChildren();
+                    lookup(c.short_code);
+                }),
+            );
+            return item;
+        }),
+    );
+}
+
 function renderCustomerCard(card) {
     const result = $('loyaltyResult');
     const progress =
@@ -869,7 +908,9 @@ function renderCustomerCard(card) {
         dots.append(el('li', `admin-dot${n <= progress ? ' is-filled' : ''}${n === 10 ? ' is-reward' : ''}`));
 
     const body = el('div', 'loyalty-result-body');
+    // Before confirming, Zeyd checks that the person in front of him is this customer
     body.append(
+        el('p', 'field-hint', at(state.lang, 'loyalty.checkIdentity')),
         el('p', 'admin-item-title', card.full_name || '—'),
         el('p', 'admin-item-meta', card.email ?? ''),
         dots,
@@ -906,8 +947,36 @@ function renderCustomerCard(card) {
         actions.append(reward);
     }
     body.append(actions);
+    const history = el('details', 'loyalty-history');
+    history.append(el('summary', '', at(state.lang, 'loyalty.history')));
+    history.addEventListener('toggle', () => {
+        if (history.open && !history.dataset.loaded) loadLoyaltyHistory(history);
+    });
+    body.append(history);
     result.replaceChildren(body);
     result.hidden = false;
+}
+
+async function loadLoyaltyHistory(box) {
+    box.dataset.loaded = '1';
+    const list = el('ol', 'booking-history');
+    list.append(el('li', '', at(state.lang, 'common.loading')));
+    box.append(list);
+    const { data, error } = await state.supabase.rpc('loyalty_history', { p_code: state.loyaltyCode });
+    if (error || !data?.length) {
+        list.replaceChildren(
+            el('li', '', at(state.lang, error ? 'loyalty.historyUnavailable' : 'loyalty.historyEmpty')),
+        );
+        return;
+    }
+    list.replaceChildren(
+        ...data.map((h) => {
+            const when = `${formatDateOf(h.happened_at, state.lang)} ${formatTime(h.happened_at)}`;
+            const what = at(state.lang, `loyalty.event.${h.event}`, { cycle: h.cycle ?? '' });
+            const who = h.staff_name ? ` · ${at(state.lang, 'loyalty.by', { name: h.staff_name })}` : '';
+            return el('li', '', `${when} · ${what}${who}`);
+        }),
+    );
 }
 
 loaders.loyalty = () => {

@@ -207,6 +207,16 @@
                         <button type="submit" class="btn btn-ghost" data-i18n="loyalty.search">Rechercher</button>
                     </div>
                 </form>
+                <!-- No camera, no QR code: find the customer by name or e-mail -->
+                <form class="admin-inline-form" id="loyaltySearchForm" novalidate>
+                    <label class="field-label" for="loyaltySearchInput" data-i18n="loyalty.byName">Ou chercher par nom
+                        ou e-mail</label>
+                    <div class="admin-row">
+                        <input type="search" id="loyaltySearchInput" class="field" autocomplete="off" maxlength="80">
+                        <button type="submit" class="btn btn-ghost" data-i18n="loyalty.search">Rechercher</button>
+                    </div>
+                </form>
+                <ul class="admin-list" id="loyaltySearchResults"></ul>
                 <div class="admin-message" id="loyaltyMessage" role="status" aria-live="polite" hidden></div>
                 <div class="loyalty-result" id="loyaltyResult" hidden></div>
             </div>

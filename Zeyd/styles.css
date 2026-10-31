@@ -3627,6 +3627,14 @@ body.has-overlay {
     color: var(--color-text-muted);
 }
 
+.loyalty-history summary {
+    min-height: 2.75rem;
+    padding-block: var(--space-2);
+    color: var(--color-heading);
+    font-weight: 600;
+    cursor: pointer;
+}
+
 /* History of a booking (who / when / why) */
 .booking-history {
     display: grid;
