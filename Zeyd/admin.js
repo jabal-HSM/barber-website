@@ -212,26 +212,235 @@ function openPanel(name) {
     loaders[name]();
 }
 
-// --- Home: earnings card, today, notifications ---
+/// --- Bookings: shared query and card (home, day and week views) ---
+const BOOKING_COLUMNS =
+    'id, customer_id, starts_at, ends_at, status, is_custom_request, customer_note, cancel_reason, cancelled_at, cancelled_by, created_at, updated_at, profiles:customer_id (full_name, email), services (name_fr, name_ar, price, duration_minutes)';
+// Added by 20261101090000_phase6_cancellations.sql: until it is applied the dashboard uses the columns above
+const BOOKING_COLUMNS_PHASE6 = ', cancel_reason_code, cancel_details, rescheduled_from';
+
+const missingColumn = (error) => error?.code === '42703' || /column .* does not exist/i.test(error?.message ?? '');
+
+async function fetchBookingsBetween(fromDay, toDayExclusive) {
+    const query = (columns) =>
+        state.supabase
+            .from('bookings')
+            .select(columns)
+            .gte('starts_at', parisLocalToIso(`${fromDay}T00:00`))
+            .lt('starts_at', parisLocalToIso(`${toDayExclusive}T00:00`))
+            .order('starts_at');
+    const result = await query(BOOKING_COLUMNS + BOOKING_COLUMNS_PHASE6);
+    return missingColumn(result.error) ? query(BOOKING_COLUMNS) : result;
+}
+
+function addDays(isoDay, days) {
+    const d = new Date(`${isoDay}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+}
+
+// Monday of the week of `isoDay`
+const weekStart = (isoDay) => addDays(isoDay, -((new Date(`${isoDay}T12:00:00Z`).getUTCDay() + 6) % 7));
+const serviceName = (b) => (state.lang === 'ar' && b.services?.name_ar) || b.services?.name_fr || '';
+const cancelledByCustomer = (b) => Boolean(b.cancelled_by) && b.cancelled_by === b.customer_id;
+
+function cancellationInfo(b) {
+    const box = el('div', 'cancel-info');
+    const when = b.cancelled_at
+        ? { date: formatDateOf(b.cancelled_at, state.lang), time: formatTime(b.cancelled_at) }
+        : null;
+    const by = cancelledByCustomer(b) ? 'bookings.cancelledByCustomer' : 'bookings.cancelledBySalon';
+    box.append(el('p', 'admin-item-meta', when ? at(state.lang, by, when) : at(state.lang, 'status.cancelled')));
+    if (b.cancel_reason_code) {
+        box.append(
+            el(
+                'p',
+                'cancel-reason',
+                at(state.lang, 'bookings.reasonLabel', { reason: at(state.lang, `reason.${b.cancel_reason_code}`) }),
+            ),
+        );
+    }
+    const details = b.cancel_details || b.cancel_reason;
+    if (details) box.append(el('p', 'admin-item-meta', at(state.lang, 'bookings.details', { details })));
+    return box;
+}
+
+function bookingItem(b, { compact = false } = {}) {
+    const item = el('li', `admin-item booking-item is-${b.status}`);
+    const info = el('div', 'admin-item-body');
+    const when = el(
+        'p',
+        'admin-item-title',
+        `${formatTime(b.starts_at)}${b.ends_at ? ` – ${formatTime(b.ends_at)}` : ''}`,
+    );
+    when.dir = 'ltr';
+    info.append(when, el('p', '', `${b.profiles?.full_name || '—'} · ${serviceName(b)}`));
+    if (!compact) {
+        if (b.profiles?.email) {
+            const mail = el('a', 'admin-item-meta', b.profiles.email);
+            mail.href = `mailto:${String(b.profiles.email).replace(/[^\w.+@-]/g, '')}`;
+            mail.dir = 'ltr';
+            info.append(mail);
+        }
+        const facts = [];
+        if (b.services?.price != null) facts.push(euros.format(Number(b.services.price)));
+        if (b.ends_at)
+            facts.push(
+                at(state.lang, 'bookings.minutes', {
+                    count: Math.round((new Date(b.ends_at) - new Date(b.starts_at)) / 60000),
+                }),
+            );
+        if (facts.length) info.append(el('p', 'admin-item-meta', facts.join(' · ')));
+    }
+    const badges = el('p');
+    badges.append(el('span', `status-badge is-${b.status}`, at(state.lang, `status.${b.status}`)));
+    if (b.is_custom_request)
+        badges.append(' ', el('span', 'status-badge is-requested', at(state.lang, 'bookings.custom')));
+    if (b.rescheduled_from) badges.append(' ', el('span', 'status-badge', at(state.lang, 'bookings.rescheduled')));
+    info.append(badges);
+    if (b.customer_note)
+        info.append(el('p', 'admin-item-meta', at(state.lang, 'bookings.note', { note: b.customer_note })));
+    if (b.status === 'cancelled') info.append(cancellationInfo(b));
+    item.append(info);
+    if (!compact) item.append(bookingActions(b));
+    return item;
+}
+
+function bookingActions(b) {
+    const actions = el('div', 'admin-row admin-actions');
+    const setStatus = (status) => async () => {
+        const { error } = await state.supabase.rpc('set_booking_status', { p_booking_id: b.id, p_status: status });
+        if (error) setMessage('bookingsMessage', 'error', errorKey(error));
+        loaders.bookings();
+    };
+    if (b.status === 'requested')
+        actions.append(button(at(state.lang, 'bookings.confirm'), 'btn btn-primary btn-sm', setStatus('confirmed')));
+    if (b.status === 'confirmed' && new Date(b.starts_at) <= new Date()) {
+        actions.append(
+            button(at(state.lang, 'bookings.done'), 'btn btn-primary btn-sm', setStatus('completed')),
+            button(at(state.lang, 'bookings.noShow'), 'btn btn-ghost btn-sm', setStatus('no_show')),
+        );
+    }
+    if (b.status === 'confirmed' || b.status === 'requested') {
+        actions.append(
+            button(at(state.lang, 'bookings.cancel'), 'btn btn-ghost btn-sm', () =>
+                actions.replaceWith(cancelForm(b, actions)),
+            ),
+        );
+    }
+    return actions;
+}
+
+// --- Home: earnings, today, next appointment, notifications, loyalty to validate, recent activity ---
 loaders.home = async () => {
     const sb = state.supabase;
     const today = todayInParis();
-    const [{ data: earnings }, { data: notifications }, { data: todays }] = await Promise.all([
-        sb.rpc('barber_earnings'),
-        sb
-            .from('staff_notifications')
-            .select('id, amount_cents, livemode, created_at, read_at')
-            .order('created_at', { ascending: false })
-            .limit(20),
-        sb
-            .from('bookings')
-            .select('starts_at, profiles:customer_id (full_name)')
-            .in('status', ['confirmed', 'requested'])
-            .gte('starts_at', parisLocalToIso(`${today}T00:00`))
-            .lt('starts_at', parisLocalToIso(`${nextDay(today)}T00:00`))
-            .order('starts_at'),
-    ]);
+    const loading = () => el('li', 'admin-empty', at(state.lang, 'common.loading'));
+    $('todayList').replaceChildren(loading());
+    $('activityList').replaceChildren(loading());
+    $('loyaltyTodoList').replaceChildren(loading());
 
+    const [{ data: earnings }, todays, { data: nextRows }, { data: recent, error: recentError }, { data: visits }] =
+        await Promise.all([
+            sb.rpc('barber_earnings'),
+            fetchBookingsBetween(today, nextDay(today)),
+            sb
+                .from('bookings')
+                .select('starts_at, profiles:customer_id (full_name), services (name_fr, name_ar)')
+                .eq('status', 'confirmed')
+                .gte('starts_at', new Date().toISOString())
+                .order('starts_at')
+                .limit(1),
+            sb
+                .from('bookings')
+                .select(
+                    'id, status, starts_at, created_at, updated_at, cancelled_by, customer_id, profiles:customer_id (full_name)',
+                )
+                .order('updated_at', { ascending: false })
+                .limit(8),
+            sb.from('loyalty_visits').select('customer_id').eq('visit_date', today),
+        ]);
+
+    renderEarnings(earnings);
+
+    const day = todays.data ?? [];
+    const count = (status) => day.filter((b) => b.status === status).length;
+    $('kpiConfirmed').textContent = todays.error ? '–' : String(count('confirmed') + count('completed'));
+    $('kpiRequested').textContent = todays.error ? '–' : String(count('requested'));
+    $('kpiCancelled').textContent = todays.error ? '–' : String(count('cancelled'));
+
+    const next = nextRows?.[0];
+    const nextBox = $('nextBooking');
+    nextBox.replaceChildren(el('p', 'next-label', at(state.lang, 'home.nextTitle')));
+    if (next) {
+        const time = el(
+            'p',
+            'next-time',
+            `${formatDateOf(next.starts_at, state.lang)} · ${formatTime(next.starts_at)}`,
+        );
+        nextBox.append(time, el('p', 'next-who', `${next.profiles?.full_name || '—'} · ${serviceName(next)}`));
+    } else {
+        nextBox.append(el('p', 'admin-item-meta', at(state.lang, 'home.noNext')));
+    }
+
+    const active = day.filter((b) => b.status !== 'cancelled');
+    if (todays.error) $('todayList').replaceChildren(el('li', 'admin-empty', at(state.lang, 'common.error')));
+    else if (!active.length) $('todayList').replaceChildren(el('li', 'admin-empty', at(state.lang, 'home.todayEmpty')));
+    else $('todayList').replaceChildren(...active.map((b) => bookingItem(b, { compact: true })));
+
+    // Past bookings of today whose customer has no loyalty visit yet
+    const counted = new Set((visits ?? []).map((v) => v.customer_id));
+    const todo = day.filter(
+        (b) =>
+            ['confirmed', 'completed'].includes(b.status) &&
+            new Date(b.starts_at) <= new Date() &&
+            !counted.has(b.customer_id),
+    );
+    $('loyaltyTodoList').replaceChildren(
+        ...(todo.length
+            ? todo.map((b) => {
+                  const item = el('li', 'admin-item');
+                  item.append(
+                      el('p', '', `${formatTime(b.starts_at)} · ${b.profiles?.full_name || '—'}`),
+                      button(at(state.lang, 'home.openLoyalty'), 'btn btn-ghost btn-sm', () => openPanel('loyalty')),
+                  );
+                  return item;
+              })
+            : [el('li', 'admin-empty', at(state.lang, 'home.loyaltyTodoEmpty'))]),
+    );
+
+    if (recentError || !recent?.length) {
+        $('activityList').replaceChildren(
+            el('li', 'admin-empty', at(state.lang, recentError ? 'common.error' : 'home.activityEmpty')),
+        );
+    } else {
+        $('activityList').replaceChildren(
+            ...recent.map((b) => {
+                let key = `activity.${b.status}`;
+                if (b.status === 'cancelled')
+                    key = cancelledByCustomer(b) ? 'activity.cancelledByCustomer' : 'activity.cancelledBySalon';
+                const item = el('li', 'admin-item');
+                const body = el('div', 'admin-item-body');
+                body.append(
+                    el('p', 'admin-item-title', at(state.lang, key, { name: b.profiles?.full_name || '—' })),
+                    el(
+                        'p',
+                        'admin-item-meta',
+                        at(state.lang, 'activity.for', {
+                            date: formatDateOf(b.starts_at, state.lang),
+                            time: formatTime(b.starts_at),
+                        }),
+                    ),
+                );
+                item.append(body);
+                return item;
+            }),
+        );
+    }
+
+    await renderNotifications();
+};
+
+function renderEarnings(earnings) {
     const live = earnings?.find((row) => row.livemode) ?? { payments_count: 0, barber_share_cents: 0 };
     const test = earnings?.find((row) => !row.livemode);
     $('earningsAmount').textContent = euros.format(Number(live.barber_share_cents ?? 0) / 100);
@@ -245,19 +454,14 @@ loaders.home = async () => {
         );
     }
     $('earningsMeta').textContent = meta.join(' · ');
+}
 
-    const upcoming = (todays ?? []).filter((b) => new Date(b.starts_at) >= new Date());
-    const summary = [at(state.lang, 'home.todayCount', { count: todays?.length ?? 0 })];
-    if (upcoming[0]) {
-        summary.push(
-            at(state.lang, 'home.next', {
-                time: formatTime(upcoming[0].starts_at),
-                name: upcoming[0].profiles?.full_name || '—',
-            }),
-        );
-    }
-    $('todaySummary').textContent = summary.join(' · ');
-
+async function renderNotifications() {
+    const { data: notifications } = await state.supabase
+        .from('staff_notifications')
+        .select('id, amount_cents, livemode, created_at, read_at')
+        .order('created_at', { ascending: false })
+        .limit(20);
     const list = $('notificationList');
     if (!notifications?.length) {
         list.replaceChildren(el('li', 'admin-empty', at(state.lang, 'home.noNotifications')));
@@ -279,26 +483,44 @@ loaders.home = async () => {
                 el('p', 'admin-item-meta', `${formatDateOf(n.created_at, state.lang)} · ${formatTime(n.created_at)}`),
             );
             item.append(text);
-            if (!n.read_at) {
-                item.append(
-                    button(at(state.lang, 'home.markRead'), 'btn btn-ghost btn-sm', async () => {
-                        await state.supabase
-                            .from('staff_notifications')
-                            .update({ read_at: new Date().toISOString() })
-                            .eq('id', n.id);
-                        loaders.home();
-                    }),
-                );
-            }
+            if (!n.read_at) item.append(markReadButton(n));
             return item;
         }),
     );
-};
+}
 
-// --- Bookings of a day ---
+function markReadButton(n) {
+    return button(at(state.lang, 'home.markRead'), 'btn btn-ghost btn-sm', async () => {
+        await state.supabase.from('staff_notifications').update({ read_at: new Date().toISOString() }).eq('id', n.id);
+        renderNotifications();
+    });
+}
+
+// --- Calendar: one day or one week ---
 function initBookings() {
+    state.calendarView = 'day';
     $('bookingsDay').value = todayInParis();
     $('bookingsDay').addEventListener('change', () => loaders.bookings());
+    for (const b of document.querySelectorAll('[data-view]')) {
+        b.addEventListener('click', () => {
+            state.calendarView = b.dataset.view;
+            loaders.bookings();
+        });
+    }
+    const move = (sign) => () => {
+        const step = state.calendarView === 'week' ? 7 : 1;
+        $('bookingsDay').value = addDays($('bookingsDay').value || todayInParis(), sign * step);
+        loaders.bookings();
+    };
+    $('calPrev').addEventListener('click', move(-1));
+    $('calNext').addEventListener('click', move(1));
+    $('calToday').addEventListener('click', () => {
+        $('bookingsDay').value = todayInParis();
+        loaders.bookings();
+    });
+    for (const link of document.querySelectorAll('[data-goto]')) {
+        link.addEventListener('click', () => openPanel(link.dataset.goto));
+    }
 }
 
 function cancellationEmail(info, reason) {
@@ -324,6 +546,7 @@ function cancelForm(booking, actions) {
     reason.placeholder = at(state.lang, 'bookings.reasonPlaceholder');
     form.append(
         el('p', 'admin-item-title', at(state.lang, 'bookings.cancelTitle')),
+        el('p', 'field-hint', at(state.lang, 'bookings.cancelWarning')),
         labelled(at(state.lang, 'bookings.reason'), reason),
     );
     const row = el('div', 'admin-row');
@@ -336,6 +559,7 @@ function cancelForm(booking, actions) {
     form.append(row);
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (confirm.disabled) return; // one request per click, even if pressed twice
         confirm.disabled = true;
         const { data, error } = await state.supabase.rpc('staff_cancel_booking', {
             p_booking_id: booking.id,
@@ -346,6 +570,7 @@ function cancelForm(booking, actions) {
             setMessage('bookingsMessage', 'error', errorKey(error));
             return;
         }
+        // The database confirmed the cancellation: the slot is free again for everybody
         setMessage('bookingsMessage', 'success', 'bookings.cancelled');
         const info = data?.[0];
         const done = el('div', 'admin-email');
@@ -368,79 +593,51 @@ function cancelForm(booking, actions) {
 }
 
 loaders.bookings = async () => {
+    const view = state.calendarView ?? 'day';
+    for (const b of document.querySelectorAll('[data-view]'))
+        b.setAttribute('aria-pressed', String(b.dataset.view === view));
     const day = $('bookingsDay').value || todayInParis();
+    const from = view === 'week' ? weekStart(day) : day;
+    const to = addDays(from, view === 'week' ? 7 : 1);
+    $('calRange').textContent =
+        view === 'week'
+            ? at(state.lang, 'bookings.weekRange', {
+                  from: formatDateOf(parisLocalToIso(`${from}T12:00`), state.lang),
+                  to: formatDateOf(parisLocalToIso(`${addDays(to, -1)}T12:00`), state.lang),
+              })
+            : formatDateOf(parisLocalToIso(`${day}T12:00`), state.lang);
+
     const list = $('bookingsList');
     list.replaceChildren(el('li', 'admin-empty', at(state.lang, 'common.loading')));
-    const { data, error } = await state.supabase
-        .from('bookings')
-        .select(
-            'id, starts_at, ends_at, status, is_custom_request, customer_note, cancel_reason, profiles:customer_id (full_name, email), services (name_fr, name_ar)',
-        )
-        .gte('starts_at', parisLocalToIso(`${day}T00:00`))
-        .lt('starts_at', parisLocalToIso(`${nextDay(day)}T00:00`))
-        .order('starts_at');
+    const { data, error } = await fetchBookingsBetween(from, to);
     if (error) {
         list.replaceChildren(el('li', 'admin-empty', at(state.lang, 'common.error')));
         return;
     }
-    if (!data.length) {
-        list.replaceChildren(el('li', 'admin-empty', at(state.lang, 'bookings.empty')));
+    if (view === 'day') {
+        list.replaceChildren(
+            ...(data.length
+                ? data.map((b) => bookingItem(b))
+                : [el('li', 'admin-empty', at(state.lang, 'bookings.empty'))]),
+        );
         return;
     }
-    list.replaceChildren(
-        ...data.map((b) => {
-            const item = el('li', `admin-item booking-item is-${b.status}`);
-            const info = el('div', 'admin-item-body');
-            const when = el(
-                'p',
-                'admin-item-title',
-                `${formatTime(b.starts_at)}${b.ends_at ? ` – ${formatTime(b.ends_at)}` : ''}`,
-            );
-            when.dir = 'ltr';
-            const service = (state.lang === 'ar' && b.services?.name_ar) || b.services?.name_fr || '';
-            info.append(
-                when,
-                el('p', '', `${b.profiles?.full_name || '—'} · ${service}`),
-                el('p', 'admin-item-meta', b.profiles?.email ?? ''),
-            );
-            const badges = el('p');
-            badges.append(el('span', `status-badge is-${b.status}`, at(state.lang, `status.${b.status}`)));
-            if (b.is_custom_request)
-                badges.append(' ', el('span', 'status-badge is-requested', at(state.lang, 'bookings.custom')));
-            info.append(badges);
-            if (b.customer_note)
-                info.append(el('p', 'admin-item-meta', at(state.lang, 'bookings.note', { note: b.customer_note })));
-
-            const actions = el('div', 'admin-row admin-actions');
-            const setStatus = (status) => async () => {
-                const { error: err } = await state.supabase.rpc('set_booking_status', {
-                    p_booking_id: b.id,
-                    p_status: status,
-                });
-                if (err) setMessage('bookingsMessage', 'error', errorKey(err));
-                loaders.bookings();
-            };
-            if (b.status === 'requested')
-                actions.append(
-                    button(at(state.lang, 'bookings.confirm'), 'btn btn-primary btn-sm', setStatus('confirmed')),
-                );
-            if (b.status === 'confirmed' && new Date(b.starts_at) <= new Date()) {
-                actions.append(
-                    button(at(state.lang, 'bookings.done'), 'btn btn-primary btn-sm', setStatus('completed')),
-                    button(at(state.lang, 'bookings.noShow'), 'btn btn-ghost btn-sm', setStatus('no_show')),
-                );
-            }
-            if (b.status === 'confirmed' || b.status === 'requested') {
-                actions.append(
-                    button(at(state.lang, 'bookings.cancel'), 'btn btn-ghost btn-sm', () =>
-                        actions.replaceWith(cancelForm(b, actions)),
-                    ),
-                );
-            }
-            item.append(info, actions);
-            return item;
-        }),
-    );
+    // Week: every day of the week, with its bookings (empty days stay visible)
+    const items = [];
+    for (let i = 0; i < 7; i += 1) {
+        const d = addDays(from, i);
+        const ofDay = data.filter(
+            (b) => new Intl.DateTimeFormat('en-CA', { timeZone: SALON_TIME_ZONE }).format(new Date(b.starts_at)) === d,
+        );
+        const active = ofDay.filter((b) => b.status !== 'cancelled').length;
+        const head = el('li', `calendar-day${d === todayInParis() ? ' is-today' : ''}`);
+        head.append(
+            el('span', 'calendar-day-name', formatDateOf(parisLocalToIso(`${d}T12:00`), state.lang)),
+            el('span', 'calendar-day-count', at(state.lang, 'bookings.dayCount', { count: active })),
+        );
+        items.push(head, ...ofDay.map((b) => bookingItem(b)));
+    }
+    list.replaceChildren(...items);
 };
 
 // --- Loyalty: scan a customer's QR code, confirm the visit ---

@@ -54,6 +54,12 @@
             <rect x="3" y="5.5" width="18" height="13" rx="2" />
             <path d="M3.5 7l8.5 6 8.5-6" />
         </symbol>
+        <symbol id="i-chevron" viewBox="0 0 24 24">
+            <path d="M9 6l6 6-6 6" />
+        </symbol>
+        <symbol id="i-chevron-back" viewBox="0 0 24 24">
+            <path d="M15 6l-6 6 6 6" />
+        </symbol>
         <symbol id="i-scissors" viewBox="0 0 24 24">
             <circle cx="6" cy="6" r="3" />
             <circle cx="6" cy="18" r="3" />
@@ -114,19 +120,65 @@
             </div>
             <div class="admin-card">
                 <h2 class="admin-h2" data-i18n="home.today">Aujourd’hui</h2>
-                <p id="todaySummary"></p>
+                <div class="kpi-row">
+                    <p class="kpi"><span class="kpi-value" id="kpiConfirmed" dir="ltr">–</span>
+                        <span class="kpi-label" data-i18n="home.kpiConfirmed">Confirmés</span></p>
+                    <p class="kpi"><span class="kpi-value" id="kpiRequested" dir="ltr">–</span>
+                        <span class="kpi-label" data-i18n="home.kpiRequested">À confirmer</span></p>
+                    <p class="kpi"><span class="kpi-value" id="kpiCancelled" dir="ltr">–</span>
+                        <span class="kpi-label" data-i18n="home.kpiCancelled">Annulés</span></p>
+                </div>
+                <div class="next-booking" id="nextBooking" aria-live="polite"></div>
+                <ul class="admin-list" id="todayList"></ul>
+                <button type="button" class="btn btn-ghost btn-sm" data-goto="bookings"
+                    data-i18n="home.openCalendar">Ouvrir le calendrier</button>
             </div>
             <div class="admin-card">
                 <h2 class="admin-h2" data-i18n="home.notifications">Notifications</h2>
                 <ul class="admin-list" id="notificationList"></ul>
             </div>
+            <div class="admin-card">
+                <h2 class="admin-h2" data-i18n="home.loyaltyTodo">Fidélité à valider</h2>
+                <p class="field-hint" data-i18n="home.loyaltyTodoHint">Rendez-vous passés aujourd’hui sans visite
+                    validée : scannez le QR du client dans l’onglet Fidélité.</p>
+                <ul class="admin-list" id="loyaltyTodoList"></ul>
+            </div>
+            <div class="admin-card">
+                <h2 class="admin-h2" data-i18n="home.activity">Activité récente</h2>
+                <ul class="admin-list" id="activityList"></ul>
+            </div>
         </section>
 
-        <!-- Bookings of a day -->
+        <!-- Calendar: one day or one week -->
         <section class="admin-panel" data-panel="bookings" hidden>
             <div class="admin-card">
-                <label class="field-label" for="bookingsDay" data-i18n="bookings.day">Jour</label>
-                <input type="date" id="bookingsDay" class="field">
+                <div class="calendar-bar">
+                    <div class="segmented" role="group" data-i18n-attr="aria-label:bookings.view" aria-label="Vue">
+                        <button type="button" class="segmented-btn" data-view="day" aria-pressed="true"
+                            data-i18n="bookings.viewDay">Jour</button>
+                        <button type="button" class="segmented-btn" data-view="week" aria-pressed="false"
+                            data-i18n="bookings.viewWeek">Semaine</button>
+                    </div>
+                    <div class="calendar-nav">
+                        <button type="button" class="icon-btn" id="calPrev" data-i18n-attr="aria-label:bookings.prev"
+                            aria-label="Précédent">
+                            <svg class="icon icon-dir" aria-hidden="true">
+                                <use href="#i-chevron-back" />
+                            </svg>
+                        </button>
+                        <label class="visually-hidden" for="bookingsDay" data-i18n="bookings.day">Jour</label>
+                        <input type="date" id="bookingsDay" class="field">
+                        <button type="button" class="icon-btn" id="calNext" data-i18n-attr="aria-label:bookings.next"
+                            aria-label="Suivant">
+                            <svg class="icon icon-dir" aria-hidden="true">
+                                <use href="#i-chevron" />
+                            </svg>
+                        </button>
+                        <button type="button" class="btn btn-ghost btn-sm" id="calToday"
+                            data-i18n="bookings.today">Aujourd’hui</button>
+                    </div>
+                </div>
+                <p class="admin-item-meta" id="calRange"></p>
                 <div class="admin-message" id="bookingsMessage" role="status" aria-live="polite" hidden></div>
                 <ul class="admin-list" id="bookingsList"></ul>
             </div>
