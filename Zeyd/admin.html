@@ -237,6 +237,8 @@
         <section class="admin-panel" data-panel="hours" hidden>
             <div class="admin-card">
                 <h2 class="admin-h2" data-i18n="hours.title">Heures d’ouverture</h2>
+                <!-- Upcoming bookings that no longer fit the hours or fall on a closure (never cancelled automatically) -->
+                <div class="schedule-warning" id="scheduleWarning" hidden></div>
                 <div class="admin-message" id="hoursMessage" role="status" aria-live="polite" hidden></div>
                 <div id="hoursList"></div>
             </div>

@@ -105,6 +105,8 @@ function renderMessage(id) {
 }
 
 function errorKey(error) {
+    if (/violates check constraint/i.test(error?.message ?? '')) return 'error.validation';
+    if (error?.code === '23503') return 'error.in_use';
     const code = String(error?.message ?? '');
     const key = `error.${code}`;
     return at(state.lang, key) === key ? 'common.error' : key;
@@ -1007,7 +1009,7 @@ function initServices() {
 loaders.services = async () => {
     const { data, error } = await state.supabase
         .from('services')
-        .select('id, name_fr, name_ar, price, duration_minutes, is_active')
+        .select('id, name_fr, name_ar, description_fr, description_ar, price, duration_minutes, is_active')
         .order('sort_order');
     const list = $('servicesList');
     if (error) {
@@ -1019,7 +1021,16 @@ loaders.services = async () => {
             const item = el('li', 'admin-item admin-service');
             const nameFr = input('text', s.name_fr, { maxlength: '60', required: '' });
             const nameAr = input('text', s.name_ar, { maxlength: '60', dir: 'rtl', required: '' });
-            const price = input('number', s.price, { min: '0', step: '0.5', inputmode: 'decimal' });
+            const descFr = el('textarea', 'field');
+            descFr.rows = 2;
+            descFr.maxLength = 300;
+            descFr.value = s.description_fr ?? '';
+            const descAr = el('textarea', 'field');
+            descAr.rows = 2;
+            descAr.maxLength = 300;
+            descAr.dir = 'rtl';
+            descAr.value = s.description_ar ?? '';
+            const price = input('number', s.price, { min: '0', max: '500', step: '0.5', inputmode: 'decimal' });
             const duration = input('number', s.duration_minutes ?? '', {
                 min: '5',
                 max: '240',
@@ -1039,7 +1050,14 @@ loaders.services = async () => {
                     !nameAr.value.trim() ||
                     !Number.isFinite(priceValue) ||
                     priceValue < 0 ||
-                    (durationValue !== null && !(Number.isInteger(durationValue) && durationValue > 0))
+                    priceValue > 500 ||
+                    (durationValue !== null &&
+                        !(
+                            Number.isInteger(durationValue) &&
+                            durationValue >= 5 &&
+                            durationValue <= 240 &&
+                            durationValue % 5 === 0
+                        ))
                 ) {
                     setMessage('servicesMessage', 'error', 'error.validation');
                     return;
@@ -1049,6 +1067,8 @@ loaders.services = async () => {
                     .update({
                         name_fr: nameFr.value.trim(),
                         name_ar: nameAr.value.trim(),
+                        description_fr: descFr.value.trim() || null,
+                        description_ar: descAr.value.trim() || null,
                         price: priceValue,
                         duration_minutes: durationValue,
                         is_active: active.checked,
@@ -1062,6 +1082,8 @@ loaders.services = async () => {
                 labelled(at(state.lang, 'services.nameAr'), nameAr),
                 labelled(at(state.lang, 'services.price'), price),
                 labelled(at(state.lang, 'services.duration'), duration),
+                labelled(at(state.lang, 'services.descFr'), descFr),
+                labelled(at(state.lang, 'services.descAr'), descAr),
             );
             const row = el('div', 'admin-row');
             row.append(activeLabel, save);
@@ -1123,8 +1145,10 @@ loaders.hours = async () => {
                         .update({ opens_at: opens.value, closes_at: closes.value })
                         .eq('id', h.id);
                     setMessage('hoursMessage', error ? 'error' : 'success', error ? errorKey(error) : 'hours.saved');
+                    renderScheduleWarning();
                 }),
                 button(at(state.lang, 'hours.remove'), 'btn btn-ghost btn-sm', async () => {
+                    if (!window.confirm(at(state.lang, 'hours.removeConfirm'))) return;
                     const { error } = await sb.from('business_hours').delete().eq('id', h.id);
                     if (error) setMessage('hoursMessage', 'error', errorKey(error));
                     loaders.hours();
@@ -1146,6 +1170,7 @@ loaders.hours = async () => {
         days.push(day);
     }
     container.replaceChildren(...days);
+    renderScheduleWarning();
 
     const list = $('closuresList');
     if (!closures?.length) {
@@ -1167,7 +1192,9 @@ loaders.hours = async () => {
             item.append(
                 text,
                 button(at(state.lang, 'hours.remove'), 'btn btn-ghost btn-sm', async () => {
-                    await sb.from('closures').delete().eq('id', c.id);
+                    if (!window.confirm(at(state.lang, 'hours.removeClosureConfirm'))) return;
+                    const { error } = await sb.from('closures').delete().eq('id', c.id);
+                    if (error) setMessage('closuresMessage', 'error', errorKey(error));
                     loaders.hours();
                 }),
             );
@@ -1176,7 +1203,35 @@ loaders.hours = async () => {
     );
 };
 
+// Bookings still on the calendar but outside the new hours or on a closure: Zeyd decides what to do with them
+async function renderScheduleWarning() {
+    const box = $('scheduleWarning');
+    const { data, error } = await state.supabase.rpc('bookings_outside_schedule');
+    if (error || !data?.length) {
+        box.hidden = true;
+        return;
+    }
+    const list = el('ul', 'admin-list');
+    list.append(
+        ...data.map((b) => {
+            const name = (state.lang === 'ar' && b.service_name_ar) || b.service_name_fr || '';
+            return el(
+                'li',
+                '',
+                `${formatDateOf(b.starts_at, state.lang)} ${formatTime(b.starts_at)} · ${b.customer_name || '—'} · ${name}`,
+            );
+        }),
+    );
+    box.replaceChildren(
+        el('p', 'admin-item-title', at(state.lang, 'hours.outsideTitle', { count: data.length })),
+        el('p', 'field-hint', at(state.lang, 'hours.outsideHint')),
+        list,
+    );
+    box.hidden = false;
+}
+
 // --- Gallery: photos are resized in the browser before upload (fast pages on phones) ---
+const MAX_ORIGINAL_BYTES = 15 * 1024 * 1024;
 async function resizeImage(file) {
     const bitmap = await createImageBitmap(file);
     const scale = Math.min(1, MAX_PHOTO_SIDE / Math.max(bitmap.width, bitmap.height));
@@ -1194,9 +1249,15 @@ function initGallery() {
         e.preventDefault();
         const file = $('galleryFile').files?.[0];
         if (!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) {
-            setMessage('galleryMessage', 'error', 'error.validation');
+            setMessage('galleryMessage', 'error', 'error.fileType');
             return;
         }
+        if (file.size > MAX_ORIGINAL_BYTES) {
+            setMessage('galleryMessage', 'error', 'error.fileTooLarge');
+            return;
+        }
+        const send = e.submitter ?? $('galleryForm').querySelector('[type="submit"]');
+        if (send) send.disabled = true;
         setMessage('galleryMessage', 'success', 'gallery.uploading');
         try {
             const blob = await resizeImage(file);
@@ -1220,6 +1281,8 @@ function initGallery() {
             loaders.gallery();
         } catch (error) {
             setMessage('galleryMessage', 'error', error?.message === 'upload' ? 'error.upload' : errorKey(error));
+        } finally {
+            if (send) send.disabled = false;
         }
     });
 }
@@ -1242,8 +1305,22 @@ loaders.gallery = async () => {
             img.alt = photo.title_fr ?? '';
             img.loading = 'lazy';
             const caption = el('div', 'admin-photo-body');
+            const titleFr = input('text', photo.title_fr ?? '', { maxlength: '80' });
+            const titleAr = input('text', photo.title_ar ?? '', { maxlength: '80', dir: 'rtl' });
             caption.append(
-                el('p', 'admin-item-title', (state.lang === 'ar' && photo.title_ar) || photo.title_fr || '—'),
+                labelled(at(state.lang, 'gallery.titleFr'), titleFr),
+                labelled(at(state.lang, 'gallery.titleAr'), titleAr),
+                button(at(state.lang, 'gallery.saveCaption'), 'btn btn-ghost btn-sm', async () => {
+                    const { error } = await state.supabase
+                        .from('haircuts')
+                        .update({ title_fr: titleFr.value.trim() || null, title_ar: titleAr.value.trim() || null })
+                        .eq('id', photo.id);
+                    setMessage(
+                        'galleryMessage',
+                        error ? 'error' : 'success',
+                        error ? errorKey(error) : 'gallery.captionSaved',
+                    );
+                }),
             );
             if (photo.is_published)
                 caption.append(el('span', 'status-badge is-confirmed', at(state.lang, 'gallery.published')));
@@ -1331,11 +1408,84 @@ function renderCustomers() {
             });
             const side = el('div', 'admin-row');
             if (isSelf) side.append(el('span', 'status-badge is-confirmed', at(state.lang, 'customers.you')));
-            side.append(select);
+            side.append(
+                select,
+                button(at(state.lang, 'customers.details'), 'btn btn-ghost btn-sm', () =>
+                    toggleCustomerDetails(c, item),
+                ),
+            );
             item.append(info, side);
             return item;
         }),
     );
+}
+
+// Only what is needed to serve the customer: bookings, visits, loyalty, Zeyd's private note
+async function toggleCustomerDetails(c, item) {
+    const existing = item.querySelector('.customer-details');
+    if (existing) {
+        existing.remove();
+        return;
+    }
+    const box = el('div', 'customer-details');
+    box.append(el('p', 'admin-item-meta', at(state.lang, 'common.loading')));
+    item.append(box);
+    const sb = state.supabase;
+    const [bookings, rewards, note] = await Promise.all([
+        sb
+            .from('bookings')
+            .select('starts_at, status, services (name_fr, name_ar)')
+            .eq('customer_id', c.id)
+            .order('starts_at', { ascending: false })
+            .limit(15),
+        sb.from('loyalty_rewards').select('redeemed_at').eq('customer_id', c.id),
+        sb.from('customer_notes').select('note').eq('customer_id', c.id).maybeSingle(),
+    ]);
+    const card = Array.isArray(c.loyalty_cards) ? c.loyalty_cards[0] : c.loyalty_cards;
+    const stamps = card?.stamps_total ?? 0;
+    const completed = (bookings.data ?? []).filter((b) => b.status === 'completed').length;
+    const available = (rewards.data ?? []).filter((r) => !r.redeemed_at).length;
+    box.replaceChildren(
+        el('p', '', at(state.lang, 'customers.loyalty', { count: stamps % 10, total: stamps, rewards: available })),
+        el('p', '', at(state.lang, 'customers.completed', { count: completed })),
+    );
+    const history = el('ul', 'booking-history');
+    const rows = bookings.data ?? [];
+    history.append(
+        ...(rows.length
+            ? rows.map((b) => {
+                  const name = (state.lang === 'ar' && b.services?.name_ar) || b.services?.name_fr || '';
+                  return el(
+                      'li',
+                      '',
+                      `${formatDateOf(b.starts_at, state.lang)} ${formatTime(b.starts_at)} · ${name} · ${at(state.lang, `status.${b.status}`)}`,
+                  );
+              })
+            : [el('li', '', at(state.lang, 'customers.noBookings'))]),
+    );
+    box.append(history);
+
+    // Private note: only if the notes table exists (migration of stage D)
+    if (!note.error) {
+        const text = el('textarea', 'field');
+        text.rows = 2;
+        text.maxLength = 1000;
+        text.value = note.data?.note ?? '';
+        box.append(
+            labelled(at(state.lang, 'customers.note'), text),
+            button(at(state.lang, 'customers.saveNote'), 'btn btn-ghost btn-sm', async () => {
+                const value = text.value.trim();
+                const { error } = value
+                    ? await sb.from('customer_notes').upsert({ customer_id: c.id, note: value })
+                    : await sb.from('customer_notes').delete().eq('customer_id', c.id);
+                setMessage(
+                    'customersMessage',
+                    error ? 'error' : 'success',
+                    error ? errorKey(error) : 'customers.noteSaved',
+                );
+            }),
+        );
+    }
 }
 
 // --- Settings (admin only, enforced by RLS) ---
