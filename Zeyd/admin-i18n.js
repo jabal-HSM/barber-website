@@ -17,7 +17,7 @@ export const adminTranslations = {
         'gate.missing': 'Saisissez l’e-mail et le mot de passe.',
         'gate.error.invalid_credentials': 'E-mail ou mot de passe incorrect.',
         'gate.error.email_not_confirmed': 'Confirmez d’abord l’adresse e-mail grâce au lien reçu.',
-        'gate.error.other': 'Connexion impossible pour le moment. Vérifiez la connexion et réessayez.',
+        'gate.error.other': 'Connexion impossible ({detail}).',
 
         'tab.home': 'Accueil',
         'tab.bookings': 'Rendez-vous',
@@ -429,7 +429,7 @@ export const adminTranslations = {
         'gate.missing': 'أدخل البريد الإلكتروني وكلمة المرور.',
         'gate.error.invalid_credentials': 'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
         'gate.error.email_not_confirmed': 'أكّد البريد الإلكتروني أولاً عبر الرابط المرسَل.',
-        'gate.error.other': 'تعذّر تسجيل الدخول الآن. تحقّق من الاتصال وحاول مجدداً.',
+        'gate.error.other': 'تعذّر تسجيل الدخول ({detail}).',
 
         'tab.home': 'الرئيسية',
         'tab.bookings': 'المواعيد',

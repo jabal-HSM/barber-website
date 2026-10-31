@@ -170,7 +170,10 @@ function initGateForm(supabase) {
         $('gateSubmit').disabled = false;
         if (error) {
             const key = `gate.error.${error.code ?? ''}`;
-            return setMessage('gateMessage', 'error', at(state.lang, key) === key ? 'gate.error.other' : key);
+            if (at(state.lang, key) !== key) return setMessage('gateMessage', 'error', key);
+            // Unknown cause: show what Supabase answered (code, HTTP status), never the password
+            const detail = [error.code ?? error.name, error.status, error.message].filter(Boolean).join(' · ');
+            return setMessage('gateMessage', 'error', 'gate.error.other', { detail });
         }
         $('gatePassword').value = '';
         openDashboard(supabase, data.session);
