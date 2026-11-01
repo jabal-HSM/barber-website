@@ -5,6 +5,7 @@ import { cameraErrorKey, cameraUnavailable } from './camera.js';
 import { confirmDialog } from './confirmDialog.js';
 import { createHoldButton } from './holdButton.js';
 import { renderLoyaltyCard } from './loyalty.js';
+import { confirmPasswordChange, sendPasswordCode } from './passwordChange.js';
 import { getSupabase } from './supabaseClient.js';
 import { formatDateOf, formatTime, parisLocalToIso, SALON_TIME_ZONE } from './time.js';
 
@@ -245,6 +246,7 @@ async function openDashboard(supabase, session) {
     initGallery();
     initCustomers();
     initSettings();
+    initPasswordChange();
     openPanel(location.hash.slice(1) || 'home');
 }
 
@@ -2232,6 +2234,85 @@ function initSettings() {
         ]);
         const error = b.error ?? p.error ?? (!b.data?.length || !p.data?.length ? { message: 'forbidden' } : null);
         setMessage('settingsMessage', error ? 'error' : 'success', error ? errorKey(error) : 'settings.saved');
+    });
+}
+
+// Password of the signed-in account (passwordChange.js): code by e-mail, checked by Supabase Auth, then the new
+// password. Nothing typed here is kept: the fields are emptied after each attempt that reached Supabase.
+const RESEND_DELAY_S = 60;
+
+function passwordErrorKey(error) {
+    const key = `password.error.${error?.code ?? ''}`;
+    return at(state.lang, key) === key ? 'password.error.other' : key;
+}
+
+function initPasswordChange() {
+    const form = $('passwordForm');
+    const send = $('passwordSendCode');
+    if (!form || !send) return;
+    const email = state.user?.email ?? '';
+    let timer = 0;
+
+    const waitBeforeResend = () => {
+        let left = RESEND_DELAY_S;
+        send.disabled = true;
+        clearInterval(timer);
+        const tick = () => {
+            send.textContent = at(state.lang, 'password.resendIn', { s: left });
+            if (left-- <= 0) {
+                clearInterval(timer);
+                send.disabled = false;
+                send.textContent = at(state.lang, 'password.resend');
+            }
+        };
+        tick();
+        timer = setInterval(tick, 1000);
+    };
+
+    send.addEventListener('click', async () => {
+        send.disabled = true;
+        setMessage('passwordMessage', null);
+        const { error } = await sendPasswordCode(state.supabase.auth, email);
+        if (error) {
+            send.disabled = false;
+            setMessage('passwordMessage', 'error', passwordErrorKey(error), {
+                detail: [error.code, error.status].filter(Boolean).join(' · '),
+            });
+            return;
+        }
+        $('passwordStep').hidden = false;
+        $('passwordCode').focus();
+        setMessage('passwordMessage', 'success', 'password.codeSent', { email });
+        waitBeforeResend();
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        $('passwordSave').disabled = true;
+        const result = await confirmPasswordChange(state.supabase.auth, {
+            email,
+            userId: state.user?.id,
+            code: $('passwordCode').value,
+            password: $('passwordNew').value,
+            repeat: $('passwordRepeat').value,
+        });
+        $('passwordSave').disabled = false;
+        // Only « other » has a detail here: the code was valid but for a different account
+        if (result.errorKey) {
+            return setMessage('passwordMessage', 'error', result.errorKey, { detail: 'account_mismatch' });
+        }
+        // Supabase answered: the typed code and passwords are not kept on the page
+        for (const id of ['passwordCode', 'passwordNew', 'passwordRepeat']) $(id).value = '';
+        if (result.error) {
+            return setMessage('passwordMessage', 'error', passwordErrorKey(result.error), {
+                detail: [result.error.code, result.error.status].filter(Boolean).join(' · '),
+            });
+        }
+        $('passwordStep').hidden = true;
+        clearInterval(timer);
+        send.disabled = false;
+        send.textContent = at(state.lang, 'password.sendCode');
+        setMessage('passwordMessage', 'success', 'password.changed');
     });
 }
 
