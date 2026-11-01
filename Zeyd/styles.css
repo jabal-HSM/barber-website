@@ -4361,3 +4361,21 @@ body.has-overlay {
 #bookingSlots .choice:not(.is-taken) span:hover {
     border-color: var(--color-primary);
 }
+
+/* Dashboard header: the scissors-Z monogram (logo-mark-light.png, cut from logozeyd.jpeg) large enough to read,
+   on the logo's black background */
+.admin-logo {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    background: #0b0b0b;
+}
+
+.admin-logo img {
+    width: auto;
+    height: 86%;
+}
