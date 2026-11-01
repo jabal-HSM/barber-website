@@ -10,8 +10,8 @@
     {
       "name": "zeyd-phase1-lan",
       "runtimeExecutable": "C:\\Python315\\python.exe",
-      "runtimeArgs": ["-m", "http.server", "5502", "--directory", "Zeyd", "--bind", "0.0.0.0"],
-      "port": 5502
+      "runtimeArgs": ["-m", "http.server", "5503", "--directory", "Zeyd", "--bind", "0.0.0.0"],
+      "port": 5503
     }
   ]
 }
