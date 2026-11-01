@@ -1,6 +1,6 @@
 # ZEYD BARBER
 
-Static website (HTML/CSS/JS ES modules) in `Zeyd/`. No build step; served with VS Code Live Server on port 5501. Project phases and current state: `PROJECT_STATUS.md`.
+Static website (HTML/CSS/JS ES modules) in `Zeyd/`, backend on Supabase (`supabase/migrations/`, tested offline with `npm test`). No build step; served with VS Code Live Server on port 5501. Project phases and current state: `PROJECT_STATUS.md`.
 
 ## Lint & format: Biome
 

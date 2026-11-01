@@ -31,6 +31,8 @@
     --color-secondary: var(--sage-300);
     --color-accent: var(--plum);
     --color-accent-soft: var(--plum-100);
+    --color-danger: #8f3a35;
+    --color-danger-soft: #f7e8e4;
     --color-link: var(--petrol-700);
     --color-border: #ddd5c6;
     --color-border-strong: #c3baa8;
@@ -91,6 +93,8 @@
     --color-secondary: #4d6656;
     --color-accent: #c2b2cf;
     --color-accent-soft: #241f2b;
+    --color-danger: #eba59e;
+    --color-danger-soft: #2c1d1c;
     --color-link: #9ccfc1;
     --color-border: #2a3b36;
     --color-border-strong: #3d524b;
@@ -254,8 +258,10 @@ button {
    ========================================================================== */
 .brand-wordmark,
 .brand-name {
+    min-width: 0;
     font-family: var(--font-brand);
     font-weight: 700;
+    overflow-wrap: anywhere;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--color-primary);
@@ -304,7 +310,14 @@ button {
     transition:
         background-color var(--transition),
         border-color var(--transition),
-        color var(--transition);
+        color var(--transition),
+        transform var(--transition);
+}
+
+/* A hidden button stays hidden whatever its display value */
+.btn[hidden],
+.icon-btn[hidden] {
+    display: none;
 }
 
 .btn-sm {
@@ -346,7 +359,8 @@ button {
     transition:
         border-color var(--transition),
         color var(--transition),
-        background-color var(--transition);
+        background-color var(--transition),
+        transform var(--transition);
 }
 
 .icon-btn:hover {
@@ -430,7 +444,8 @@ button {
     cursor: pointer;
     transition:
         background-color var(--transition),
-        color var(--transition);
+        color var(--transition),
+        transform var(--transition);
 }
 
 .lang-btn[lang="ar"] {
@@ -647,6 +662,13 @@ h2 {
     align-items: center;
 }
 
+/* Grid children may shrink below their content width: with enlarged phone text a long word must not
+   widen the page (Android then widens the whole layout viewport and cuts the right side) */
+.hero-grid > *,
+.info-grid > * {
+    min-width: 0;
+}
+
 .hero-title {
     display: flex;
     flex-direction: column;
@@ -659,6 +681,7 @@ h2 {
     letter-spacing: 0.08em;
     /* Wordmark is Latin: keep it LTR and start-aligned in both languages */
     align-self: flex-start;
+    max-width: 100%;
     padding-block: 0.05em;
 }
 
@@ -693,7 +716,8 @@ h2 {
 
 .hero-facts {
     display: grid;
-    grid-template-columns: repeat(3, auto);
+    /* Three columns normally; they wrap instead of overflowing when the phone enlarges text */
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 5.5rem), max-content));
     justify-content: space-between;
     gap: var(--space-4);
     max-width: 30rem;
@@ -925,6 +949,7 @@ h2 {
     font-size: var(--text-xs);
     font-weight: 700;
     text-decoration: none;
+    transition: transform var(--transition);
 }
 
 .service-link:hover {
@@ -1000,9 +1025,10 @@ h2 {
     margin-bottom: var(--space-3);
 }
 
+/* Capped by the screen width so enlarged phone text cannot push the tiles off screen */
 .gallery-empty-art span {
-    width: 3.25rem;
-    height: 4rem;
+    width: min(3.25rem, 18vw);
+    aspect-ratio: 13 / 16;
     border-radius: var(--radius-sm);
     background: var(--color-surface-muted);
 }
@@ -1113,6 +1139,7 @@ h2 {
 
 .hours-row {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-4);
@@ -1162,7 +1189,12 @@ h2 {
 
 .contact-list {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-3);
+}
+
+.contact-link {
+    overflow-wrap: anywhere;
 }
 
 .contact-link {
@@ -1179,7 +1211,8 @@ h2 {
     text-decoration: none;
     transition:
         border-color var(--transition),
-        background-color var(--transition);
+        background-color var(--transition),
+        transform var(--transition);
 }
 
 .contact-link:hover {
@@ -1303,6 +1336,2936 @@ h2 {
 /* ==========================================================================
    Reduced motion
    ========================================================================== */
+/* ==========================================================================
+   Forms (booking, account)
+   ========================================================================== */
+/* [hidden] must win over the display values set below */
+.booking-form[hidden],
+.form-message[hidden] {
+    display: none;
+}
+
+/* min-width: 0 lets the field shrink below its natural ~20-character width inside grid / flex layouts */
+.field {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 3rem;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font: inherit;
+    font-size: var(--text-base);
+}
+
+textarea.field {
+    min-height: 4.5rem;
+    resize: vertical;
+}
+
+.field:focus-visible {
+    border-color: var(--color-primary);
+}
+
+.field-label {
+    display: block;
+    margin-bottom: var(--space-2);
+    color: var(--color-heading);
+    font-size: var(--text-sm);
+    font-weight: 600;
+}
+
+.field-hint {
+    margin-top: var(--space-2);
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+/* Message with icon + text: success and error never rely on colour alone */
+.form-message {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-start;
+    padding: var(--space-3) var(--space-4);
+    border-inline-start: 3px solid currentColor;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+}
+
+.form-message-text {
+    color: var(--color-text);
+}
+
+.form-message .icon {
+    margin-top: 0.1em;
+}
+
+.form-message.is-success {
+    background: var(--color-surface-muted);
+    color: var(--color-primary);
+}
+
+.form-message.is-error {
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+}
+
+/* ==========================================================================
+   Booking
+   ========================================================================== */
+.booking-card {
+    padding: var(--space-6) var(--space-5);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.booking-form {
+    display: grid;
+    gap: var(--space-6);
+}
+
+@media (min-width: 56em) {
+    .booking-card {
+        padding: var(--space-7);
+    }
+
+    .booking-form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: var(--space-7);
+    }
+
+    .booking-form .form-message {
+        grid-column: 1 / -1;
+    }
+}
+
+.booking-step {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.booking-step legend {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+    padding: 0;
+    color: var(--color-heading);
+    font-weight: 700;
+}
+
+.step-num {
+    display: inline-grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    font-size: var(--text-xs);
+}
+
+.choice-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.choice-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(4.75rem, 1fr));
+    gap: var(--space-2);
+}
+
+/* Radio buttons drawn as chips; the real input stays focusable for the keyboard */
+.choice {
+    position: relative;
+    display: block;
+}
+
+.choice input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.choice span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background-color var(--transition),
+        border-color var(--transition),
+        color var(--transition),
+        transform var(--transition);
+}
+
+.choice span:hover {
+    border-color: var(--color-primary);
+}
+
+.choice input:checked + span {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+.choice input:focus-visible + span {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+}
+
+.booking-summary {
+    margin-block: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-surface-muted);
+    border-radius: var(--radius-sm);
+    color: var(--color-heading);
+    font-size: var(--text-sm);
+    font-weight: 600;
+}
+
+.booking-submit {
+    width: 100%;
+}
+
+.custom-request {
+    margin-top: var(--space-6);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--color-border);
+}
+
+.custom-request summary {
+    color: var(--color-link);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.custom-form {
+    display: grid;
+    gap: var(--space-3);
+    max-width: 28rem;
+    margin-top: var(--space-4);
+}
+
+.custom-form .field-hint {
+    margin-top: 0;
+}
+
+/* ==========================================================================
+   Account dialog
+   ========================================================================== */
+.account-btn {
+    position: relative;
+    display: none;
+}
+
+.account-dot {
+    position: absolute;
+    top: 4px;
+    inset-inline-end: 4px;
+    width: 0.6rem;
+    height: 0.6rem;
+    border: 2px solid var(--color-surface);
+    border-radius: 50%;
+    background: var(--color-primary);
+}
+
+.nav-account {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-3) var(--space-2);
+    border: 0;
+    border-bottom: 1px solid var(--color-border);
+    background: none;
+    color: var(--color-text);
+    font-weight: 600;
+    text-align: start;
+    cursor: pointer;
+    transition: transform var(--transition);
+}
+
+@media (min-width: 40em) {
+    .account-btn {
+        display: inline-grid;
+    }
+
+    .nav-account {
+        display: none;
+    }
+}
+
+.dialog {
+    width: min(100% - 2rem, 28rem);
+    max-height: calc(100dvh - 2rem);
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: var(--shadow-md);
+}
+
+.dialog::backdrop {
+    background: rgb(16 25 23 / 55%);
+}
+
+.dialog-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-5) var(--space-5) 0;
+}
+
+.dialog-head h2 {
+    font-size: var(--text-xl);
+}
+
+#authView,
+#accountView {
+    padding: var(--space-5);
+}
+
+.tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-bottom: var(--space-5);
+    padding: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-muted);
+}
+
+.tab {
+    min-height: 2.5rem;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform var(--transition);
+}
+
+.tab[aria-selected="true"] {
+    background: var(--color-surface);
+    color: var(--color-heading);
+    box-shadow: var(--shadow-sm);
+}
+
+.auth-form {
+    display: grid;
+    gap: var(--space-4);
+}
+
+.auth-form .field-group[hidden] {
+    display: none;
+}
+
+.auth-submit {
+    width: 100%;
+}
+
+.account-who {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    overflow-wrap: anywhere;
+}
+
+.account-who strong {
+    color: var(--color-text);
+}
+
+.account-subtitle {
+    margin-block: var(--space-5) var(--space-3);
+    color: var(--color-heading);
+    font-size: var(--text-lg);
+}
+
+.my-bookings {
+    display: grid;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+}
+
+.my-booking {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.my-booking-when {
+    color: var(--color-heading);
+    font-weight: 700;
+}
+
+.my-booking-what,
+.my-bookings-empty {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}
+
+.status-badge {
+    display: inline-block;
+    margin-top: var(--space-1);
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-xs);
+    font-weight: 600;
+}
+
+.status-badge.is-confirmed {
+    background: var(--color-surface-muted);
+    color: var(--color-primary);
+}
+
+.status-badge.is-requested {
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+}
+
+#accountView > .form-message {
+    margin-bottom: var(--space-4);
+}
+
+/* ==========================================================================
+   Sign-in screen: full-screen barber chair photo, monogram and wordmark at the
+   top, the chair left visible in the middle, the three choices at the bottom.
+   ========================================================================== */
+.auth-screen[hidden],
+.auth-choices[hidden],
+.auth-form[hidden],
+.auth-btn[hidden] {
+    display: none;
+}
+
+body.has-overlay {
+    overflow: hidden;
+}
+
+.auth-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    display: grid;
+    /* One column never wider than the screen, whatever the text size of the phone */
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(var(--space-6), 1fr) auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: #050506;
+    color: #fff;
+}
+
+.auth-bg,
+.auth-blur,
+.auth-scrim {
+    position: fixed;
+    inset: 0;
+}
+
+.auth-bg img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 62%;
+    filter: saturate(0.85) brightness(0.95);
+}
+
+/* Light blur only behind the logo and the buttons: the chair in the middle stays sharp */
+.auth-blur {
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 32%, transparent 62%, #000 88%);
+    mask-image: linear-gradient(180deg, #000 0%, transparent 32%, transparent 62%, #000 88%);
+}
+
+/* Dark veil: deep at the top and bottom for the text, lighter on the chair, with a soft vignette */
+.auth-scrim {
+    background:
+        radial-gradient(120% 70% at 50% 55%, rgb(0 0 0 / 0%) 35%, rgb(0 0 0 / 55%) 100%),
+        linear-gradient(
+            180deg,
+            rgb(3 3 5 / 82%) 0%,
+            rgb(3 3 5 / 45%) 30%,
+            rgb(3 3 5 / 18%) 50%,
+            rgb(3 3 5 / 55%) 70%,
+            rgb(3 3 5 / 92%) 100%
+        );
+}
+
+.auth-top {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: calc(var(--space-3) + env(safe-area-inset-top)) var(--space-4) 0;
+}
+
+.auth-brand,
+.auth-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 24rem;
+    margin-inline: auto;
+    padding-inline: var(--space-5);
+    text-align: center;
+}
+
+.auth-brand {
+    padding-top: clamp(var(--space-2), 4vh, var(--space-7));
+}
+
+/* Monogram cut from logozeyd.jpeg, kept at its own proportions */
+.auth-mark {
+    width: auto;
+    height: clamp(3.75rem, 10vh, 5.75rem);
+    filter: drop-shadow(0 6px 18px rgb(0 0 0 / 60%));
+}
+
+.auth-logo-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: var(--space-2);
+    font-family: var(--font-brand);
+    font-weight: 600;
+    line-height: 1;
+}
+
+/* Brushed-silver wordmark */
+.auth-logo-zeyd {
+    font-size: clamp(2.6rem, 2rem + 3vw, 3.4rem);
+    letter-spacing: 0.06em;
+    background: linear-gradient(180deg, #ffffff 0%, #e9e9ee 45%, #a9abb4 60%, #f4f4f7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 10px rgb(0 0 0 / 55%));
+}
+
+.auth-logo-barber {
+    margin-top: 0.3rem;
+    margin-inline-end: -0.42em;
+    color: #ececf0;
+    font-size: clamp(0.95rem, 0.85rem + 0.5vw, 1.15rem);
+    letter-spacing: 0.42em;
+}
+
+.auth-tagline {
+    margin-top: clamp(var(--space-4), 3.5vh, var(--space-6));
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: clamp(1.45rem, 1.2rem + 1.2vw, 1.85rem);
+    font-weight: 500;
+    line-height: 1.25;
+    text-shadow: 0 2px 12px rgb(0 0 0 / 70%);
+}
+
+:lang(ar) .auth-tagline {
+    font-weight: 700;
+}
+
+.auth-subtagline {
+    margin-top: var(--space-2);
+    color: rgb(255 255 255 / 82%);
+    font-size: var(--text-sm);
+    text-shadow: 0 1px 8px rgb(0 0 0 / 80%);
+}
+
+.auth-panel {
+    grid-row: 4;
+    padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+}
+
+.auth-choices {
+    display: grid;
+    gap: var(--space-4);
+    width: 100%;
+}
+
+/* Big rounded buttons with an arrow at the end, like a native app */
+.auth-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    min-height: 3.6rem;
+    /* Room for the arrow on both sides keeps the label centred; long labels wrap instead of widening the button */
+    padding: var(--space-2) 3.25rem;
+    border: 1px solid transparent;
+    text-align: center;
+    overflow-wrap: anywhere;
+    border-radius: 18px;
+    font-family: var(--font-body);
+    font-size: 1.02rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+        transform 0.12s ease,
+        background-color var(--transition),
+        border-color var(--transition),
+        box-shadow var(--transition);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.auth-btn .icon {
+    position: absolute;
+    inset-inline-end: 1.25rem;
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.auth-btn:active {
+    transform: scale(0.97);
+}
+
+.auth-btn:disabled {
+    cursor: progress;
+    opacity: 0.7;
+}
+
+/* White, slightly glossy */
+.auth-btn-light {
+    border-color: rgb(255 255 255 / 90%);
+    background: linear-gradient(180deg, #ffffff 0%, #f1f1f4 55%, #dedee3 100%);
+    color: #111114;
+    box-shadow:
+        inset 0 1px 0 #fff,
+        0 10px 28px -8px rgb(0 0 0 / 70%);
+}
+
+.auth-btn-light .icon {
+    color: #2a2a30;
+}
+
+/* Dark glass with a fine light border */
+.auth-btn-dark {
+    border-color: rgb(255 255 255 / 38%);
+    background: rgb(8 8 10 / 52%);
+    color: #fff;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
+}
+
+.auth-btn-dark .icon {
+    color: rgb(255 255 255 / 75%);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .auth-btn-light:hover {
+        background: linear-gradient(180deg, #ffffff 0%, #f7f7f9 55%, #e7e7eb 100%);
+    }
+
+    .auth-btn-dark:hover {
+        border-color: rgb(255 255 255 / 70%);
+        background: rgb(8 8 10 / 64%);
+    }
+}
+
+.auth-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    min-width: 0;
+    max-width: 100%;
+    text-align: center;
+    min-height: 2.75rem;
+    padding: 0 var(--space-3);
+    border: 0;
+    background: none;
+    color: rgb(255 255 255 / 88%);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        transform 0.12s ease,
+        color var(--transition);
+}
+
+.auth-link-text {
+    text-decoration: underline;
+    text-decoration-color: rgb(255 255 255 / 45%);
+    text-underline-offset: 0.3em;
+}
+
+.auth-link .icon {
+    width: 1rem;
+    height: 1rem;
+}
+
+.auth-skip {
+    justify-self: center;
+    margin-top: var(--space-1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .auth-link:hover {
+        color: #fff;
+    }
+}
+
+.auth-screen .auth-form {
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    padding: var(--space-5);
+    border: 1px solid rgb(255 255 255 / 16%);
+    border-radius: 22px;
+    background: rgb(8 8 10 / 68%);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    text-align: start;
+}
+
+.auth-form-title {
+    font-size: var(--text-lg);
+}
+
+.auth-screen .field-label {
+    color: #fff;
+}
+
+.auth-screen .field {
+    border-color: rgb(255 255 255 / 30%);
+    border-radius: 14px;
+    background: rgb(255 255 255 / 96%);
+    color: #17171b;
+}
+
+.auth-screen .field-hint {
+    color: rgb(255 255 255 / 72%);
+}
+
+.auth-screen :focus-visible {
+    outline-color: #fff;
+}
+
+.lang-switch-on-dark {
+    border-color: rgb(255 255 255 / 28%);
+    background: rgb(0 0 0 / 35%);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+}
+
+.lang-switch-on-dark .lang-btn {
+    color: rgb(255 255 255 / 85%);
+}
+
+.lang-switch-on-dark .lang-btn[aria-pressed="true"] {
+    background: #fff;
+    color: #111114;
+}
+
+.icon-btn-on-dark {
+    border-color: rgb(255 255 255 / 28%);
+    background: rgb(0 0 0 / 35%);
+    color: #fff;
+}
+
+/* Narrow phones (up to 400px, or any phone with enlarged text): less nested padding,
+   so the fields and buttons get the width instead of the frames around them */
+@media (max-width: 25em) {
+    .auth-brand,
+    .auth-panel {
+        padding-inline: var(--space-4);
+    }
+
+    .auth-screen .auth-form {
+        gap: var(--space-3);
+        padding: var(--space-4);
+        border-radius: 18px;
+    }
+
+    .auth-btn {
+        min-height: 3.25rem;
+        padding-inline: 2.75rem;
+        border-radius: 16px;
+        font-size: 1rem;
+    }
+
+    .auth-btn .icon {
+        inset-inline-end: 1rem;
+    }
+}
+
+/* Short screens (small phones, landscape): tighter logo so the buttons stay on screen */
+@media (max-height: 40em) {
+    .auth-mark {
+        height: 3rem;
+    }
+
+    .auth-logo-zeyd {
+        font-size: 2.2rem;
+    }
+
+    .auth-tagline {
+        margin-top: var(--space-3);
+        font-size: 1.3rem;
+    }
+}
+
+/* Landscape screens: the portrait photo is shown whole in the centre (the full chair stays visible),
+   a darkened, blurred copy fills the sides */
+@media (min-width: 48em) and (min-aspect-ratio: 1 / 1) {
+    .auth-bg {
+        overflow: hidden;
+    }
+
+    .auth-bg::before {
+        content: "";
+        position: absolute;
+        inset: -40px;
+        background: url("login-chair-1200.jpg") center / cover;
+        filter: blur(28px) brightness(0.45);
+    }
+
+    .auth-bg img {
+        position: relative;
+        object-fit: contain;
+        -webkit-mask-image: linear-gradient(
+            90deg,
+            transparent calc(50% - 40vh),
+            #000 calc(50% - 22vh),
+            #000 calc(50% + 22vh),
+            transparent calc(50% + 40vh)
+        );
+        mask-image: linear-gradient(
+            90deg,
+            transparent calc(50% - 40vh),
+            #000 calc(50% - 22vh),
+            #000 calc(50% + 22vh),
+            transparent calc(50% + 40vh)
+        );
+    }
+
+    .auth-panel {
+        max-width: 25rem;
+    }
+}
+
+/* ==========================================================================
+   Loyalty card: warm white membership card, purple foil stripe, script name,
+   10 embossed circles, copper 10th circle with a black gift box.
+   Always light, like a printed card, in both themes. Sizes follow the card
+   width (cqw) so it keeps the same proportions on every phone.
+   ========================================================================== */
+.loyalty {
+    margin-top: var(--space-5);
+}
+
+#loyaltyCard,
+.admin-loyalty-card {
+    width: 100%;
+    max-width: 26rem;
+    margin-inline: auto;
+    container-type: inline-size;
+}
+
+.lc {
+    --lc-purple: #5b2a86;
+    --lc-purple-deep: #34184f;
+    --lc-ink: #2c2233;
+    position: relative;
+    display: grid;
+    grid-template-columns: 24cqw minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-areas:
+        "logo title"
+        "logo identity"
+        "stamps stamps"
+        "foot foot";
+    column-gap: 3cqw;
+    width: 100%;
+    /* Bank-card proportions as a minimum: the card still grows if a long name or Arabic text needs it */
+    min-height: 63cqw;
+    padding: 7cqw 6cqw 4.6cqw;
+    overflow: hidden;
+    border-radius: max(14px, 4.6cqw);
+    background:
+        radial-gradient(120% 90% at 0% 0%, #ffffff 0%, rgb(255 255 255 / 0%) 60%),
+        repeating-linear-gradient(100deg, rgb(120 100 80 / 2.5%) 0 1px, transparent 1px 3px),
+        linear-gradient(160deg, #fdfbf7 0%, #f6f2ea 55%, #ece6dc 100%);
+    color: var(--lc-ink);
+    box-shadow:
+        0 1px 0 rgb(255 255 255 / 90%) inset,
+        0 0 0 1px rgb(60 40 70 / 9%) inset,
+        0 1px 2px rgb(30 20 40 / 10%),
+        0 8px 18px -6px rgb(30 20 40 / 22%),
+        0 22px 40px -18px rgb(30 20 40 / 30%);
+}
+
+/* Soft diagonal sheen, like a laminated card */
+.lc::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 70%) 45%, transparent 58%);
+    pointer-events: none;
+}
+
+/* Fine inner border, a few pixels inside the edge */
+.lc::after {
+    content: "";
+    position: absolute;
+    inset: 1.6cqw;
+    border: 1px solid rgb(91 42 134 / 10%);
+    border-radius: max(10px, 3.4cqw);
+    pointer-events: none;
+}
+
+.lc > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Top stripe: two slanted purple foil bars */
+.lc > .lc-stripe {
+    position: absolute;
+    top: 4.2cqw;
+    inset-inline: 30cqw 34cqw;
+    display: flex;
+    gap: 1.6cqw;
+    height: 2.3cqw;
+    transform: skewX(-32deg);
+}
+
+.lc-bar {
+    flex: 1;
+    border-radius: 2px;
+    background: linear-gradient(90deg, rgb(91 42 134 / 0%) 0%, #6d35a3 40%, #9b6cd0 75%, #e9dcf8 100%);
+    box-shadow: 0 1px 3px rgb(91 42 134 / 30%);
+}
+
+.lc-bar:last-child {
+    flex: 2.4;
+    background: linear-gradient(90deg, #3f1d61 0%, #7a43b5 55%, #c7a8ea 85%, rgb(255 255 255 / 0%) 100%);
+}
+
+/* Brand: scissors-Z monogram + ZEYD / BARBER */
+.lc-logo {
+    grid-area: logo;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    align-self: start;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    line-height: 1;
+}
+
+.lc-mark {
+    width: auto;
+    height: max(2.6rem, 15cqw);
+    margin-bottom: 0.8cqw;
+}
+
+.lc-logo-name {
+    color: var(--lc-ink);
+    font-size: max(0.95rem, 6.4cqw);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.lc-logo-sub {
+    margin-top: 0.6cqw;
+    margin-inline-end: -0.42em;
+    color: var(--lc-ink);
+    font-size: max(0.5rem, 2.5cqw);
+    font-weight: 600;
+    letter-spacing: 0.42em;
+}
+
+.lc-title {
+    grid-area: title;
+    display: grid;
+    align-content: start;
+    justify-items: end;
+    gap: 0.8cqw;
+    padding-top: 1.2cqw;
+    text-align: end;
+}
+
+.lc-title-main {
+    color: var(--lc-purple);
+    font-family: "Cormorant Garamond", "Cairo", Georgia, serif;
+    font-size: max(0.72rem, 3.7cqw);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+
+.lc-title-en {
+    color: var(--lc-ink);
+    font-size: max(0.5rem, 2.2cqw);
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}
+
+:lang(ar) .lc-title-main {
+    font-family: "Cairo", sans-serif;
+    letter-spacing: 0;
+}
+
+/* Customer name: script, deep purple with a bright white shine across it */
+.lc-identity {
+    grid-area: identity;
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    min-width: 0;
+    padding-block: 2cqw 1cqw;
+}
+
+/* Long names wrap onto a second line instead of being cut */
+.lc-name {
+    max-width: 100%;
+    padding-inline: 2cqw;
+    font-family: "Great Vibes", "Cairo", cursive;
+    font-size: max(1.6rem, 10cqw);
+    line-height: 1.2;
+    text-align: center;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+    background-image: linear-gradient(
+        100deg,
+        #2e1347 0%,
+        #5b2a86 30%,
+        #7f45bd 42%,
+        #c7a3ef 50%,
+        #8f58cc 58%,
+        #5b2a86 72%,
+        #2e1347 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 1px 0 rgb(255 255 255 / 90%)) drop-shadow(0 1px 1.5px rgb(52 24 79 / 25%));
+}
+
+/* Arabic names: Great Vibes has no Arabic letters, so same gradient in bold Cairo */
+.lc-name:dir(rtl) {
+    font-size: max(1.3rem, 7.4cqw);
+    font-weight: 700;
+}
+
+.lc-member {
+    display: flex;
+    align-items: center;
+    gap: 2.4cqw;
+    width: 100%;
+    color: var(--lc-ink);
+    font-size: max(0.5rem, 2.3cqw);
+    font-weight: 600;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+}
+
+.lc-member::before,
+.lc-member::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgb(44 34 51 / 0%), rgb(44 34 51 / 55%));
+}
+
+.lc-member::after {
+    background: linear-gradient(90deg, rgb(44 34 51 / 55%), rgb(44 34 51 / 0%));
+}
+
+:lang(ar) .lc-member {
+    font-size: max(0.62rem, 2.8cqw);
+    letter-spacing: 0;
+}
+
+/* 10 circles: 5 x 2, embossed purple ring */
+.lc-stamps {
+    grid-area: stamps;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 2.4cqw 3.2cqw;
+    align-self: end;
+    width: 72%;
+    margin: 3cqw 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lc-stamp {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    aspect-ratio: 1;
+    border: max(1.5px, 0.6cqw) solid transparent;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 50% 35%, #ffffff 0%, #f7f3fa 60%, #ece5f1 100%) padding-box,
+        conic-gradient(from 210deg, #3c1b5c, #b48ee0, #f6efff, #6a3a98, #2c1244, #9e74d0, #3c1b5c) border-box;
+    box-shadow:
+        inset 0 1px 2px rgb(44 18 68 / 18%),
+        0 1px 0 rgb(255 255 255 / 90%),
+        0 2px 5px rgb(44 18 68 / 16%);
+}
+
+.lc-num {
+    color: #3a2d48;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: max(0.85rem, 4.6cqw);
+    font-weight: 600;
+    font-variant-numeric: lining-nums;
+    line-height: 1;
+}
+
+/* Visit validated by Zeyd: glossy purple disc, white number */
+.lc-stamp.is-filled {
+    background:
+        radial-gradient(circle at 35% 28%, #b98be8 0%, #6d35a3 45%, #3c1b5c 100%) padding-box,
+        conic-gradient(from 210deg, #2c1244, #c9a6f0, #ffffff, #6a3a98, #2c1244) border-box;
+    box-shadow:
+        inset 0 1px 1px rgb(255 255 255 / 45%),
+        0 2px 6px rgb(60 27 92 / 35%);
+}
+
+.lc-stamp.is-filled .lc-num {
+    color: #fff;
+    text-shadow: 0 1px 1px rgb(0 0 0 / 30%);
+}
+
+/* The 10th circle: warm copper-brown with a black gift box */
+.lc-stamp.is-reward {
+    background:
+        radial-gradient(circle at 34% 28%, #e3ad78 0%, #b5763f 42%, #7a4520 100%) padding-box,
+        conic-gradient(from 200deg, #5c3216, #f0c08f, #fff3e2, #8a5128, #4a280f, #d79a62, #5c3216) border-box;
+    box-shadow:
+        inset 0 1px 1px rgb(255 240 220 / 50%),
+        0 2px 6px rgb(92 50 22 / 35%);
+}
+
+.lc-gift {
+    width: 66%;
+    height: 66%;
+    filter: drop-shadow(0 1px 0 rgb(255 230 200 / 35%));
+}
+
+.lc.is-complete .lc-stamp.is-reward {
+    box-shadow:
+        0 0 0 max(2px, 0.8cqw) rgb(227 173 120 / 40%),
+        0 0 18px rgb(227 173 120 / 65%),
+        0 3px 10px rgb(92 50 22 / 45%);
+    animation: lc-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes lc-glow {
+    50% {
+        transform: scale(1.08);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lc.is-complete .lc-stamp.is-reward {
+        animation: none;
+    }
+}
+
+/* "10 visites = 1 coupe gratuite", handwritten, beside the circles */
+.lc-offer {
+    grid-area: stamps;
+    align-self: center;
+    justify-self: end;
+    width: 25%;
+    margin-top: 3cqw;
+    padding-bottom: 1.2cqw;
+    border-bottom: 1px solid rgb(91 42 134 / 45%);
+    color: var(--lc-purple-deep);
+    font-family: "Great Vibes", "Cairo", cursive;
+    font-size: max(0.95rem, 5.2cqw);
+    line-height: 1.05;
+    text-align: center;
+    transform: rotate(-6deg);
+}
+
+:lang(ar) .lc-offer {
+    font-family: "Cairo", sans-serif;
+    font-size: max(0.7rem, 3.2cqw);
+    font-weight: 700;
+    line-height: 1.5;
+    transform: rotate(-3deg);
+}
+
+.lc-foot {
+    grid-area: foot;
+    display: flex;
+    align-items: center;
+    gap: 3cqw;
+    margin-top: 3.4cqw;
+    color: var(--lc-ink);
+    font-size: max(0.5rem, 2.3cqw);
+    font-weight: 600;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+}
+
+.lc-slogan {
+    white-space: nowrap;
+}
+
+/* Line between the slogan and the visit count */
+.lc-foot::after {
+    content: "";
+    flex: 1;
+    order: 1;
+    height: 1px;
+    background: rgb(44 34 51 / 35%);
+}
+
+.lc-count {
+    order: 2;
+    color: var(--lc-purple);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.08em;
+}
+
+:lang(ar) .lc-foot {
+    font-size: max(0.6rem, 2.7cqw);
+    letter-spacing: 0;
+}
+
+/* Reward unlocked: a copper ribbon takes the place of the handwritten offer */
+.lc.is-complete .lc-offer {
+    display: none;
+}
+
+.lc-reward-badge {
+    grid-area: stamps;
+    align-self: center;
+    justify-self: end;
+    width: 25%;
+    margin-top: 3cqw;
+    padding: 1.6cqw 2cqw;
+    border-radius: 3cqw;
+    line-height: 1.25;
+    text-align: center;
+    background: linear-gradient(135deg, #f0c08f, #b5763f 55%, #7a4520);
+    color: #1d120a;
+    font-size: max(0.55rem, 2.4cqw);
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    box-shadow: 0 2px 8px rgb(92 50 22 / 35%);
+}
+
+/* Narrow phones (card under ~340px): the handwritten offer moves under the circles */
+@container (max-width: 21rem) {
+    .lc {
+        grid-template-rows: auto auto 1fr auto auto;
+        grid-template-areas:
+            "logo title"
+            "identity identity"
+            "stamps stamps"
+            "offer offer"
+            "foot foot";
+    }
+
+    .lc-stamps {
+        justify-self: center;
+        width: 88%;
+    }
+
+    .lc-offer,
+    .lc-reward-badge {
+        grid-area: offer;
+        justify-self: center;
+        width: auto;
+        padding-inline: 3cqw;
+        transform: none;
+    }
+}
+
+.loyalty-progress {
+    margin-top: var(--space-3);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    text-align: center;
+}
+
+.loyalty-progress.is-reward {
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid #d79a62;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, rgb(240 192 143 / 22%), rgb(181 118 63 / 12%));
+    color: var(--color-heading);
+    font-weight: 700;
+}
+
+/* "Afficher mon QR": dark purple pill under the card */
+.loyalty-qr-btn {
+    display: flex;
+    width: 100%;
+    max-width: 26rem;
+    margin: var(--space-3) auto 0;
+    border-color: rgb(255 255 255 / 12%);
+    background: linear-gradient(135deg, #4a2370 0%, #2c1244 100%);
+    color: #fff;
+    box-shadow: 0 6px 16px -6px rgb(44 18 68 / 55%);
+}
+
+.loyalty-qr-btn:hover {
+    background: linear-gradient(135deg, #5b2a86 0%, #34184f 100%);
+}
+
+.loyalty-qr-btn[hidden] {
+    display: none;
+}
+
+/* QR window: centred card on a dark blurred backdrop, soft open/close */
+.qr-dialog {
+    width: min(100% - 2rem, 22rem);
+    margin: auto;
+    padding: var(--space-5);
+    border: 0;
+    border-radius: 22px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    text-align: center;
+    box-shadow: 0 24px 60px rgb(0 0 0 / 35%);
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+    transition:
+        opacity 0.22s ease,
+        transform 0.22s ease,
+        overlay 0.22s allow-discrete,
+        display 0.22s allow-discrete;
+}
+
+.qr-dialog[open] {
+    opacity: 1;
+    transform: none;
+}
+
+@starting-style {
+    .qr-dialog[open] {
+        opacity: 0;
+        transform: translateY(12px) scale(0.96);
+    }
+}
+
+.qr-dialog::backdrop {
+    background: rgb(12 8 18 / 0%);
+    transition:
+        background 0.22s ease,
+        overlay 0.22s allow-discrete,
+        display 0.22s allow-discrete;
+}
+
+.qr-dialog[open]::backdrop {
+    background: rgb(12 8 18 / 62%);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+}
+
+@starting-style {
+    .qr-dialog[open]::backdrop {
+        background: rgb(12 8 18 / 0%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .qr-dialog,
+    .qr-dialog::backdrop {
+        transition: none;
+    }
+}
+
+.qr-dialog-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+    text-align: start;
+}
+
+.qr-dialog-head h2 {
+    font-size: var(--text-lg);
+}
+
+/* Purple frame around a pure white square: dark-on-white so any phone camera can read it */
+.qr-frame {
+    width: min(100%, 15rem);
+    margin-inline: auto;
+    padding: 3px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #c9a6f0, #5b2a86 50%, #e9dcf8);
+    box-shadow: 0 10px 24px -10px rgb(44 18 68 / 55%);
+}
+
+.loyalty-qr-code {
+    aspect-ratio: 1;
+    padding: var(--space-3);
+    border-radius: 15px;
+    background: #fff;
+}
+
+.loyalty-qr-code svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.qr-code-text {
+    margin-top: var(--space-4);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}
+
+.qr-code-text strong {
+    display: block;
+    color: var(--color-heading);
+    font-size: var(--text-lg);
+    letter-spacing: 0.16em;
+}
+
+.qr-hint {
+    margin-top: var(--space-2);
+    font-size: var(--text-sm);
+}
+
+.qr-safe {
+    margin-top: var(--space-2);
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+}
+
+#qrMessage {
+    margin-top: var(--space-3);
+    text-align: start;
+}
+
+/* Sound preferences: native checkboxes drawn as switches (keyboard and screen readers keep the real input) */
+.sound-settings {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+    margin: 0 0 var(--space-4);
+    padding: 0;
+    border: 0;
+}
+
+.sound-settings legend {
+    padding: 0;
+}
+
+.switch {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 2.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.switch-sub {
+    padding-inline-start: var(--space-5);
+    font-weight: 500;
+}
+
+.switch input {
+    position: absolute;
+    width: 2.75rem;
+    height: 1.6rem;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.switch-track {
+    position: relative;
+    flex-shrink: 0;
+    width: 2.75rem;
+    height: 1.6rem;
+    border-radius: 999px;
+    background: var(--color-border-strong);
+    transition: background-color var(--transition);
+}
+
+.switch-track::after {
+    content: "";
+    position: absolute;
+    top: 0.2rem;
+    inset-inline-start: 0.2rem;
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+    transition: transform var(--transition);
+}
+
+.switch input:checked + .switch-track {
+    background: var(--color-primary);
+}
+
+.switch input:checked + .switch-track::after {
+    transform: translateX(1.15rem);
+}
+
+[dir="rtl"] .switch input:checked + .switch-track::after {
+    transform: translateX(-1.15rem);
+}
+
+.switch input:focus-visible + .switch-track {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.switch input:disabled + .switch-track,
+.switch input:disabled ~ span:last-child {
+    opacity: 0.5;
+}
+
+.switch input:disabled {
+    cursor: not-allowed;
+}
+
+.switch-on-dark {
+    min-height: 2.5rem;
+    color: var(--color-footer-text);
+    font-size: var(--text-xs);
+}
+
+.switch-on-dark input:not(:checked) + .switch-track {
+    background: rgb(235 230 218 / 28%);
+}
+
+.switch-on-dark input:checked + .switch-track {
+    background: var(--color-secondary);
+}
+
+/* "Hold to confirm": a fill grows from the start of the reading direction while the button is held */
+.hold-btn {
+    --hold-progress: 0;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.hold-btn-fill {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: -1;
+    width: calc(var(--hold-progress) * 100%);
+    background: rgb(0 0 0 / 28%);
+    pointer-events: none;
+}
+
+/* Releasing early: the fill slides back quickly instead of disappearing */
+.hold-btn:not(.is-holding) .hold-btn-fill {
+    transition: width 0.25s ease;
+}
+
+.hold-btn.is-holding {
+    transform: scale(0.98);
+}
+
+.hold-btn.is-busy {
+    cursor: progress;
+}
+
+.hold-btn.is-busy .hold-btn-fill {
+    width: 100%;
+}
+
+.hold-btn.is-refused {
+    animation: hold-refused 0.3s ease;
+}
+
+@keyframes hold-refused {
+    25% {
+        transform: translateX(-4px);
+    }
+
+    75% {
+        transform: translateX(4px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hold-btn.is-refused {
+        animation: none;
+    }
+
+    .hold-btn:not(.is-holding) .hold-btn-fill {
+        transition: none;
+    }
+}
+
+.hold-hint {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    text-align: center;
+}
+
+/* Customer cancellation dialog (built on .qr-dialog: same opening, backdrop and close behaviour) */
+.cancel-dialog {
+    width: min(100% - 2rem, 30rem);
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+    text-align: start;
+}
+
+.cancel-dialog .qr-dialog-head h2 {
+    font-size: var(--text-lg);
+    line-height: 1.3;
+}
+
+.cancel-booking-summary {
+    margin-bottom: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-muted);
+    color: var(--color-heading);
+    font-weight: 700;
+}
+
+.cancel-reasons {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+    margin: 0 0 var(--space-4);
+    padding: 0;
+    border: 0;
+}
+
+.reason-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    min-height: 2.75rem;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition:
+        border-color var(--transition),
+        background-color var(--transition);
+}
+
+.reason-row input {
+    flex-shrink: 0;
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-top: 0.15rem;
+    accent-color: var(--color-primary);
+}
+
+.reason-row:has(input:checked) {
+    border-color: var(--color-primary);
+    background: var(--color-surface-muted);
+}
+
+.reason-row:has(input:focus-visible) {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.reschedule-offer {
+    display: grid;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+    padding: var(--space-4);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-muted);
+}
+
+.reschedule-offer[hidden],
+.reschedule-banner[hidden] {
+    display: none;
+}
+
+.cancel-warning {
+    margin-top: var(--space-4);
+    padding: var(--space-3);
+    border-radius: var(--radius-sm);
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+    font-size: var(--text-sm);
+    font-weight: 600;
+}
+
+.cancel-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+}
+
+.cancel-actions .btn {
+    flex: 1 1 12rem;
+}
+
+.btn-danger {
+    border-color: var(--color-danger);
+    background: var(--color-danger);
+    color: #fff;
+}
+
+#cancelMessage {
+    margin-top: var(--space-3);
+}
+
+/* While a booking is being moved: shown above the booking form */
+.reschedule-banner {
+    display: grid;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+    padding: var(--space-4);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-muted);
+}
+
+.reschedule-title {
+    color: var(--color-heading);
+    font-weight: 700;
+}
+
+.reschedule-banner .btn {
+    justify-self: start;
+}
+
+/* Shown only when index.html is opened from file:// (see the end of index.html) */
+.file-warning {
+    position: sticky;
+    top: 0;
+    z-index: 400;
+    display: grid;
+    gap: var(--space-1);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-danger);
+    color: #fff;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-align: center;
+}
+
+/* Bookings list additions */
+.my-booking {
+    flex-wrap: wrap;
+}
+
+.my-booking.is-cancelled {
+    border-style: dashed;
+}
+
+.my-booking-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.status-badge.is-paid {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+.status-badge.is-cancelled {
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+}
+
+/* ==========================================================================
+   Touch feedback: a light press on every control, a small lift on hover (mouse only)
+   ========================================================================== */
+
+.btn:active,
+.icon-btn:active,
+.lang-btn:active,
+.contact-link:active,
+.service-link:active,
+.auth-link:active,
+.tab:active,
+.nav-account:active,
+.choice:active input + span {
+    transform: scale(0.96);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .btn:hover,
+    .contact-link:hover {
+        transform: translateY(-1px);
+    }
+}
+
+/* ==========================================================================
+   Payment return page (paiement.html)
+   ========================================================================== */
+.payment-page {
+    display: grid;
+    place-items: center;
+    min-height: 100dvh;
+    padding: var(--space-5) var(--space-4);
+}
+
+.payment-card {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-4);
+    width: 100%;
+    max-width: 26rem;
+    padding: var(--space-7) var(--space-5);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-md);
+    text-align: center;
+}
+
+.payment-logo {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+}
+
+.payment-wordmark {
+    font-size: 1.5rem;
+}
+
+.payment-title {
+    color: var(--color-heading);
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+}
+
+.payment-status {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-muted);
+    text-align: start;
+}
+
+.payment-status.is-error {
+    background: var(--color-danger-soft);
+}
+
+.payment-status.is-success {
+    border-inline-start: 3px solid var(--color-primary);
+}
+
+.payment-spinner {
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 3px solid var(--color-border-strong);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+}
+
+.payment-spinner[hidden] {
+    display: none;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ==========================================================================
+   Barber / admin dashboard (admin.html) — phone first
+   ========================================================================== */
+.admin-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-header-bg);
+}
+
+.admin-header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    max-width: 60rem;
+    margin-inline: auto;
+    padding: var(--space-3) var(--space-4);
+}
+
+.admin-header .brand {
+    flex-shrink: 1;
+}
+
+.admin-title {
+    display: grid;
+    min-width: 0;
+    line-height: 1.2;
+}
+
+.admin-title .brand-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.admin-header .header-actions {
+    flex-shrink: 0;
+}
+
+/* Phones: logo + "Espace Zeyd" is enough, the actions keep their room */
+@media (max-width: 30em) {
+    .admin-title .brand-name {
+        display: none;
+    }
+
+    .admin-subtitle {
+        color: var(--color-heading);
+        font-size: var(--text-sm);
+    }
+}
+
+.admin-subtitle {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    font-weight: 600;
+}
+
+.admin-tabs[hidden],
+.admin-panel[hidden],
+.admin-gate[hidden],
+.gate-form[hidden],
+.scanner[hidden],
+.loyalty-result[hidden],
+.admin-message[hidden] {
+    display: none;
+}
+
+/* Tabs scroll sideways on phones instead of wrapping */
+.admin-tabs {
+    display: flex;
+    gap: var(--space-1);
+    max-width: 60rem;
+    margin-inline: auto;
+    padding: 0 var(--space-4) var(--space-2);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.admin-tab {
+    flex-shrink: 0;
+    min-height: 2.5rem;
+    padding: 0 var(--space-4);
+    border: 1px solid transparent;
+    border-radius: var(--radius-pill);
+    background: none;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color var(--transition),
+        color var(--transition),
+        transform var(--transition);
+}
+
+.admin-tab[aria-current="page"] {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+.admin-tab:active {
+    transform: scale(0.96);
+}
+
+.admin-main {
+    display: grid;
+    gap: var(--space-4);
+    max-width: 60rem;
+    margin-inline: auto;
+    padding: var(--space-4) var(--space-4) var(--space-8);
+}
+
+.admin-panel {
+    display: grid;
+    gap: var(--space-4);
+}
+
+.admin-gate {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-4);
+    padding: var(--space-8) var(--space-4);
+    text-align: center;
+}
+
+/* Sign-in form of the gate: same card as the panels, narrow and aligned like the rest of the forms */
+.gate-form {
+    width: min(100%, 22rem);
+    text-align: start;
+}
+
+.admin-card {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-5) var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.admin-h2 {
+    font-size: var(--text-xl);
+}
+
+.admin-list {
+    display: grid;
+    gap: var(--space-3);
+}
+
+.admin-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.admin-item-body {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.admin-item-title {
+    color: var(--color-heading);
+    font-weight: 700;
+}
+
+.admin-item-meta,
+.admin-empty {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}
+
+.admin-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.admin-row .field {
+    flex: 1 1 8rem;
+    width: auto;
+}
+
+.admin-wide {
+    width: 100%;
+}
+
+.admin-check {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 2.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.admin-check input {
+    width: 1.25rem;
+    height: 1.25rem;
+    accent-color: var(--color-primary);
+}
+
+.admin-field {
+    display: grid;
+    gap: var(--space-1);
+}
+
+.admin-field .field-label {
+    margin-bottom: 0;
+}
+
+.notification.is-unread {
+    border-inline-start: 3px solid var(--color-primary);
+    background: var(--color-surface-muted);
+}
+
+.booking-item.is-cancelled,
+.booking-item.is-no_show {
+    opacity: 0.7;
+    border-style: dashed;
+}
+
+.status-badge.is-completed {
+    background: var(--color-surface-muted);
+    color: var(--color-text-muted);
+}
+
+.status-badge.is-no_show {
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+}
+
+.admin-cancel-form,
+.admin-email {
+    display: grid;
+    flex-basis: 100%;
+    gap: var(--space-2);
+}
+
+/* Earnings: a dark petrol "card" for Zeyd's indicative share */
+.earnings-card {
+    position: relative;
+    display: grid;
+    gap: var(--space-1);
+    overflow: hidden;
+    padding: var(--space-6) var(--space-5);
+    border-radius: 20px;
+    background: radial-gradient(120% 140% at 100% 0%, #33695d 0%, #174c45 45%, #0f3530 100%);
+    color: #fffefa;
+    box-shadow: 0 12px 30px rgb(15 53 48 / 30%);
+}
+
+.earnings-card::after {
+    content: "";
+    position: absolute;
+    inset-inline-end: -3rem;
+    top: -3rem;
+    width: 10rem;
+    height: 10rem;
+    border: 1px solid rgb(255 255 255 / 18%);
+    border-radius: 50%;
+}
+
+.earnings-label {
+    color: #d6e2db;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.earnings-amount {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: clamp(2.5rem, 2rem + 3vw, 3.5rem);
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.earnings-meta,
+.earnings-note {
+    color: #d6e2db;
+    font-size: var(--text-sm);
+}
+
+.earnings-note {
+    font-size: var(--text-xs);
+}
+
+/* Loyalty scanner */
+.scanner video {
+    width: 100%;
+    max-height: 60vh;
+    border-radius: var(--radius-md);
+    background: #000;
+    object-fit: cover;
+}
+
+.loyalty-result {
+    padding: var(--space-4);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-md);
+}
+
+.loyalty-result-body {
+    display: grid;
+    gap: var(--space-2);
+}
+
+/* Home: today's counters and the next appointment */
+.kpi-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-2);
+}
+
+.kpi {
+    display: grid;
+    gap: 2px;
+    padding: var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-muted);
+    text-align: center;
+}
+
+.kpi-value {
+    color: var(--color-heading);
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: 700;
+    font-variant-numeric: lining-nums tabular-nums;
+    line-height: 1.1;
+}
+
+.kpi-label {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.next-booking {
+    display: grid;
+    gap: 2px;
+    padding: var(--space-3) var(--space-4);
+    border-inline-start: 3px solid var(--color-primary);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-muted);
+}
+
+.next-label {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+:lang(ar) .next-label {
+    letter-spacing: 0;
+}
+
+.next-time {
+    color: var(--color-heading);
+    font-size: var(--text-lg);
+    font-weight: 700;
+}
+
+/* Calendar: day / week switch and navigation */
+.calendar-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+/* Wraps on narrow phones: arrows + date on one line, "Aujourd'hui" below */
+.calendar-nav {
+    display: flex;
+    flex: 1 1 16rem;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.calendar-nav .field {
+    flex: 1 1 7rem;
+    width: auto;
+}
+
+.segmented {
+    display: inline-flex;
+    padding: 3px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-muted);
+}
+
+.segmented-btn {
+    min-height: 2.5rem;
+    padding: 0 var(--space-4);
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: none;
+    color: var(--color-text-muted);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.segmented-btn[aria-pressed="true"] {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+.calendar-day {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+    padding-block: var(--space-2);
+    border-bottom: 1px solid var(--color-border-strong);
+    color: var(--color-heading);
+    font-weight: 700;
+}
+
+.calendar-day.is-today .calendar-day-name::after {
+    content: " •";
+    color: var(--color-primary);
+}
+
+.calendar-day-count {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: none;
+}
+
+/* Overview figures */
+.card-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+.stats-period {
+    width: auto;
+    min-height: 2.5rem;
+    padding-block: var(--space-1);
+}
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr));
+    gap: var(--space-2);
+}
+
+.stat {
+    display: grid;
+    align-content: start;
+    gap: 2px;
+    min-width: 0;
+    padding: var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-value {
+    color: var(--color-heading);
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: 700;
+    font-variant-numeric: lining-nums tabular-nums;
+    line-height: 1.15;
+    text-align: start;
+}
+
+.stat-label {
+    color: var(--color-text);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.stat-caption {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+}
+
+.stat.is-warn {
+    border-inline-start: 3px solid var(--color-danger);
+}
+
+.stat.is-unavailable .stat-value {
+    color: var(--color-text-muted);
+}
+
+/* Connected services: dot + words */
+.status-list {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.status-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-1) var(--space-3);
+    padding-block: var(--space-2);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.status-line-label {
+    font-weight: 600;
+}
+
+.status-line-value {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}
+
+.status-line-value::before {
+    content: "● ";
+}
+
+.status-line.is-ok .status-line-value::before {
+    color: var(--color-primary);
+}
+
+.status-line.is-off .status-line-value::before {
+    color: var(--color-danger);
+}
+
+.status-line.is-unknown .status-line-value::before {
+    color: var(--color-text-muted);
+}
+
+.gallery-preview {
+    display: block;
+    width: min(100%, 14rem);
+    aspect-ratio: 4 / 5;
+    border-radius: var(--radius-md);
+    object-fit: cover;
+}
+
+.gallery-preview[hidden] {
+    display: none;
+}
+
+/* Status: icon + word (never colour alone) */
+.badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+}
+
+.status-icon {
+    margin-inline-end: 0.3em;
+    font-weight: 800;
+}
+
+/* The customer's note, as typed when booking */
+.customer-note {
+    display: grid;
+    gap: 2px;
+    margin: var(--space-1) 0 0;
+    padding: var(--space-2) var(--space-3);
+    border-inline-start: 3px solid var(--color-secondary);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-muted);
+    overflow-wrap: anywhere;
+}
+
+.customer-note-label {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    font-weight: 700;
+}
+
+.customer-note-text {
+    color: var(--color-heading);
+    white-space: pre-line;
+}
+
+.customer-note.is-short .customer-note-text {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+/* Status filters */
+.filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+}
+
+.filter-chip {
+    min-height: 2.25rem;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: none;
+    color: var(--color-text-muted);
+    font: inherit;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.filter-chip[aria-pressed="true"] {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+/* Month view: 7 columns, Monday first */
+.admin-list.is-month {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 4px;
+}
+
+.month-head {
+    padding-block: var(--space-1);
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-align: center;
+    text-transform: capitalize;
+}
+
+.month-day {
+    display: grid;
+    align-content: start;
+    justify-items: center;
+    gap: 2px;
+    width: 100%;
+    min-height: 3.5rem;
+    padding: var(--space-1) 2px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font: inherit;
+    cursor: pointer;
+}
+
+.month-cell.is-today .month-day {
+    border-color: var(--color-primary);
+    box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.month-num {
+    font-size: var(--text-sm);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.month-count {
+    min-width: 1.5rem;
+    padding: 0 6px;
+    border-radius: var(--radius-pill);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    font-size: var(--text-xs);
+    font-weight: 700;
+}
+
+.month-cancelled {
+    color: var(--color-danger);
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+/* Booking details: side panel (computer), bottom sheet (phone) */
+.booking-sheet {
+    position: fixed;
+    inset-block: 0;
+    inset-inline: auto 0;
+    width: min(100%, 30rem);
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: 0 0 40px rgb(0 0 0 / 25%);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    opacity: 0;
+    transform: translateX(24px);
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease,
+        overlay 0.2s allow-discrete,
+        display 0.2s allow-discrete;
+}
+
+[dir="rtl"] .booking-sheet {
+    transform: translateX(-24px);
+}
+
+@starting-style {
+    .booking-sheet[open] {
+        opacity: 0;
+        transform: translateX(24px);
+    }
+}
+
+.booking-sheet::backdrop {
+    background: rgb(12 20 18 / 45%);
+}
+
+@media (max-width: 47.99em) {
+    .booking-sheet {
+        inset-block: auto 0;
+        inset-inline: 0;
+        width: 100%;
+        height: auto;
+        max-height: 90dvh;
+        border-radius: 20px 20px 0 0;
+        transform: translateY(24px);
+    }
+
+    [dir="rtl"] .booking-sheet {
+        transform: translateY(24px);
+    }
+
+    @starting-style {
+        .booking-sheet[open] {
+            transform: translateY(24px);
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .booking-sheet {
+        transition: none;
+    }
+}
+
+/* Open state last, so it wins over the RTL and phone starting positions */
+.booking-sheet[open],
+[dir="rtl"] .booking-sheet[open] {
+    opacity: 1;
+    transform: none;
+}
+
+.sheet-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
+}
+
+#bookingSheetTitle {
+    font-size: var(--text-lg);
+}
+
+/* "samedi 31 octobre" → "Samedi 31 octobre" (only the first letter, months stay lowercase in French) */
+#bookingSheetTitle::first-letter,
+.calendar-day-name::first-letter {
+    text-transform: uppercase;
+}
+
+.calendar-day-name {
+    display: inline-block;
+}
+
+#sheetMessage {
+    margin: var(--space-3) var(--space-4) 0;
+}
+
+.sheet-body {
+    display: grid;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom));
+}
+
+.sheet-section {
+    display: grid;
+    gap: var(--space-1);
+    min-width: 0;
+}
+
+.sheet-section-title {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+:lang(ar) .sheet-section-title {
+    letter-spacing: 0;
+}
+
+/* Cancelled booking: when, by whom, why */
+.cancel-info {
+    display: grid;
+    gap: 2px;
+    margin-top: var(--space-1);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    background: var(--color-danger-soft);
+}
+
+.cancel-reason {
+    color: var(--color-danger);
+    font-size: var(--text-sm);
+    font-weight: 700;
+}
+
+/* Telegram delivery status of a staff notification */
+.status-badge.is-telegram-sent {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+.status-badge.is-telegram-failed {
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+}
+
+.status-badge.is-telegram-pending,
+.status-badge.is-telegram-sending,
+.status-badge.is-telegram-not_configured {
+    background: var(--color-surface-muted);
+    color: var(--color-text-muted);
+}
+
+/* Payments: totals per mode and statuses */
+.allocation-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    gap: var(--space-3);
+}
+
+.allocation-box {
+    display: grid;
+    gap: 2px;
+    padding: var(--space-3) var(--space-4);
+    border-inline-start: 3px solid var(--color-primary);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-muted);
+}
+
+.allocation-box.is-test {
+    border-inline-start-color: var(--color-border-strong);
+}
+
+.status-badge.is-payment-paid,
+.status-badge.is-transfer-transferred {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+.status-badge.is-payment-failed,
+.status-badge.is-payment-mismatch,
+.status-badge.is-payment-duplicate,
+.status-badge.is-transfer-to_transfer {
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+}
+
+.schedule-warning {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-danger);
+    border-radius: var(--radius-md);
+    background: var(--color-danger-soft);
+}
+
+.schedule-warning[hidden] {
+    display: none;
+}
+
+.customer-details {
+    display: grid;
+    flex-basis: 100%;
+    gap: var(--space-2);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--color-border);
+}
+
+.loyalty-history summary {
+    min-height: 2.75rem;
+    padding-block: var(--space-2);
+    color: var(--color-heading);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* History of a booking (who / when / why) */
+.booking-history {
+    display: grid;
+    flex-basis: 100%;
+    gap: var(--space-1);
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    border-inline-start: 2px solid var(--color-border-strong);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    list-style: none;
+}
+
+.admin-dots {
+    display: flex;
+    gap: 6px;
+    margin-block: var(--space-2);
+    padding: 0;
+    list-style: none;
+}
+
+.admin-dot {
+    width: 1.4rem;
+    height: 1.4rem;
+    border: 1.5px solid #b8abc6;
+    border-radius: 50%;
+}
+
+.admin-dot.is-filled {
+    border-color: #174c45;
+    background: #174c45;
+}
+
+.admin-dot.is-reward {
+    border-color: #6b4423;
+    background: #a0703f;
+}
+
+.btn-reward {
+    background: #845532;
+    color: #fffefa;
+}
+
+/* Services */
+.admin-service {
+    display: grid;
+}
+
+.admin-service-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+}
+
+@media (min-width: 48em) {
+    .admin-service-grid {
+        grid-template-columns: 2fr 2fr 1fr 1fr;
+    }
+}
+
+/* Hours */
+.admin-day {
+    display: grid;
+    gap: var(--space-2);
+    padding-block: var(--space-3);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.admin-segment .field {
+    flex: 0 1 7.5rem;
+}
+
+.admin-grid-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+}
+
+.admin-span {
+    grid-column: 1 / -1;
+}
+
+/* Gallery */
+.admin-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+    gap: var(--space-3);
+}
+
+.admin-photo {
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+}
+
+.admin-photo img {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+}
+
+.admin-photo-body {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3);
+}
+
+.admin-role {
+    width: auto;
+    min-width: 9rem;
+}
+
+.admin-settings .field {
+    max-width: 14rem;
+}
+
+.admin-settings .field-label {
+    margin-top: var(--space-2);
+}
+
 /* Set by script.js for the instant of a theme change */
 .is-theme-switching {
     --transition: 0ms;
@@ -1315,5 +4278,23 @@ h2 {
 
     html {
         scroll-behavior: auto;
+    }
+
+    .payment-spinner {
+        animation-duration: 3s;
+    }
+
+    .btn:active,
+    .icon-btn:active,
+    .lang-btn:active,
+    .contact-link:active,
+    .service-link:active,
+    .auth-link:active,
+    .tab:active,
+    .nav-account:active,
+    .choice:active input + span,
+    .btn:hover,
+    .contact-link:hover {
+        transform: none;
     }
 }

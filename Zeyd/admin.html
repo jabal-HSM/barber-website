@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espace Zeyd | ZEYD BARBER</title>
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#F6F2EA">
+    <link rel="icon" href="logozeyd.jpeg" type="image/jpeg">
+    <script>
+        (function () {
+            try {
+                var theme = localStorage.getItem('theme');
+                if (theme === 'dark' || theme === 'light') document.documentElement.setAttribute('data-theme', theme);
+                if (localStorage.getItem('lang') === 'ar') {
+                    document.documentElement.lang = 'ar';
+                    document.documentElement.dir = 'rtl';
+                }
+            } catch (e) { }
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Great+Vibes&family=Manrope:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="admin">
+    <svg class="icon-sprite" aria-hidden="true" focusable="false">
+        <symbol id="i-check" viewBox="0 0 24 24">
+            <path d="M5 12.5l4.5 4.5L19 7.5" />
+        </symbol>
+        <symbol id="i-alert" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7.5v5.5M12 16.5h.01" />
+        </symbol>
+        <symbol id="i-sun" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+        </symbol>
+        <symbol id="i-moon" viewBox="0 0 24 24">
+            <path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z" />
+        </symbol>
+        <symbol id="i-qr" viewBox="0 0 24 24">
+            <rect x="3.5" y="3.5" width="6" height="6" rx="1" />
+            <rect x="14.5" y="3.5" width="6" height="6" rx="1" />
+            <rect x="3.5" y="14.5" width="6" height="6" rx="1" />
+            <path d="M14.5 14.5h2.5v2.5M20.5 14.5v.01M14.5 20.5h.01M17 20.5h3.5V17" />
+        </symbol>
+        <symbol id="i-mail" viewBox="0 0 24 24">
+            <rect x="3" y="5.5" width="18" height="13" rx="2" />
+            <path d="M3.5 7l8.5 6 8.5-6" />
+        </symbol>
+        <symbol id="i-close" viewBox="0 0 24 24">
+            <path d="M6 6l12 12M18 6 6 18" />
+        </symbol>
+        <symbol id="i-chevron" viewBox="0 0 24 24">
+            <path d="M9 6l6 6-6 6" />
+        </symbol>
+        <symbol id="i-chevron-back" viewBox="0 0 24 24">
+            <path d="M15 6l-6 6 6 6" />
+        </symbol>
+        <symbol id="i-scissors" viewBox="0 0 24 24">
+            <circle cx="6" cy="6" r="3" />
+            <circle cx="6" cy="18" r="3" />
+            <path d="M8.12 8.12 20 20M8.12 15.88 20 4M14.5 12h.01" />
+        </symbol>
+    </svg>
+
+    <header class="admin-header">
+        <div class="admin-header-inner">
+            <a href="index.html" class="brand" data-i18n-attr="aria-label:header.site" aria-label="Voir le site">
+                <img src="logozeyd.jpeg" alt="" class="brand-logo" width="40" height="40">
+                <span class="admin-title"><span class="brand-name">ZEYD BARBER</span><span class="admin-subtitle"
+                        data-i18n="header.space">Espace Zeyd</span></span>
+            </a>
+            <div class="header-actions">
+                <div class="lang-switch" role="group" aria-label="Langue / اللغة">
+                    <button type="button" class="lang-btn" data-lang="fr" lang="fr" aria-pressed="true">FR</button>
+                    <button type="button" class="lang-btn" data-lang="ar" lang="ar" aria-pressed="false">ع</button>
+                </div>
+                <button type="button" id="themeToggleBtn" class="icon-btn" aria-pressed="false" aria-label="Thème">
+                    <svg class="icon icon-moon" aria-hidden="true">
+                        <use href="#i-moon" />
+                    </svg>
+                    <svg class="icon icon-sun" aria-hidden="true">
+                        <use href="#i-sun" />
+                    </svg>
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm" id="adminSignOut" data-i18n="header.signOut"
+                    hidden>Se déconnecter</button>
+            </div>
+        </div>
+        <nav class="admin-tabs" id="adminTabs" aria-label="Sections" hidden>
+            <button type="button" class="admin-tab" data-panel="home" aria-current="page" data-i18n="tab.home">Accueil</button>
+            <button type="button" class="admin-tab" data-panel="bookings" data-i18n="tab.bookings">Rendez-vous</button>
+            <button type="button" class="admin-tab" data-panel="loyalty" data-i18n="tab.loyalty">Fidélité</button>
+            <button type="button" class="admin-tab" data-panel="payments" data-i18n="tab.payments">Paiements</button>
+            <button type="button" class="admin-tab" data-panel="services" data-i18n="tab.services">Prestations</button>
+            <button type="button" class="admin-tab" data-panel="hours" data-i18n="tab.hours">Horaires</button>
+            <button type="button" class="admin-tab" data-panel="gallery" data-i18n="tab.gallery">Galerie</button>
+            <button type="button" class="admin-tab" data-panel="customers" data-i18n="tab.customers">Clients</button>
+            <button type="button" class="admin-tab" data-panel="settings" data-i18n="tab.settings">Réglages</button>
+        </nav>
+    </header>
+
+    <main class="admin-main" id="adminMain">
+        <div class="admin-gate" id="adminGate">
+            <p id="gateText" data-i18n="gate.loading">Vérification de votre accès…</p>
+            <!-- Sign-in on this page itself: the session is per address, and the dashboard opens right after -->
+            <form class="admin-card gate-form" id="gateForm" novalidate hidden>
+                <div class="field-group">
+                    <label class="field-label" for="gateEmail" data-i18n="gate.email">E-mail</label>
+                    <input type="email" id="gateEmail" class="field" autocomplete="email" inputmode="email" required
+                        dir="ltr">
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="gatePassword" data-i18n="gate.password">Mot de passe</label>
+                    <input type="password" id="gatePassword" class="field" autocomplete="current-password" required
+                        dir="ltr">
+                </div>
+                <button type="submit" class="btn btn-primary" id="gateSubmit" data-i18n="gate.submit">Se
+                    connecter</button>
+                <div class="admin-message" id="gateMessage" role="status" aria-live="polite" hidden></div>
+            </form>
+        </div>
+
+        <!-- Home: earnings card and notifications -->
+        <section class="admin-panel" data-panel="home" hidden>
+            <div class="earnings-card">
+                <p class="earnings-label" data-i18n="home.earnings">Part de Zeyd</p>
+                <p class="earnings-amount" id="earningsAmount" dir="ltr">0 €</p>
+                <p class="earnings-meta" id="earningsMeta"></p>
+                <p class="earnings-note" data-i18n="home.earningsNote">Montant indicatif.</p>
+            </div>
+            <div class="admin-card">
+                <h2 class="admin-h2" data-i18n="home.today">Aujourd’hui</h2>
+                <div class="kpi-row">
+                    <p class="kpi"><span class="kpi-value" id="kpiConfirmed" dir="ltr">–</span>
+                        <span class="kpi-label" data-i18n="home.kpiConfirmed">Confirmés</span></p>
+                    <p class="kpi"><span class="kpi-value" id="kpiRequested" dir="ltr">–</span>
+                        <span class="kpi-label" data-i18n="home.kpiRequested">À confirmer</span></p>
+                    <p class="kpi"><span class="kpi-value" id="kpiCancelled" dir="ltr">–</span>
+                        <span class="kpi-label" data-i18n="home.kpiCancelled">Annulés</span></p>
+                </div>
+                <div class="next-booking" id="nextBooking" aria-live="polite"></div>
+                <ul class="admin-list" id="todayList"></ul>
+                <button type="button" class="btn btn-ghost btn-sm" data-goto="bookings"
+                    data-i18n="home.openCalendar">Ouvrir le calendrier</button>
+            </div>
+            <!-- Overview: every figure comes from the database, with its period -->
+            <div class="admin-card">
+                <div class="card-head">
+                    <h2 class="admin-h2" data-i18n="stats.title">Vue d’ensemble</h2>
+                    <label class="visually-hidden" for="statsPeriod" data-i18n="stats.period">Période</label>
+                    <select id="statsPeriod" class="field stats-period">
+                        <option value="7" data-i18n="stats.last7">7 derniers jours</option>
+                        <option value="30" data-i18n="stats.last30">30 derniers jours</option>
+                        <option value="month" data-i18n="stats.thisMonth">Ce mois-ci</option>
+                    </select>
+                </div>
+                <div class="stat-grid" id="statsGrid" aria-live="polite"></div>
+                <p class="field-hint" id="statsNote"></p>
+            </div>
+            <div class="admin-card">
+                <h2 class="admin-h2" data-i18n="home.notifications">Notifications</h2>
+                <div class="admin-message" id="homeMessage" role="status" aria-live="polite" hidden></div>
+                <ul class="admin-list" id="notificationList"></ul>
+            </div>
+            <div class="admin-card">
+                <h2 class="admin-h2" data-i18n="home.loyaltyTodo">Fidélité à valider</h2>
+                <p class="field-hint" data-i18n="home.loyaltyTodoHint">Rendez-vous passés aujourd’hui sans visite
+                    validée : scannez le QR du client dans l’onglet Fidélité.</p>
+                <ul class="admin-list" id="loyaltyTodoList"></ul>
+            </div>
+            <div class="admin-card">
+                <h2 class="admin-h2" data-i18n="home.activity">Activité récente</h2>
+                <ul class="admin-list" id="activityList"></ul>
+            </div>
+        </section>
+
+        <!-- Calendar: one day or one week -->
+        <section class="admin-panel" data-panel="bookings" hidden>
+            <div class="admin-card">
+                <div class="calendar-bar">
+                    <div class="segmented" role="group" data-i18n-attr="aria-label:bookings.view" aria-label="Vue">
+                        <button type="button" class="segmented-btn" data-view="day" aria-pressed="true"
+                            data-i18n="bookings.viewDay">Jour</button>
+                        <button type="button" class="segmented-btn" data-view="week" aria-pressed="false"
+                            data-i18n="bookings.viewWeek">Semaine</button>
+                        <button type="button" class="segmented-btn" data-view="month" aria-pressed="false"
+                            data-i18n="bookings.viewMonth">Mois</button>
+                    </div>
+                    <div class="calendar-nav">
+                        <button type="button" class="icon-btn" id="calPrev" data-i18n-attr="aria-label:bookings.prev"
+                            aria-label="Précédent">
+                            <svg class="icon icon-dir" aria-hidden="true">
+                                <use href="#i-chevron-back" />
+                            </svg>
+                        </button>
+                        <label class="visually-hidden" for="bookingsDay" data-i18n="bookings.day">Jour</label>
+                        <input type="date" id="bookingsDay" class="field">
+                        <button type="button" class="icon-btn" id="calNext" data-i18n-attr="aria-label:bookings.next"
+                            aria-label="Suivant">
+                            <svg class="icon icon-dir" aria-hidden="true">
+                                <use href="#i-chevron" />
+                            </svg>
+                        </button>
+                        <button type="button" class="btn btn-ghost btn-sm" id="calToday"
+                            data-i18n="bookings.today">Aujourd’hui</button>
+                    </div>
+                </div>
+                <p class="admin-item-meta" id="calRange"></p>
+                <div class="filter-chips" id="calFilters" role="group" data-i18n-attr="aria-label:filter.label"
+                    aria-label="Filtrer par état"></div>
+                <div class="admin-message" id="bookingsMessage" role="status" aria-live="polite" hidden></div>
+                <ul class="admin-list" id="bookingsList"></ul>
+            </div>
+        </section>
+
+        <!-- Loyalty: scan + confirm visit -->
+        <section class="admin-panel" data-panel="loyalty" hidden>
+            <div class="admin-card">
+                <button type="button" class="btn btn-primary admin-wide" id="scanBtn">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-qr" />
+                    </svg>
+                    <span id="scanBtnText" data-i18n="loyalty.scan">Scanner le QR code</span>
+                </button>
+                <div class="scanner" id="scanner" hidden>
+                    <video id="scannerVideo" playsinline muted></video>
+                    <p class="field-hint" data-i18n="loyalty.scanning">Placez le QR code devant la caméra…</p>
+                </div>
+                <form class="admin-inline-form" id="codeForm" novalidate>
+                    <label class="field-label" for="codeInput" data-i18n="loyalty.manual">Ou saisir le code du
+                        client</label>
+                    <div class="admin-row">
+                        <input type="text" id="codeInput" class="field" autocomplete="off" autocapitalize="characters"
+                            maxlength="60" dir="ltr" placeholder="7F3A9C21">
+                        <button type="submit" class="btn btn-ghost" data-i18n="loyalty.search">Rechercher</button>
+                    </div>
+                </form>
+                <!-- No camera, no QR code: find the customer by name or e-mail -->
+                <form class="admin-inline-form" id="loyaltySearchForm" novalidate>
+                    <label class="field-label" for="loyaltySearchInput" data-i18n="loyalty.byName">Ou chercher par nom
+                        ou e-mail</label>
+                    <div class="admin-row">
+                        <input type="search" id="loyaltySearchInput" class="field" autocomplete="off" maxlength="80">
+                        <button type="submit" class="btn btn-ghost" data-i18n="loyalty.search">Rechercher</button>
+                    </div>
+                </form>
+                <ul class="admin-list" id="loyaltySearchResults"></ul>
+                <div class="admin-message" id="loyaltyMessage" role="status" aria-live="polite" hidden></div>
+                <div class="loyalty-result" id="loyaltyResult" hidden></div>
+            </div>
+        </section>
+
+        <!-- Payments: what was received, how it is allocated, what was really transferred -->
+        <section class="admin-panel" data-panel="payments" hidden>
+            <div class="admin-card">
+                <h2 class="admin-h2" data-i18n="payments.title">Paiements et répartition</h2>
+                <p class="field-hint" data-i18n="payments.rule">Règle : paiement de 10 € → 10 € pour Zeyd ; paiement de 15 €
+                    → 10 € pour Zeyd et 5 € pour la mère. La répartition est un calcul enregistré : elle ne déplace pas
+                    d’argent.</p>
+                <div class="allocation-summary" id="allocationSummary"></div>
+                <div class="admin-message" id="paymentsMessage" role="status" aria-live="polite" hidden></div>
+                <ul class="admin-list" id="paymentsList"></ul>
+            </div>
+        </section>
+
+        <!-- Services and prices -->
+        <section class="admin-panel" data-panel="services" hidden>
+            <div class="admin-card">
+                <p class="field-hint" data-i18n="services.durationHint">Vide = durée à confirmer</p>
+                <div class="admin-message" id="servicesMessage" role="status" aria-live="polite" hidden></div>
+                <ul class="admin-list" id="servicesList"></ul>
+                <button type="button" class="btn btn-ghost" id="addServiceBtn" data-i18n="services.add">Ajouter une
+                    prestation</button>
+            </div>
+        </section>
+
+        <!-- Opening hours and closures -->
+        <section class="admin-panel" data-panel="hours" hidden>
+            <div class="admin-card">
+                <h2 class="admin-h2" data-i18n="hours.title">Heures d’ouverture</h2>
+                <!-- Upcoming bookings that no longer fit the hours or fall on a closure (never cancelled automatically) -->
+                <div class="schedule-warning" id="scheduleWarning" hidden></div>
+                <div class="admin-message" id="hoursMessage" role="status" aria-live="polite" hidden></div>
+                <div id="hoursList"></div>
+            </div>
+            <div class="admin-card">
+                <h2 class="admin-h2" data-i18n="hours.closures">Fermetures exceptionnelles</h2>
+                <form class="admin-grid-form" id="closureForm" novalidate>
+                    <div><label class="field-label" for="closureFrom" data-i18n="hours.from">Du</label>
+                        <input type="date" id="closureFrom" class="field" required>
+                    </div>
+                    <div><label class="field-label" for="closureTo" data-i18n="hours.to">Au</label>
+                        <input type="date" id="closureTo" class="field" required>
+                    </div>
+                    <div class="admin-span"><label class="field-label" for="closureReason"
+                            data-i18n="hours.reason">Motif</label>
+                        <input type="text" id="closureReason" class="field" maxlength="120">
+                    </div>
+                    <button type="submit" class="btn btn-primary admin-span" data-i18n="hours.addClosure">Ajouter la
+                        fermeture</button>
+                </form>
+                <div class="admin-message" id="closuresMessage" role="status" aria-live="polite" hidden></div>
+                <ul class="admin-list" id="closuresList"></ul>
+            </div>
+        </section>
+
+        <!-- Gallery -->
+        <section class="admin-panel" data-panel="gallery" hidden>
+            <div class="admin-card">
+                <h2 class="admin-h2" data-i18n="gallery.upload">Ajouter une photo</h2>
+                <p class="field-hint" data-i18n="gallery.uploadHint">Photos réelles uniquement.</p>
+                <form class="admin-grid-form" id="galleryForm" novalidate>
+                    <input type="file" id="galleryFile" class="field admin-span" accept="image/jpeg,image/png,image/webp"
+                        required>
+                    <img class="gallery-preview admin-span" id="galleryPreview" alt="" hidden>
+                    <div><label class="field-label" for="galleryTitleFr" data-i18n="gallery.titleFr">Titre (FR)</label>
+                        <input type="text" id="galleryTitleFr" class="field" maxlength="80">
+                    </div>
+                    <div><label class="field-label" for="galleryTitleAr" data-i18n="gallery.titleAr">Titre (AR)</label>
+                        <input type="text" id="galleryTitleAr" class="field" maxlength="80" dir="rtl">
+                    </div>
+                    <div class="admin-span"><label class="field-label" for="galleryCategory"
+                            data-i18n="gallery.category">Catégorie</label>
+                        <input type="text" id="galleryCategory" class="field" maxlength="40" placeholder="degrade">
+                    </div>
+                    <button type="submit" class="btn btn-primary admin-span" data-i18n="gallery.send">Envoyer</button>
+                </form>
+                <div class="admin-message" id="galleryMessage" role="status" aria-live="polite" hidden></div>
+            </div>
+            <ul class="admin-gallery" id="galleryList"></ul>
+        </section>
+
+        <!-- Customers and roles -->
+        <section class="admin-panel" data-panel="customers" hidden>
+            <div class="admin-card">
+                <label class="field-label" for="customerSearch" data-i18n="customers.search">Rechercher un
+                    client</label>
+                <input type="search" id="customerSearch" class="field" autocomplete="off"
+                    data-i18n-attr="placeholder:customers.searchHint" placeholder="Nom, e-mail ou code fidélité">
+                <div class="admin-row customers-tools">
+                    <label class="admin-field"><span class="field-label" data-i18n="customers.show">Afficher</span>
+                        <select id="customerFilter" class="field">
+                            <option value="all" data-i18n="customers.filterAll">Tous les comptes</option>
+                            <option value="customer" data-i18n="customers.filterCustomers">Clients</option>
+                            <option value="staff" data-i18n="customers.filterStaff">Salon (Zeyd, admins)</option>
+                            <option value="reward" data-i18n="customers.filterReward">Avec coupe offerte</option>
+                        </select></label>
+                    <label class="admin-field"><span class="field-label" data-i18n="customers.sort">Trier</span>
+                        <select id="customerSort" class="field">
+                            <option value="recent" data-i18n="customers.sortRecent">Inscription récente</option>
+                            <option value="name" data-i18n="customers.sortName">Nom</option>
+                            <option value="visits" data-i18n="customers.sortVisits">Visites</option>
+                        </select></label>
+                </div>
+                <p class="admin-item-meta" id="customersCount"></p>
+                <div class="admin-message" id="customersMessage" role="status" aria-live="polite" hidden></div>
+                <ul class="admin-list" id="customersList"></ul>
+            </div>
+        </section>
+
+        <!-- Settings (admin only) -->
+        <section class="admin-panel" data-panel="settings" hidden>
+            <form class="admin-card admin-settings" id="settingsForm" novalidate>
+                <p class="field-hint" id="settingsAdminOnly" data-i18n="settings.adminOnly" hidden>Seul un
+                    administrateur peut modifier ces réglages.</p>
+                <h2 class="admin-h2" data-i18n="settings.booking">Réservation en ligne</h2>
+                <label class="admin-check"><input type="checkbox" id="setBookingEnabled"> <span
+                        data-i18n="settings.bookingEnabled">Réservation en ligne ouverte</span></label>
+                <label class="field-label" for="setSlotStep" data-i18n="settings.slotStep">Intervalle</label>
+                <input type="number" id="setSlotStep" class="field" min="5" max="60" step="5" inputmode="numeric">
+                <label class="field-label" for="setMinNotice" data-i18n="settings.minNotice">Délai minimum</label>
+                <input type="number" id="setMinNotice" class="field" min="0" step="15" inputmode="numeric">
+                <label class="field-label" for="setMaxDays" data-i18n="settings.maxDays">Jours à l’avance</label>
+                <input type="number" id="setMaxDays" class="field" min="1" max="365" inputmode="numeric">
+                <label class="field-label" for="setCancelNotice" data-i18n="settings.cancelNotice">Annulation</label>
+                <input type="number" id="setCancelNotice" class="field" min="0" step="15" inputmode="numeric">
+                <label class="field-label" for="setMaxActive" data-i18n="settings.maxActive">Max</label>
+                <input type="number" id="setMaxActive" class="field" min="1" max="10" inputmode="numeric">
+                <label class="field-label" for="setMinGap" data-i18n="settings.minGap">Durée d’une coupe</label>
+                <input type="number" id="setMinGap" class="field" min="5" max="240" step="5" inputmode="numeric">
+
+                <h2 class="admin-h2" data-i18n="settings.payments">Paiement en ligne (Stripe)</h2>
+                <p class="field-hint" data-i18n="settings.paymentsWarning">À activer seulement quand Stripe est
+                    configuré.</p>
+                <label class="admin-check"><input type="checkbox" id="setPaymentsEnabled"> <span
+                        data-i18n="settings.paymentsEnabled">Afficher le bouton « Payer en ligne »</span></label>
+                <label class="field-label" for="setHashemShare" data-i18n="settings.hashemShare">Part de Hashem</label>
+                <input type="number" id="setHashemShare" class="field" min="0" step="50" inputmode="numeric">
+
+                <button type="submit" class="btn btn-primary" id="settingsSave" data-i18n="settings.save">Enregistrer
+                    les réglages</button>
+                <div class="admin-message" id="settingsMessage" role="status" aria-live="polite" hidden></div>
+            </form>
+            <!-- What is really set up: read from the database and from the server, never assumed -->
+            <div class="admin-card">
+                <h2 class="admin-h2" data-i18n="status.title">Compte et services connectés</h2>
+                <ul class="status-list" id="statusList"></ul>
+                <p class="field-hint" data-i18n="status.soundHint">Les sons de l’interface se règlent depuis le site
+                    (Mon compte → Sons).</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Booking details: side panel on a computer, bottom sheet on a phone -->
+    <dialog class="booking-sheet" id="bookingSheet" aria-labelledby="bookingSheetTitle">
+        <div class="sheet-head">
+            <h2 id="bookingSheetTitle" class="admin-h2" dir="auto"></h2>
+            <button type="button" class="icon-btn" id="bookingSheetClose" data-i18n-attr="aria-label:sheet.close"
+                aria-label="Fermer">
+                <svg class="icon" aria-hidden="true">
+                    <use href="#i-close" />
+                </svg>
+            </button>
+        </div>
+        <div class="admin-message" id="sheetMessage" role="status" aria-live="polite" hidden></div>
+        <div class="sheet-body" id="bookingSheetBody"></div>
+    </dialog>
+
+    <script type="module" src="admin.js"></script>
+</body>
+
+</html>

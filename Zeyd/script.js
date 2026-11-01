@@ -1,5 +1,8 @@
+import { fetchGallery, fetchServices } from './api.js';
+import { initBooking, selectBookingService, setBookingLanguage, setBookingServices } from './booking.js';
 import { GALLERY, SERVICES } from './data.js';
 import { DEFAULT_LANG, LANGUAGES, t } from './i18n.js';
+import { initSound, playThemeSound } from './sound.js';
 
 // Same storage keys as the previous version, so saved preferences are kept.
 const STORAGE_KEYS = { lang: 'lang', theme: 'theme' };
@@ -16,6 +19,9 @@ const priceFormatter = new Intl.NumberFormat('fr-FR', {
 
 const root = document.documentElement;
 let currentLang = DEFAULT_LANG;
+// Built-in content first; replaced by the database content when a backend is configured (config.js).
+let services = SERVICES;
+let gallery = GALLERY;
 
 // localStorage can throw (private mode, blocked storage): preferences are then simply not saved.
 function readPref(key) {
@@ -38,9 +44,26 @@ document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     initLanguage();
     initMenu();
+    initSound();
     renderHeroFacts();
     document.getElementById('currentYear').textContent = String(new Date().getFullYear());
+    initBooking({ lang: currentLang, services, priceFormatter });
+    loadRemoteContent();
 });
+
+async function loadRemoteContent() {
+    const [remoteServices, remoteGallery] = await Promise.all([fetchServices(), fetchGallery()]);
+    if (remoteServices) {
+        services = remoteServices;
+        renderServices();
+        renderHeroFacts();
+        setBookingServices(services);
+    }
+    if (remoteGallery) {
+        gallery = remoteGallery;
+        renderGallery();
+    }
+}
 
 // --- Language ---
 function initLanguage() {
@@ -81,6 +104,7 @@ function applyLanguage(lang) {
 
     renderServices();
     renderGallery();
+    setBookingLanguage(lang);
     updateThemeButton();
     updateMenuButton();
 }
@@ -91,8 +115,11 @@ function initTheme() {
     setTheme(saved === 'dark' ? 'dark' : 'light');
 
     document.getElementById('themeToggleBtn')?.addEventListener('click', () => {
-        setTheme(root.dataset.theme === 'dark' ? 'light' : 'dark');
+        const before = root.dataset.theme;
+        setTheme(before === 'dark' ? 'light' : 'dark');
         writePref(STORAGE_KEYS.theme, root.dataset.theme);
+        // Only a deliberate, real change makes the "switch" sound (never the theme restored at load)
+        if (root.dataset.theme !== before) playThemeSound();
     });
 }
 
@@ -163,7 +190,7 @@ function renderServices() {
     const template = document.getElementById('serviceCardTemplate');
     if (!list || !template) return;
 
-    const cards = SERVICES.map((service) => {
+    const cards = services.map((service) => {
         const card = template.content.firstElementChild.cloneNode(true);
         const name = service.name[currentLang] ?? service.name.fr;
 
@@ -181,10 +208,26 @@ function renderServices() {
         original.textContent = currentLang === 'fr' ? '' : service.name.fr;
         original.hidden = currentLang === 'fr';
 
+        // Bookable online (known duration, from the database) -> booking form; otherwise WhatsApp.
         const link = card.querySelector('.service-link');
-        link.href = WHATSAPP_URL;
-        link.querySelector('.service-link-text').textContent = t(currentLang, 'services.bookLink');
-        link.setAttribute('aria-label', t(currentLang, 'services.bookLinkAria', { name }));
+        const bookable = Boolean(service.dbId && service.durationMinutes);
+        if (bookable) {
+            link.href = '#booking';
+            link.removeAttribute('target');
+            link.removeAttribute('rel');
+            link.addEventListener('click', () => selectBookingService(service.id));
+        } else {
+            link.href = WHATSAPP_URL;
+        }
+        link.querySelector('use').setAttribute('href', bookable ? '#i-calendar' : '#i-whatsapp');
+        link.querySelector('.service-link-text').textContent = t(
+            currentLang,
+            bookable ? 'services.bookLink' : 'services.whatsappLink',
+        );
+        link.setAttribute(
+            'aria-label',
+            t(currentLang, bookable ? 'services.bookLinkAria' : 'services.whatsappLinkAria', { name }),
+        );
         return card;
     });
 
@@ -192,23 +235,23 @@ function renderServices() {
 }
 
 function renderHeroFacts() {
-    const minPrice = Math.min(...SERVICES.map((s) => s.price));
+    const minPrice = Math.min(...services.map((s) => s.price));
     document.getElementById('factMinPrice').textContent = priceFormatter.format(minPrice);
-    document.getElementById('factServiceCount').textContent = String(SERVICES.length);
+    document.getElementById('factServiceCount').textContent = String(services.length);
 }
 
-// --- Gallery: shows real photos once GALLERY is filled, otherwise the empty state ---
+// --- Gallery: shows real photos once there are some, otherwise the empty state ---
 function renderGallery() {
     const grid = document.getElementById('galleryGrid');
     const empty = document.getElementById('galleryEmpty');
     if (!grid || !empty) return;
 
-    const hasPhotos = GALLERY.length > 0;
+    const hasPhotos = gallery.length > 0;
     grid.hidden = !hasPhotos;
     empty.hidden = hasPhotos;
     if (!hasPhotos) return;
 
-    const items = GALLERY.map((photo) => {
+    const items = gallery.map((photo) => {
         const figure = document.createElement('figure');
         figure.className = 'gallery-item';
         if (photo.category) figure.dataset.category = photo.category;
