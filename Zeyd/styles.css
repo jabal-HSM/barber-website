@@ -194,6 +194,22 @@ button {
     color: inherit;
 }
 
+/* Buttons and choice chips: a long press on a phone neither selects their text nor flashes a blue highlight.
+   Text fields and normal text stay selectable. */
+button,
+.btn,
+.choice,
+.tab,
+.admin-tab,
+.lang-btn,
+.hold-btn,
+[role="button"] {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
 :focus-visible {
     outline: 2px solid var(--color-focus);
     outline-offset: 3px;
