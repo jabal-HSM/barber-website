@@ -107,6 +107,17 @@
         <symbol id="i-arrow-up" viewBox="0 0 24 24">
             <path d="M12 19V5M6 11l6-6 6 6" />
         </symbol>
+        <symbol id="i-home" viewBox="0 0 24 24">
+            <path d="M3.5 11.5 12 4l8.5 7.5" />
+            <path d="M6 10v10h12V10M10 20v-5.5h4V20" />
+        </symbol>
+        <symbol id="i-heart" viewBox="0 0 24 24">
+            <path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.4C19.5 15.4 12 20 12 20Z" />
+        </symbol>
+        <symbol id="i-search" viewBox="0 0 24 24">
+            <circle cx="10.5" cy="10.5" r="6.5" />
+            <path d="M15.5 15.5 20.5 20.5" />
+        </symbol>
     </svg>
 
     <a class="skip-link" href="#main" data-i18n="a11y.skip">Aller au contenu principal</a>
@@ -391,6 +402,7 @@
 
                 <!-- Filled from GALLERY in data.js once real photos of the salon's work exist -->
                 <div class="gallery-grid" id="galleryGrid" hidden></div>
+                <p class="form-message is-error" id="galleryError" role="alert" hidden></p>
 
                 <div class="gallery-empty" id="galleryEmpty">
                     <div class="gallery-empty-art" aria-hidden="true">
@@ -583,6 +595,103 @@
             </a>
         </div>
     </footer>
+
+    <!-- Phones: floating notch bottom bar (bottomNav.js; shape from notchGeometry.js). The DOM order follows the
+         reading direction: in Arabic « مواعيدي » is on the right, in French « Mes RDV » on the left. -->
+    <nav class="tabbar" id="tabbar" data-i18n-attr="aria-label:tabbar.label" aria-label="Navigation">
+        <svg class="tabbar-shape" aria-hidden="true" focusable="false">
+            <defs>
+                <linearGradient id="tabbarEdgeGradient" x1="0" x2="1" y1="0" y2="0">
+                    <stop offset="0" stop-color="#38bdf8" />
+                    <stop offset="0.5" stop-color="#7c6cf6" />
+                    <stop offset="1" stop-color="#a855f7" />
+                </linearGradient>
+                <filter id="tabbarGlowFilter" x="-10%" y="-100%" width="120%" height="300%">
+                    <feGaussianBlur stdDeviation="3.5" />
+                </filter>
+            </defs>
+            <path class="tabbar-panel" />
+            <path class="tabbar-glow" filter="url(#tabbarGlowFilter)" />
+            <path class="tabbar-edge" />
+        </svg>
+        <span class="tabbar-ball" aria-hidden="true">
+            <svg class="icon">
+                <use href="#i-home" />
+            </svg>
+        </span>
+        <ul class="tabbar-list">
+            <li><button type="button" class="tabbar-tab" data-tab="bookings">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-calendar" />
+                    </svg>
+                    <span class="tabbar-label" data-i18n="tabbar.bookings">Mes RDV</span>
+                </button></li>
+            <li><button type="button" class="tabbar-tab" data-tab="search">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-search" />
+                    </svg>
+                    <span class="tabbar-label" data-i18n="tabbar.search">Recherche</span>
+                </button></li>
+            <li><button type="button" class="tabbar-tab" data-tab="home" aria-current="page">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-home" />
+                    </svg>
+                    <span class="tabbar-label" data-i18n="tabbar.home">Accueil</span>
+                </button></li>
+            <li><button type="button" class="tabbar-tab" data-tab="favorites">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-heart" />
+                    </svg>
+                    <span class="tabbar-label" data-i18n="tabbar.favorites">Favoris</span>
+                </button></li>
+            <li><button type="button" class="tabbar-tab" data-tab="profile">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-user" />
+                    </svg>
+                    <span class="tabbar-label" data-i18n="tabbar.profile">Profil</span>
+                    <span class="account-dot" hidden></span>
+                </button></li>
+        </ul>
+    </nav>
+
+    <!-- Favourite haircuts of the signed-in customer (haircut_likes) -->
+    <dialog class="dialog" id="favoritesDialog" aria-labelledby="favoritesTitle">
+        <div class="dialog-head">
+            <h2 id="favoritesTitle" data-i18n="favorites.title">Mes coupes favorites</h2>
+            <button type="button" class="icon-btn" data-close-dialog data-i18n-attr="aria-label:account.close"
+                aria-label="Fermer">
+                <svg class="icon" aria-hidden="true">
+                    <use href="#i-close" />
+                </svg>
+            </button>
+        </div>
+        <p class="form-message is-error sheet-error" role="alert" hidden></p>
+        <div id="favoritesBody" aria-live="polite"></div>
+    </dialog>
+
+    <!-- Search in the services and the published gallery photos -->
+    <dialog class="dialog" id="searchDialog" aria-labelledby="searchTitle">
+        <div class="dialog-head">
+            <h2 id="searchTitle" data-i18n="search.title">Rechercher</h2>
+            <button type="button" class="icon-btn" data-close-dialog data-i18n-attr="aria-label:account.close"
+                aria-label="Fermer">
+                <svg class="icon" aria-hidden="true">
+                    <use href="#i-close" />
+                </svg>
+            </button>
+        </div>
+        <form class="search-form" id="searchForm" role="search">
+            <label class="visually-hidden" for="searchInput" data-i18n="search.label">Rechercher une coupe ou une
+                prestation</label>
+            <svg class="icon search-form-icon" aria-hidden="true">
+                <use href="#i-search" />
+            </svg>
+            <input type="search" id="searchInput" class="field" autocomplete="off" enterkeyhint="search"
+                data-i18n-attr="placeholder:search.placeholder" placeholder="Dégradé, barbe, enfant…">
+        </form>
+        <p class="form-message is-error sheet-error" role="alert" hidden></p>
+        <div id="searchResults" aria-live="polite"></div>
+    </dialog>
 
     <!-- Sign in / sign up: full-screen welcome with the barber chair -->
     <div class="auth-screen" id="authScreen" role="dialog" aria-modal="true" aria-labelledby="authScreenTitle" hidden>

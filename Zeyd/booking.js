@@ -587,6 +587,15 @@ function initAccountDialog() {
     });
 }
 
+// Bottom bar « Profil » and « Mes RDV »: the account dialog, scrolled to the bookings for « Mes RDV »;
+// the welcome / sign-in screen when signed out
+export function openAccountPanel(section = 'profile') {
+    openAccount('choices');
+    if (section === 'bookings' && state.user) {
+        requestAnimationFrame(() => $('myBookings')?.previousElementSibling?.scrollIntoView({ block: 'start' }));
+    }
+}
+
 function openAccount(mode) {
     if (!state.user) {
         showAuthScreen(mode ?? 'choices');
