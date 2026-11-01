@@ -4298,3 +4298,24 @@ body.has-overlay {
         transform: none;
     }
 }
+
+/* Wide screens only (laptops and desktops, 75em = 1200px and up): the site and the dashboard use the whole
+   width of the window with even side margins. Phones and tablets keep the layout above unchanged. Text
+   blocks keep their own max-width, so lines stay readable. */
+@media (min-width: 75em) {
+    :root {
+        --container: none;
+        --wide-gutter: clamp(2rem, 4vw, 5rem);
+    }
+
+    .container {
+        padding-inline: var(--wide-gutter);
+    }
+
+    .admin-header-inner,
+    .admin-tabs,
+    .admin-main {
+        max-width: none;
+        padding-inline: var(--wide-gutter);
+    }
+}
