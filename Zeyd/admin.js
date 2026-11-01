@@ -2,6 +2,7 @@
 // that verify the role): this page only shows what the signed-in account is allowed to do.
 import { at } from './admin-i18n.js';
 import { cameraErrorKey, cameraUnavailable } from './camera.js';
+import { confirmDialog } from './confirmDialog.js';
 import { createHoldButton } from './holdButton.js';
 import { renderLoyaltyCard } from './loyalty.js';
 import { getSupabase } from './supabaseClient.js';
@@ -224,6 +225,13 @@ async function openDashboard(supabase, session) {
     $('adminTabs').hidden = false;
     $('adminSignOut').hidden = false;
     $('adminSignOut').addEventListener('click', async () => {
+        // Signing out only ends the session on this device: bookings are not touched
+        const confirmed = await confirmDialog({
+            message: at(state.lang, 'header.signOutConfirm'),
+            ok: at(state.lang, 'common.ok'),
+            cancel: at(state.lang, 'common.cancel'),
+        });
+        if (!confirmed) return;
         await supabase.auth.signOut();
         location.href = 'index.html';
     });

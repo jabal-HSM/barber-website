@@ -23,6 +23,7 @@ import {
     startCheckout,
 } from './api.js';
 import { cleanAuthUrl, parseAuthRedirect } from './authRedirect.js';
+import { confirmDialog } from './confirmDialog.js';
 import { createHoldButton } from './holdButton.js';
 import { t } from './i18n.js';
 import { renderLoyaltyCard, renderQrCode } from './loyalty.js';
@@ -565,6 +566,13 @@ function initAccountDialog() {
         if (e.target === dialog) dialog.close();
     });
     $('signOutBtn').addEventListener('click', async () => {
+        // Signing out only ends the session on this device: bookings are not touched
+        const confirmed = await confirmDialog({
+            message: t(state.lang, 'account.signOutConfirm'),
+            ok: t(state.lang, 'common.ok'),
+            cancel: t(state.lang, 'common.cancel'),
+        });
+        if (!confirmed) return;
         await signOut();
         setMessage('accountMessage', null);
         dialog.close();

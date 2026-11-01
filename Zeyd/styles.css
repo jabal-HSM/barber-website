@@ -4395,3 +4395,15 @@ body.has-overlay {
     width: auto;
     height: 86%;
 }
+
+/* « OK / Annuler » question (confirmDialog.js), in the QR window style */
+.confirm-dialog-text {
+    margin-bottom: var(--space-5);
+    font-weight: 600;
+}
+
+.confirm-dialog-actions {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-3);
+}
