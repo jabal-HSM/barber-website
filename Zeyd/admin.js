@@ -2157,7 +2157,7 @@ async function toggleCustomerDetails(c, item) {
             button(at(state.lang, 'customers.saveNote'), 'btn btn-ghost btn-sm', async () => {
                 const value = text.value.trim();
                 const { error } = value
-                    ? await sb.from('customer_notes').upsert({ customer_id: c.id, note: value })
+                    ? await saveCustomerNote(sb, c.id, value)
                     : await sb.from('customer_notes').delete().eq('customer_id', c.id);
                 setMessage(
                     'customersMessage',
@@ -2167,6 +2167,21 @@ async function toggleCustomerDetails(c, item) {
             }),
         );
     }
+}
+
+// Staff may only change the note column of customer_notes: an upsert also sets customer_id on conflict
+// and is refused (42501), so the existing note is updated, or a new one inserted. Success only when the
+// database returns the saved row.
+async function saveCustomerNote(sb, customerId, note) {
+    const updated = await sb
+        .from('customer_notes')
+        .update({ note })
+        .eq('customer_id', customerId)
+        .select('customer_id');
+    if (updated.error || updated.data?.length) return updated;
+    const inserted = await sb.from('customer_notes').insert({ customer_id: customerId, note }).select('customer_id');
+    if (!inserted.error && !inserted.data?.length) return { error: { message: 'forbidden' } };
+    return inserted;
 }
 
 // --- Settings (admin only, enforced by RLS) ---
