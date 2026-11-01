@@ -184,11 +184,13 @@ function onScroll() {
 }
 
 // Deliberate actions that get the short "tap": external links (Maps, WhatsApp, Instagram), section links,
-// menu button. The theme button has its own sound; form fields and typing never make a sound.
+// menu button, tabs of the phone bottom bar. The theme button has its own sound; form fields and typing never
+// make a sound.
 const TAP_SELECTOR = [
     'a[href^="http"]',
     'a[href^="#"]',
     '#menuToggleBtn',
+    '.tabbar-tab',
     '[data-open-account]',
     '.lang-btn',
     '.auth-btn',
