@@ -1381,7 +1381,13 @@ function renderCustomerCard(card) {
     const confirm = button(at(state.lang, 'loyalty.confirmVisit'), 'btn btn-primary', async () => {
         confirm.disabled = true;
         const { data, error } = await state.supabase.rpc('loyalty_confirm_visit', { p_code: state.loyaltyCode });
-        if (error) setMessage('loyaltyMessage', 'error', errorKey(error));
+        // 50 hours between two stamps: the database gives the time of the next possible stamp in the hint
+        if (error?.message === 'cooldown_active' && error.hint)
+            setMessage('loyaltyMessage', 'error', 'error.cooldown_active', {
+                date: formatDateOf(error.hint, state.lang),
+                time: formatTime(error.hint),
+            });
+        else if (error) setMessage('loyaltyMessage', 'error', errorKey(error));
         else if (data?.[0]?.reward_earned) setMessage('loyaltyMessage', 'success', 'loyalty.rewardEarned');
         else
             setMessage('loyaltyMessage', 'success', 'loyalty.visitConfirmed', {

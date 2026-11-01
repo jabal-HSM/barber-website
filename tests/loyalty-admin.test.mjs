@@ -4,8 +4,12 @@ import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 import { as, createDb, rows, signUp } from './helpers.mjs';
 
+// Simulates a visit 3 days later: clear of the once-per-day rule and of the 50-hour wait between stamps
 const shiftVisitsBack = (db, customer) =>
-    db.query('update public.loyalty_visits set visit_date = visit_date - 1 where customer_id = $1', [customer]);
+    db.query(
+        "update public.loyalty_visits set visit_date = visit_date - 3, created_at = created_at - interval '3 days' where customer_id = $1",
+        [customer],
+    );
 
 describe('loyalty tools for Zeyd', () => {
     let db;
@@ -71,8 +75,8 @@ describe('loyalty tools for Zeyd', () => {
     test('scanning the same QR code twice the same day counts one visit (no replay)', async () => {
         await as(db, zeyd, async () => {
             await db.query('select * from public.loyalty_confirm_visit($1)', [qr]);
-            await assert.rejects(db.query('select * from public.loyalty_confirm_visit($1)', [qr]), /already_counted/);
-            await assert.rejects(db.query('select * from public.loyalty_confirm_visit($1)', [code]), /already_counted/);
+            await assert.rejects(db.query('select * from public.loyalty_confirm_visit($1)', [qr]), /cooldown_active/);
+            await assert.rejects(db.query('select * from public.loyalty_confirm_visit($1)', [code]), /cooldown_active/);
         });
         const [card] = await rows(db, 'select stamps_total from public.loyalty_cards where customer_id = $1', [alice]);
         assert.equal(card.stamps_total, 1);

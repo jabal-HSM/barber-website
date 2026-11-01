@@ -418,6 +418,8 @@ export const adminTranslations = {
         'error.invalid_time': 'Horaire de fin manquant.',
         'error.invalid_code': 'QR code ou code client invalide.',
         'error.already_counted': 'Cette visite est déjà enregistrée aujourd’hui.',
+        'error.cooldown_active':
+            'Un point a déjà été donné à ce client il y a moins de 50 heures. Prochain point possible le {date} à {time}.',
         'error.no_reward': 'Aucune coupe offerte disponible pour ce client.',
         'error.invalid_booking': 'Ce rendez-vous n’appartient pas à ce client.',
         'error.cannot_change_own_role': 'Vous ne pouvez pas changer votre propre rôle.',
@@ -834,6 +836,8 @@ export const adminTranslations = {
         'error.invalid_time': 'وقت النهاية غير محدد.',
         'error.invalid_code': 'رمز QR أو رمز الزبون غير صالح.',
         'error.already_counted': 'هذه الزيارة مسجّلة اليوم مسبقاً.',
+        'error.cooldown_active':
+            'أُضيفت نقطة لهذا الزبون قبل أقل من 50 ساعة. يمكن إضافة النقطة التالية يوم {date} الساعة {time}.',
         'error.no_reward': 'لا توجد قصّة مجانية متاحة لهذا الزبون.',
         'error.invalid_booking': 'هذا الموعد لا يخص هذا الزبون.',
         'error.cannot_change_own_role': 'لا يمكنك تغيير دورك بنفسك.',
