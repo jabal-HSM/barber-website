@@ -1,6 +1,7 @@
 // Small « OK / Cancel » question in a modal <dialog>, styled like the QR window (.qr-dialog).
 // Resolves true for OK; false for Cancel, Escape or a click outside the panel.
-export function confirmDialog({ message, ok, cancel }) {
+// cancelIcon: an ✕ before the cancel label (#i-close of the page's icon sprite).
+export function confirmDialog({ message, ok, cancel, cancelIcon = false }) {
     return new Promise((resolve) => {
         const dialog = document.createElement('dialog');
         dialog.className = 'qr-dialog confirm-dialog';
@@ -19,6 +20,15 @@ export function confirmDialog({ message, ok, cancel }) {
             return b;
         };
         const no = button(cancel, 'btn btn-ghost btn-sm', 'cancel');
+        if (cancelIcon) {
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('class', 'icon');
+            svg.setAttribute('aria-hidden', 'true');
+            const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+            use.setAttribute('href', '#i-close');
+            svg.append(use);
+            no.prepend(svg);
+        }
         const yes = button(ok, 'btn btn-primary btn-sm', 'ok');
         const actions = document.createElement('div');
         actions.className = 'confirm-dialog-actions';

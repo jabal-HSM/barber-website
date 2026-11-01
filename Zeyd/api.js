@@ -268,6 +268,32 @@ export async function fetchMyBookings(userId) {
     return error ? null : data;
 }
 
+// --- Own profile (name and photo of « Profil »). RLS: a customer reads and updates only their own row, and only
+// full_name / avatar_url / preferred_lang can be written; the role never. ---
+export async function fetchMyProfile(userId) {
+    const supabase = await getSupabase();
+    if (!supabase || !userId) return null;
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, avatar_url')
+        .eq('id', userId)
+        .maybeSingle();
+    return error ? null : data;
+}
+
+// Success only when the database returns the saved row
+export async function updateMyProfile(userId, change) {
+    const supabase = await getSupabase();
+    if (!supabase) return NO_BACKEND;
+    const { data, error } = await supabase
+        .from('profiles')
+        .update(change)
+        .eq('id', userId)
+        .select('full_name, avatar_url');
+    if (error) return { data: null, error };
+    return data?.length ? { data: data[0], error: null } : { data: null, error: { message: 'forbidden' } };
+}
+
 // --- Likes (one per user and photo; the database rejects duplicates and anonymous likes) ---
 export async function likeHaircut(haircutId) {
     const supabase = await getSupabase();

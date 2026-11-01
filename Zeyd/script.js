@@ -10,6 +10,7 @@ import { initBottomNav } from './bottomNav.js';
 import { MIN_QUERY_LENGTH, searchCatalog } from './catalogSearch.js';
 import { GALLERY, SERVICES } from './data.js';
 import { DEFAULT_LANG, LANGUAGES, t } from './i18n.js';
+import { closePages, initOverlays } from './overlays.js';
 import { initSound, playThemeSound } from './sound.js';
 
 // Same storage keys as the previous version, so saved preferences are kept.
@@ -51,6 +52,7 @@ function writePref(key, value) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    initOverlays();
     initTheme();
     initLanguage();
     initMenu();
@@ -150,6 +152,14 @@ function initTheme() {
         // Only a deliberate, real change makes the "switch" sound (never the theme restored at load)
         if (root.dataset.theme !== before) playThemeSound();
     });
+    // Same choice from « Profil » (switch « Mode sombre »)
+    for (const input of document.querySelectorAll('[data-theme-switch]')) {
+        input.addEventListener('change', () => {
+            setTheme(input.checked ? 'dark' : 'light');
+            writePref(STORAGE_KEYS.theme, root.dataset.theme);
+            playThemeSound();
+        });
+    }
 }
 
 function setTheme(theme) {
@@ -163,9 +173,10 @@ function setTheme(theme) {
 }
 
 function updateThemeButton() {
+    const isDark = root.dataset.theme === 'dark';
+    for (const input of document.querySelectorAll('[data-theme-switch]')) input.checked = isDark;
     const btn = document.getElementById('themeToggleBtn');
     if (!btn) return;
-    const isDark = root.dataset.theme === 'dark';
     const label = t(currentLang, isDark ? 'a11y.themeToLight' : 'a11y.themeToDark');
     btn.setAttribute('aria-pressed', String(isDark));
     btn.setAttribute('aria-label', label);
@@ -524,21 +535,36 @@ function initBottomBar() {
         onSelect: (tab) => {
             if (tab === 'home') {
                 closeSheets();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                closePages();
+                // After overlays.js has put the page back where it was
+                setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
             } else if (tab === 'profile' || tab === 'bookings') {
                 closeSheets();
                 openAccountPanel(tab);
             } else if (tab === 'favorites') {
+                closePages();
                 openSheet('favoritesDialog');
             } else if (tab === 'search') {
+                closePages();
                 openSheet('searchDialog');
             }
         },
     });
     const backHome = () => bottomNav?.select('home');
-    for (const id of [...SHEETS, 'accountDialog']) {
+    // A sheet or a page closed (button, back button, Escape): back to « Accueil », unless another one is open
+    const anyOpen = () =>
+        SHEETS.some((id) => document.getElementById(id)?.open) ||
+        ['profilePage', 'bookingsPage'].some((id) => document.getElementById(id)?.hidden === false);
+    for (const id of ['profilePage', 'bookingsPage']) {
+        document.getElementById(id)?.addEventListener('layer:close', () => {
+            if (!anyOpen()) backHome();
+        });
+    }
+    for (const id of SHEETS) {
         const dialog = document.getElementById(id);
-        dialog?.addEventListener('close', backHome);
+        dialog?.addEventListener('close', () => {
+            if (!anyOpen()) backHome();
+        });
         // Click on the backdrop closes the sheet
         dialog?.addEventListener('click', (e) => {
             if (e.target === dialog && SHEETS.includes(id)) dialog.close();
@@ -551,7 +577,7 @@ function initBottomBar() {
     const authScreen = document.getElementById('authScreen');
     if (authScreen) {
         new MutationObserver(() => {
-            if (authScreen.hidden && !document.getElementById('accountDialog')?.open) backHome();
+            if (authScreen.hidden && !anyOpen()) backHome();
         }).observe(authScreen, { attributes: true, attributeFilter: ['hidden'] });
     }
     document.getElementById('searchForm')?.addEventListener('submit', (e) => e.preventDefault());

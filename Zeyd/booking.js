@@ -27,6 +27,8 @@ import { confirmDialog } from './confirmDialog.js';
 import { createHoldButton } from './holdButton.js';
 import { t } from './i18n.js';
 import { renderLoyaltyCard, renderQrCode } from './loyalty.js';
+import { closePages, openPage } from './overlays.js';
+import { initProfilePage, loadProfile, renderProfileLanguage } from './profilePage.js';
 import { buildSlotGrid } from './slotGrid.js';
 import { adoptSoundPrefs, getSoundPrefs, onSoundPrefsChange } from './sound.js';
 import { mergeSoundPrefs, samePrefs } from './soundCore.js';
@@ -119,7 +121,7 @@ export async function initBooking({ lang, services, priceFormatter }) {
     $('bookingForm')?.addEventListener('submit', onBookingSubmit);
     $('customForm')?.addEventListener('submit', onCustomSubmit);
     initAuthScreen();
-    initAccountDialog();
+    initAccountPages();
     initCancelDialog();
     // A change made while signed in is saved to the account too (debounced: one request per burst of clicks)
     onSoundPrefsChange((prefs, source) => {
@@ -161,6 +163,8 @@ export function setBookingLanguage(lang) {
     renderLoyalty();
     renderCancelDialog();
     renderReschedule();
+    renderProfileLanguage();
+    $('signOutBtn')?.setLabels?.(signOutLabels());
     for (const id of Object.keys(state.messages)) renderMessage(id);
 }
 
@@ -554,30 +558,36 @@ function confirmFailed() {
     setMessage('authMessage', 'success', 'auth.accountConfirmed');
 }
 
-// --- Account dialog (signed in) ---
-function initAccountDialog() {
-    const dialog = $('accountDialog');
-    if (!dialog) return;
+// --- « Profil » and « Mes RDV » pages (signed in; opened and closed through overlays.js) ---
+const signOutLabels = () => ({
+    label: t(state.lang, 'account.signOutHold'),
+    holdingLabel: t(state.lang, 'account.signOutHolding'),
+    busyLabel: t(state.lang, 'account.signOutBusy'),
+    hint: t(state.lang, 'account.signOutHint'),
+});
+
+function initAccountPages() {
+    if (!$('profilePage')) return;
     document.querySelectorAll('[data-open-account]').forEach((btn) => {
         btn.addEventListener('click', () => openAccount());
     });
-    $('accountCloseBtn').addEventListener('click', () => dialog.close());
-    // Click on the backdrop closes the dialog
-    dialog.addEventListener('click', (e) => {
-        if (e.target === dialog) dialog.close();
+    document.querySelectorAll('[data-open-bookings]').forEach((btn) => {
+        btn.addEventListener('click', () => openAccountPanel('bookings'));
     });
-    $('signOutBtn').addEventListener('click', async () => {
-        // Signing out only ends the session on this device: bookings are not touched
-        const confirmed = await confirmDialog({
-            message: t(state.lang, 'account.signOutConfirm'),
-            ok: t(state.lang, 'common.ok'),
-            cancel: t(state.lang, 'common.cancel'),
-        });
-        if (!confirmed) return;
-        await signOut();
-        setMessage('accountMessage', null);
-        dialog.close();
+    initProfilePage({
+        getUser: () => state.user,
+        t: (key, params) => t(state.lang, key, params),
+        setMessage,
     });
+    // Sign out: hold the button, then confirm. Only the session of this device ends; bookings stay saved.
+    const hold = createHoldButton({
+        ...signOutLabels(),
+        className: 'btn btn-signout',
+        duration: 900,
+        onConfirm: confirmSignOut,
+    });
+    hold.id = 'signOutBtn';
+    $('signOutBtn').replaceWith(hold);
     $('loyaltyQrBtn').addEventListener('click', openQr);
     const qrDialog = $('qrDialog');
     $('qrCloseBtn').addEventListener('click', () => qrDialog.close());
@@ -587,12 +597,36 @@ function initAccountDialog() {
     });
 }
 
-// Bottom bar « Profil » and « Mes RDV »: the account dialog, scrolled to the bookings for « Mes RDV »;
+// Returns false when the person chose « Annuler »: the hold button is then ready again
+async function confirmSignOut() {
+    const confirmed = await confirmDialog({
+        message: t(state.lang, 'account.signOutConfirm'),
+        ok: t(state.lang, 'common.yes'),
+        cancel: t(state.lang, 'common.cancel'),
+        cancelIcon: true,
+    });
+    if (!confirmed) return false;
+    await signOut();
+    setMessage('profileMessage', null);
+    setMessage('accountMessage', null);
+    closePages();
+    return true;
+}
+
+// « Profil » (bottom bar, or « Mon compte » on wide screens) and « Mes RDV »: two separate full-screen pages;
 // the welcome / sign-in screen when signed out
 export function openAccountPanel(section = 'profile') {
-    openAccount('choices');
-    if (section === 'bookings' && state.user) {
-        requestAnimationFrame(() => $('myBookings')?.previousElementSibling?.scrollIntoView({ block: 'start' }));
+    if (!state.user) {
+        showAuthScreen('choices');
+        return;
+    }
+    if (section === 'bookings') {
+        openPage('bookingsPage');
+        loadMyBookings();
+    } else {
+        openPage('profilePage');
+        loadProfile();
+        loadLoyalty();
     }
 }
 
@@ -601,10 +635,7 @@ function openAccount(mode) {
         showAuthScreen(mode ?? 'choices');
         return;
     }
-    const dialog = $('accountDialog');
-    if (!dialog.open) dialog.showModal();
-    loadMyBookings();
-    loadLoyalty();
+    openAccountPanel('profile');
 }
 
 function onUserChange(user) {
@@ -629,13 +660,14 @@ function onUserChange(user) {
         history.replaceState(null, '', cleanAuthUrl(location.pathname, location.search));
         hideAuthScreen();
         openAccount();
-        setMessage('accountMessage', 'success', 'account.emailConfirmed');
+        setMessage('profileMessage', 'success', 'account.emailConfirmed');
         return;
     }
     if (user) {
         hideAuthScreen();
         loadMyBookings();
         loadLoyalty();
+        loadProfile();
     } else if (state.confirmPending) {
         // The link carried a session that could not be restored
         confirmFailed();
@@ -647,7 +679,7 @@ function onUserChange(user) {
         if ($('qrDialog')?.open) $('qrDialog').close();
         renderBookings();
         renderLoyalty();
-        if ($('accountDialog')?.open) $('accountDialog').close();
+        closePages();
         // First visit: welcome screen once (only when accounts can actually be used)
         // (not over the sign-in form already opened by a confirmation link)
         if (firstCall && returnTo()) showAuthScreen('signin');
@@ -823,7 +855,7 @@ function startRescheduling() {
     }
     state.rescheduling = { booking, details: $('cancelDetails').value.trim() };
     $('cancelDialog').close();
-    if ($('accountDialog')?.open) $('accountDialog').close();
+    closePages();
     state.serviceId = service.id;
     state.slot = null;
     state.autoAdvanceDay = true;

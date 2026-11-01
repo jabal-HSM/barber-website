@@ -4475,12 +4475,15 @@ body.has-overlay {
     /* Room for the bar, so it never hides the end of the page or the booking button; scrolling to an element
        (links, scrollIntoView, focus) also stops above the bar */
     /* Only on pages that have the bar (not admin.html, which shares this stylesheet) */
+    /* The room is inside the dark footer (not under it), and the page background below the footer is the
+       footer colour too: no beige or grey band at the bottom, also when iOS bounces past the end */
     html:has(.tabbar) {
         scroll-padding-bottom: calc(var(--tabbar-rise) + var(--tabbar-body) + env(safe-area-inset-bottom));
+        background: var(--color-footer-bg);
     }
 
-    body:has(> .tabbar) {
-        padding-bottom: calc(var(--tabbar-rise) + var(--tabbar-body) + env(safe-area-inset-bottom) + var(--space-3));
+    body:has(> .tabbar) .footer-bottom {
+        padding-bottom: calc(var(--space-5) + var(--tabbar-rise) + var(--tabbar-body) + env(safe-area-inset-bottom));
     }
 
     /* The bar replaces the account shortcuts of the header on phones; the account stays under « Profil » */
@@ -4762,4 +4765,349 @@ body.has-overlay {
 
 .admin-password-step[hidden] {
     display: none;
+}
+
+/* ==========================================================================
+   Footer layout: section links as balanced pills, contact as buttons with icons, hours in a small card
+   ========================================================================== */
+.footer-links,
+.footer-social {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.footer-links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.footer-links a,
+.footer-social a {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 2.75rem;
+    padding: 0 var(--space-3);
+    border: 1px solid rgb(235 230 218 / 16%);
+    border-radius: var(--radius-pill);
+    background: rgb(255 255 255 / 4%);
+    font-size: var(--text-sm);
+    font-weight: 600;
+}
+
+.footer-links a:hover,
+.footer-social a:hover {
+    border-color: rgb(235 230 218 / 40%);
+    background: rgb(255 255 255 / 8%);
+    text-decoration: none;
+}
+
+.footer-social svg {
+    width: 1.1rem;
+    height: 1.1rem;
+}
+
+.footer-hours {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid rgb(235 230 218 / 16%);
+    border-radius: var(--radius-md);
+    background: rgb(255 255 255 / 4%);
+}
+
+.footer-col .footer-hours li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-weight: 600;
+}
+
+.footer-col .footer-links li + li,
+.footer-col .footer-social li + li,
+.footer-col .footer-hours li + li {
+    margin-top: 0;
+}
+
+.footer-hours .is-break {
+    color: var(--color-footer-muted);
+    font-weight: 400;
+}
+
+.footer-hours-dot {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: #7fd1a5;
+}
+
+/* ==========================================================================
+   Windows: on phones they use the screen, the page behind is dimmed and blurred, and only the content of the
+   window scrolls (the page behind is locked by overlays.js and comes back to the same place)
+   ========================================================================== */
+html.is-scroll-locked {
+    overflow: hidden;
+}
+
+.dialog,
+.qr-dialog {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.dialog::backdrop {
+    background: rgb(8 12 11 / 72%);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+}
+
+@media (max-width: 47.99em) {
+    .dialog {
+        width: calc(100% - 1rem);
+        max-height: calc(100dvh - 1rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    }
+
+    .qr-dialog {
+        width: calc(100% - 1.5rem);
+        max-height: calc(100dvh - 1.5rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    }
+}
+
+/* ==========================================================================
+   « Profil » and « Mes RDV »: full-screen pages, black with quiet gold. The bottom bar stays above them
+   (z-index 150 > 140); the site tokens are redefined inside so the existing parts (bookings, loyalty card,
+   forms, switches) follow the dark look.
+   ========================================================================== */
+.app-page {
+    --page-gold: #c9a45c;
+    --page-gold-soft: rgb(201 164 92 / 18%);
+    --color-bg: #0a0a0c;
+    --color-bg-alt: #0f0f12;
+    --color-surface: #141418;
+    --color-surface-muted: #1b1b21;
+    --color-text: #f2eee6;
+    --color-text-muted: #aaa497;
+    --color-heading: #f7f0e1;
+    --color-secondary: #3a3a42;
+    --color-accent: #c9a45c;
+    --color-accent-soft: rgb(201 164 92 / 14%);
+    --color-danger: #ff9b93;
+    --color-danger-soft: rgb(226 104 104 / 14%);
+    --color-border: rgb(255 255 255 / 9%);
+    --color-border-strong: rgb(201 164 92 / 35%);
+    --color-primary: #c9a45c;
+    --color-primary-hover: #dab874;
+    --color-on-primary: #15120b;
+    --color-link: #dab874;
+    --color-focus: #e6c98a;
+
+    position: fixed;
+    inset: 0;
+    z-index: 140;
+    display: flex;
+    flex-direction: column;
+    background: radial-gradient(120% 60% at 50% 0%, rgb(201 164 92 / 10%), transparent 60%), #0a0a0c;
+    color: var(--color-text);
+}
+
+.app-page[hidden] {
+    display: none;
+}
+
+.app-page:focus {
+    outline: none;
+}
+
+.app-page-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: calc(env(safe-area-inset-top) + var(--space-4)) max(var(--space-5), calc((100% - 40rem) / 2))
+        var(--space-3);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.app-page .app-page-head h2 {
+    color: #f7f0e1;
+    font-size: var(--text-xl);
+}
+
+.app-page-close {
+    border-color: var(--page-gold-soft);
+    background: rgb(255 255 255 / 5%);
+    color: var(--color-text);
+}
+
+.app-page-body {
+    display: grid;
+    flex: 1;
+    align-content: start;
+    gap: var(--space-4);
+    min-height: 0;
+    padding: var(--space-5) max(var(--space-5), calc((100% - 40rem) / 2))
+        calc(var(--space-6) + env(safe-area-inset-bottom));
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.profile-hero {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-2);
+    padding: var(--space-6) var(--space-4) var(--space-5);
+    border: 1px solid var(--page-gold-soft);
+    border-radius: var(--radius-lg);
+    background: linear-gradient(160deg, #18181d, #0e0e11);
+    text-align: center;
+}
+
+.profile-avatar {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 6rem;
+    height: 6rem;
+    padding: 0;
+    border: 2px solid var(--page-gold);
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #26262d, #111114);
+    color: var(--page-gold);
+    cursor: pointer;
+}
+
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-avatar img[hidden],
+.profile-avatar-icon[hidden] {
+    display: none;
+}
+
+.profile-avatar-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    stroke-width: 1.4;
+}
+
+.profile-avatar-camera {
+    position: absolute;
+    bottom: 0;
+    inset-inline-end: 0;
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: var(--page-gold);
+    box-shadow: 0 0 0 3px #0a0a0c;
+    color: #15120b;
+}
+
+.profile-avatar-camera svg {
+    width: 1.05rem;
+    height: 1.05rem;
+}
+
+.profile-name {
+    margin-top: var(--space-2);
+    color: #f7f0e1;
+    font-size: var(--text-lg);
+    font-weight: 700;
+}
+
+.profile-email {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}
+
+.profile-card {
+    display: grid;
+    gap: var(--space-3);
+    min-width: 0;
+    margin: 0;
+    padding: var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+}
+
+.profile-card-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0;
+    color: #f7f0e1;
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: 700;
+}
+
+.profile-card-title svg {
+    color: var(--page-gold);
+}
+
+fieldset.profile-card > legend {
+    float: inline-start;
+    width: 100%;
+    margin-bottom: var(--space-1);
+}
+
+fieldset.profile-card > legend + * {
+    clear: both;
+}
+
+.profile-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.profile-volume {
+    display: grid;
+    gap: var(--space-2);
+    font-weight: 600;
+}
+
+.profile-volume input {
+    width: 100%;
+    accent-color: var(--page-gold);
+}
+
+.profile-password-step {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.profile-password-step[hidden] {
+    display: none;
+}
+
+.profile-bookings-link {
+    justify-content: center;
+}
+
+.btn-signout {
+    width: 100%;
+    border: 1px solid rgb(226 104 104 / 45%);
+    background: rgb(226 104 104 / 10%);
+    color: #ffb8b8;
+}
+
+@media (max-width: 47.99em) {
+    /* Room for the bottom bar at the end of each page */
+    .app-page-body {
+        padding-bottom: calc(var(--tabbar-rise) + var(--tabbar-body) + env(safe-area-inset-bottom) + var(--space-5));
+    }
+
+    /* On phones « Mes RDV » is in the bottom bar */
+    .profile-bookings-link {
+        display: none;
+    }
 }

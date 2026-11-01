@@ -47,7 +47,7 @@ export function getSoundPrefs() {
     return { ...prefs };
 }
 
-// change = one or more of { enabled, scroll, theme }, chosen by the person
+// change = one or more of { enabled, scroll, theme, volume }, chosen by the person
 export function setSoundPrefs(change) {
     prefs = normalizeSoundPrefs({ ...prefs, ...change, updatedAt: Date.now() });
     applyPrefs('local');
@@ -108,7 +108,7 @@ function play(name, gainValue, rate = 1) {
         source.buffer = buffers[name];
         source.playbackRate.value = rate;
         const gain = ctx.createGain();
-        gain.gain.value = gainValue;
+        gain.gain.value = gainValue * prefs.volume;
         source.connect(gain).connect(ctx.destination);
         source.start();
         return source;
@@ -204,11 +204,12 @@ function onClick(event) {
     playTap();
 }
 
-// --- Settings (switches in the account dialog and in the footer) ---
+// --- Settings (switches and volume slider in « Profil », switch in the footer) ---
 function renderSettings() {
     for (const input of document.querySelectorAll('[data-sound-pref]')) {
         const key = input.dataset.soundPref;
-        input.checked = Boolean(prefs[key]);
+        if (input.type === 'range') input.value = String(Math.round(prefs.volume * 100));
+        else input.checked = Boolean(prefs[key]);
         input.disabled = key !== 'enabled' && !prefs.enabled;
     }
 }
@@ -216,6 +217,12 @@ function renderSettings() {
 function onSettingChange(event) {
     const input = event.target.closest?.('[data-sound-pref]');
     if (!input) return;
+    if (input.type === 'range') {
+        setSoundPrefs({ volume: Number(input.value) / 100 });
+        ensureAudio();
+        if (event.type === 'change') playTap(); // a short sample of the chosen level
+        return;
+    }
     setSoundPrefs({ [input.dataset.soundPref]: input.checked });
     if (input.checked) ensureAudio();
 }
@@ -231,6 +238,9 @@ export function initSound() {
     }
     document.addEventListener('click', onClick, { capture: true, passive: true });
     document.addEventListener('change', onSettingChange);
+    document.addEventListener('input', (event) => {
+        if (event.target.matches?.('input[type="range"][data-sound-pref]')) onSettingChange(event);
+    });
     window.addEventListener('scroll', onScroll, { passive: true });
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {

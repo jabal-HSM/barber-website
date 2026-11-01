@@ -1,18 +1,21 @@
 // Sound logic without the browser: preferences and the scroll "tick" timing (tested in tests/sound.test.mjs).
 // Playback itself is in sound.js.
 
-// enabled = all interface sounds; scroll and theme can be turned off on their own.
+// enabled = all interface sounds (off = muted); scroll and theme can be turned off on their own.
+// volume = 0…1, applied to every sound.
 // updatedAt = when the person last changed them (0 = never, i.e. the defaults).
-export const DEFAULT_SOUND_PREFS = Object.freeze({ enabled: true, scroll: true, theme: true, updatedAt: 0 });
+export const DEFAULT_SOUND_PREFS = Object.freeze({ enabled: true, scroll: true, theme: true, volume: 1, updatedAt: 0 });
 
 export function normalizeSoundPrefs(raw) {
     const prefs = raw && typeof raw === 'object' ? raw : {};
     const flag = (value, fallback) => (typeof value === 'boolean' ? value : fallback);
     const updatedAt = Number(prefs.updatedAt);
+    const volume = Number(prefs.volume);
     return {
         enabled: flag(prefs.enabled, DEFAULT_SOUND_PREFS.enabled),
         scroll: flag(prefs.scroll, DEFAULT_SOUND_PREFS.scroll),
         theme: flag(prefs.theme, DEFAULT_SOUND_PREFS.theme),
+        volume: Number.isFinite(volume) ? Math.min(Math.max(volume, 0), 1) : DEFAULT_SOUND_PREFS.volume,
         updatedAt: Number.isFinite(updatedAt) && updatedAt > 0 ? updatedAt : 0,
     };
 }
@@ -28,6 +31,7 @@ export function mergeSoundPrefs(local, remote) {
         enabled: a.enabled && b.enabled,
         scroll: a.scroll && b.scroll,
         theme: a.theme && b.theme,
+        volume: Math.min(a.volume, b.volume),
         updatedAt: a.updatedAt,
     };
 }
@@ -35,12 +39,18 @@ export function mergeSoundPrefs(local, remote) {
 export function samePrefs(a, b) {
     const x = normalizeSoundPrefs(a);
     const y = normalizeSoundPrefs(b);
-    return x.enabled === y.enabled && x.scroll === y.scroll && x.theme === y.theme && x.updatedAt === y.updatedAt;
+    return (
+        x.enabled === y.enabled &&
+        x.scroll === y.scroll &&
+        x.theme === y.theme &&
+        x.volume === y.volume &&
+        x.updatedAt === y.updatedAt
+    );
 }
 
 export function canPlay(prefs, kind) {
     const p = normalizeSoundPrefs(prefs);
-    if (!p.enabled) return false;
+    if (!p.enabled || p.volume === 0) return false;
     if (kind === 'scroll') return p.scroll;
     if (kind === 'theme') return p.theme;
     return true;

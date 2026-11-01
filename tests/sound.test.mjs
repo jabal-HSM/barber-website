@@ -16,8 +16,20 @@ test('missing or broken preferences fall back to the defaults', () => {
         enabled: true,
         scroll: false,
         theme: true,
+        volume: 1,
         updatedAt: 0,
     });
+});
+
+test('volume: from 0 to 1, out-of-range values are brought back, 0 plays nothing', () => {
+    assert.equal(normalizeSoundPrefs({ volume: 0.4 }).volume, 0.4);
+    assert.equal(normalizeSoundPrefs({ volume: 7 }).volume, 1);
+    assert.equal(normalizeSoundPrefs({ volume: -1 }).volume, 0);
+    assert.equal(normalizeSoundPrefs({ volume: 'loud' }).volume, 1);
+    assert.equal(canPlay({ enabled: true, volume: 0 }, 'tap'), false);
+    assert.equal(canPlay({ enabled: true, volume: 0.05 }, 'tap'), true);
+    const tie = mergeSoundPrefs({ volume: 0.3, updatedAt: 9 }, { volume: 0.8, updatedAt: 9 });
+    assert.equal(tie.volume, 0.3, 'on a tie the quieter level wins');
 });
 
 test('turning interface sounds off silences every kind; each kind can also be off alone', () => {
@@ -42,7 +54,7 @@ test('the most recent explicit choice wins between this browser and the account'
 });
 
 test('defaults never override a choice, and on a tie a sound turned off stays off', () => {
-    const choice = { enabled: true, scroll: false, theme: true, updatedAt: 1000 };
+    const choice = { enabled: true, scroll: false, theme: true, volume: 1, updatedAt: 1000 };
     assert.deepEqual(mergeSoundPrefs(DEFAULT_SOUND_PREFS, choice), choice);
     assert.deepEqual(mergeSoundPrefs(choice, DEFAULT_SOUND_PREFS), choice);
     assert.deepEqual(mergeSoundPrefs(choice, null), choice);
@@ -50,7 +62,7 @@ test('defaults never override a choice, and on a tie a sound turned off stays of
         { enabled: true, scroll: false, theme: true, updatedAt: 7 },
         { enabled: true, scroll: true, theme: false, updatedAt: 7 },
     );
-    assert.deepEqual(tie, { enabled: true, scroll: false, theme: false, updatedAt: 7 });
+    assert.deepEqual(tie, { enabled: true, scroll: false, theme: false, volume: 1, updatedAt: 7 });
 });
 
 // Simulates a scroll at `speed` px/s, one frame every 16 ms, for `ms` milliseconds
