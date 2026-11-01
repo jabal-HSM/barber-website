@@ -31,6 +31,8 @@ function unlockScroll() {
     s.left = '';
     s.right = '';
     document.documentElement.classList.remove('is-scroll-locked');
+    // Tells sound.js this jump is not a scroll by the person (no tick)
+    window.dispatchEvent(new Event('zeyd:scroll-restore'));
     window.scrollTo({ top: savedY, behavior: 'instant' });
 }
 
