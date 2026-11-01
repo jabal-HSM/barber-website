@@ -4407,3 +4407,32 @@ body.has-overlay {
     justify-content: center;
     gap: var(--space-3);
 }
+
+/* From tablets up: the booking and custom-request buttons take their natural width instead of stretching
+   across the whole column. Phones keep full-width buttons. */
+@media (min-width: 48em) {
+    .booking-submit {
+        width: auto;
+        min-width: 16rem;
+    }
+
+    .custom-form .btn {
+        justify-self: start;
+        min-width: 12rem;
+    }
+}
+
+/* From tablets up: the main buttons of the dashboard cards take their natural width instead of stretching
+   across the card. Buttons inside rows are not affected; phones keep full-width buttons. */
+@media (min-width: 48em) {
+    .admin-card > .btn,
+    .admin-grid-form > .btn {
+        width: auto;
+        justify-self: start;
+    }
+
+    .admin-card > .btn:not(.btn-sm),
+    .admin-grid-form > .btn:not(.btn-sm) {
+        min-width: 12rem;
+    }
+}
