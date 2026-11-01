@@ -757,9 +757,8 @@ function renderCancelDialog() {
     $('cancelSummary').textContent =
         `${day} · ${time} · ${(state.lang === 'ar' && names.name_ar) || names.name_fr || ''}`;
     const reason = selectedReason();
-    const other = reason === 'other';
-    $('cancelDetailsLabel').textContent = t(state.lang, other ? 'cancel.detailsRequired' : 'cancel.detailsOptional');
-    $('cancelDetails').required = other;
+    // Details are optional for every reason, « Autre raison » included
+    $('cancelDetailsLabel').textContent = t(state.lang, 'cancel.detailsOptional');
     const offer = reason === 'reschedule' && canReschedule(booking);
     $('rescheduleOffer').hidden = !offer;
     $('cancelWarning').textContent = t(state.lang, 'cancel.warning', { day, time });
@@ -775,16 +774,10 @@ function cancelLabels(withoutNew) {
     };
 }
 
-// Checked before the hold starts: a reason is required, and a few words for "other"
+// Checked before the hold starts: a reason is required; the details are optional
 function validateCancel() {
-    const reason = selectedReason();
-    if (!reason) {
+    if (!selectedReason()) {
         setMessage('cancelMessage', 'error', 'error.invalid_reason');
-        return false;
-    }
-    if (reason === 'other' && !$('cancelDetails').value.trim()) {
-        setMessage('cancelMessage', 'error', 'error.details_required');
-        $('cancelDetails').focus();
         return false;
     }
     setMessage('cancelMessage', null);
