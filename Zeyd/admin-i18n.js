@@ -194,6 +194,16 @@ export const adminTranslations = {
         'loyalty.manual': 'Ou saisir le code du client',
         'loyalty.search': 'Rechercher',
         'loyalty.cameraError': 'Caméra indisponible. Saisissez le code à 8 caractères affiché sous le QR code.',
+        'loyalty.cameraInsecure':
+            'La caméra ne fonctionne que sur une page sécurisée (https://). Saisissez le code à 8 caractères affiché sous le QR code.',
+        'loyalty.cameraUnsupported':
+            'Ce navigateur ne permet pas d’utiliser la caméra. Saisissez le code à 8 caractères affiché sous le QR code.',
+        'loyalty.cameraDenied':
+            'Accès à la caméra refusé. Autorisez la caméra dans les réglages du navigateur, ou saisissez le code à 8 caractères.',
+        'loyalty.cameraNotFound':
+            'Aucune caméra trouvée sur cet appareil. Saisissez le code à 8 caractères affiché sous le QR code.',
+        'loyalty.cameraBusy':
+            'La caméra est utilisée par une autre application. Fermez-la puis réessayez, ou saisissez le code.',
         'loyalty.scanning': 'Placez le QR code du client devant la caméra…',
         'loyalty.stamps': 'Visites : {count}/10 (total {total})',
         'loyalty.rewards': 'Coupes offertes disponibles : {count}',
@@ -603,6 +613,14 @@ export const adminTranslations = {
         'loyalty.manual': 'أو أدخل رمز الزبون',
         'loyalty.search': 'بحث',
         'loyalty.cameraError': 'الكاميرا غير متاحة. أدخل الرمز المكوّن من 8 أحرف الظاهر تحت رمز QR.',
+        'loyalty.cameraInsecure':
+            'الكاميرا لا تعمل إلا على صفحة آمنة (https://). أدخل الرمز المكوّن من 8 أحرف الظاهر تحت رمز QR.',
+        'loyalty.cameraUnsupported':
+            'هذا المتصفح لا يدعم استخدام الكاميرا. أدخل الرمز المكوّن من 8 أحرف الظاهر تحت رمز QR.',
+        'loyalty.cameraDenied':
+            'تم رفض الوصول إلى الكاميرا. اسمح بالكاميرا من إعدادات المتصفح، أو أدخل الرمز المكوّن من 8 أحرف.',
+        'loyalty.cameraNotFound': 'لا توجد كاميرا على هذا الجهاز. أدخل الرمز المكوّن من 8 أحرف الظاهر تحت رمز QR.',
+        'loyalty.cameraBusy': 'الكاميرا مستخدمة من تطبيق آخر. أغلقه ثم أعد المحاولة، أو أدخل الرمز.',
         'loyalty.scanning': 'ضع رمز QR الخاص بالزبون أمام الكاميرا…',
         'loyalty.stamps': 'الزيارات: {count}/10 (المجموع {total})',
         'loyalty.rewards': 'قصّات مجانية متاحة: {count}',

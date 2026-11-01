@@ -1,6 +1,7 @@
 // Barber / admin dashboard. Every action is checked by the database (RLS policies and functions
 // that verify the role): this page only shows what the signed-in account is allowed to do.
 import { at } from './admin-i18n.js';
+import { cameraErrorKey, cameraUnavailable } from './camera.js';
 import { createHoldButton } from './holdButton.js';
 import { renderLoyaltyCard } from './loyalty.js';
 import { getSupabase } from './supabaseClient.js';
@@ -1199,6 +1200,11 @@ function initLoyalty() {
         e.preventDefault();
         searchCustomers($('loyaltySearchInput').value);
     });
+    // The camera is released as soon as the page is hidden or left
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stopScan();
+    });
+    window.addEventListener('pagehide', stopScan);
 }
 
 let jsqrPromise = null;
@@ -1215,18 +1221,33 @@ function loadJsQr() {
 
 async function startScan() {
     setMessage('loyaltyMessage', null);
+    const unavailable = cameraUnavailable({
+        isSecureContext: window.isSecureContext,
+        mediaDevices: navigator.mediaDevices,
+    });
+    if (unavailable) {
+        setMessage('loyaltyMessage', 'error', unavailable);
+        return;
+    }
     try {
+        // Back camera when the phone has one; any camera otherwise
         state.scanStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment' },
+            video: { facingMode: { ideal: 'environment' } },
             audio: false,
         });
-    } catch {
-        setMessage('loyaltyMessage', 'error', 'loyalty.cameraError');
+    } catch (error) {
+        setMessage('loyaltyMessage', 'error', cameraErrorKey(error));
         return;
     }
     const video = $('scannerVideo');
     video.srcObject = state.scanStream;
-    await video.play();
+    try {
+        await video.play();
+    } catch {
+        stopScan();
+        setMessage('loyaltyMessage', 'error', 'loyalty.cameraError');
+        return;
+    }
     $('scanner').hidden = false;
     $('scanBtnText').textContent = at(state.lang, 'loyalty.stopScan');
 
