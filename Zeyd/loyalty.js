@@ -15,6 +15,17 @@ const GIFT_SVG = `<svg viewBox="0 0 32 32" aria-hidden="true" class="lc-gift">
     <rect x="8" y="15" width="16" height="1.2" fill="#000" opacity=".35"/>
 </svg>`;
 
+// Static drawing of open scissors: shown instead of the gift once the 10 visits are reached (free cut earned)
+const SCISSORS_SVG = `<svg viewBox="0 0 32 32" aria-hidden="true" class="lc-gift lc-scissors">
+    <g fill="none" stroke="#141414" stroke-width="1.9" stroke-linecap="round">
+        <circle cx="10" cy="23.5" r="4"/>
+        <circle cx="22" cy="23.5" r="4"/>
+        <path d="M12.7 20.6 22.6 4.5"/>
+        <path d="M19.3 20.6 9.4 4.5"/>
+    </g>
+    <circle cx="16" cy="15.2" r="1.3" fill="#fff3e2"/>
+</svg>`;
+
 // How many circles to fill. After the 10th stamp the card stays full (gift highlighted)
 // while the reward is waiting to be used.
 export function filledCount(stampsTotal, availableRewards) {
@@ -67,7 +78,7 @@ export function renderLoyaltyCard(container, card, lang) {
         const done = n <= filled;
         const stamp = el('li', `lc-stamp${done ? ' is-filled' : ''}${n === 10 ? ' is-reward' : ''}`);
         if (n === 10) {
-            stamp.innerHTML = GIFT_SVG;
+            stamp.innerHTML = filled === 10 ? SCISSORS_SVG : GIFT_SVG;
             stamp.setAttribute('aria-label', t(lang, 'loyalty.rewardStamp'));
         } else {
             const num = el('span', 'lc-num', String(n));
