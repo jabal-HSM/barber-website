@@ -123,6 +123,10 @@
             <circle cx="12" cy="12" r="8.5" />
             <path d="M3.5 12h17M12 3.5c2.5 2.6 2.5 14.4 0 17M12 3.5c-2.5 2.6-2.5 14.4 0 17" />
         </symbol>
+        <symbol id="i-chat" viewBox="0 0 24 24">
+            <path d="M4.5 5.5h15v10h-9l-4.5 3.5v-3.5H4.5Z" />
+            <path d="M8.5 9.5h7M8.5 12.5h4.5" />
+        </symbol>
         <symbol id="i-home" viewBox="0 0 24 24">
             <path d="M3.5 11.5 12 4l8.5 7.5" />
             <path d="M6 10v10h12V10M10 20v-5.5h4V20" />
@@ -627,9 +631,9 @@
         <svg class="tabbar-shape" aria-hidden="true" focusable="false">
             <defs>
                 <linearGradient id="tabbarEdgeGradient" x1="0" x2="1" y1="0" y2="0">
-                    <stop offset="0" stop-color="#38bdf8" />
-                    <stop offset="0.5" stop-color="#7c6cf6" />
-                    <stop offset="1" stop-color="#a855f7" />
+                    <stop offset="0" stop-color="#6b7f67" />
+                    <stop offset="0.5" stop-color="#c7cbb8" />
+                    <stop offset="1" stop-color="#6b7f67" />
                 </linearGradient>
                 <filter id="tabbarGlowFilter" x="-10%" y="-100%" width="120%" height="300%">
                     <feGaussianBlur stdDeviation="3.5" />
@@ -674,25 +678,28 @@
                         <use href="#i-user" />
                     </svg>
                     <span class="tabbar-label" data-i18n="tabbar.profile">Profil</span>
-                    <span class="account-dot" hidden></span>
+                    <span class="unread-dot" hidden></span>
                 </button></li>
         </ul>
     </nav>
 
-    <!-- Favourite haircuts of the signed-in customer (haircut_likes) -->
-    <dialog class="dialog" id="favoritesDialog" aria-labelledby="favoritesTitle">
-        <div class="dialog-head">
+    <!-- « Favoris »: full-screen page of the signed-in customer's favourite haircuts (haircut_likes) -->
+    <section class="app-page" id="favoritesPage" role="dialog" aria-modal="true" aria-labelledby="favoritesTitle"
+        tabindex="-1" hidden>
+        <header class="app-page-head">
             <h2 id="favoritesTitle" data-i18n="favorites.title">Mes coupes favorites</h2>
-            <button type="button" class="icon-btn" data-close-dialog data-i18n-attr="aria-label:account.close"
-                aria-label="Fermer">
+            <button type="button" class="icon-btn app-page-close" data-close-page
+                data-i18n-attr="aria-label:account.close" aria-label="Fermer">
                 <svg class="icon" aria-hidden="true">
                     <use href="#i-close" />
                 </svg>
             </button>
+        </header>
+        <div class="app-page-body">
+            <p class="form-message is-error sheet-error" role="alert" hidden></p>
+            <div id="favoritesBody" aria-live="polite"></div>
         </div>
-        <p class="form-message is-error sheet-error" role="alert" hidden></p>
-        <div id="favoritesBody" aria-live="polite"></div>
-    </dialog>
+    </section>
 
     <!-- Search in the services and the published gallery photos -->
     <dialog class="dialog" id="searchDialog" aria-labelledby="searchTitle">
@@ -897,11 +904,6 @@
                     <span data-i18n="sound.enabled">Sons de l’interface</span>
                 </label>
                 <label class="switch switch-sub">
-                    <input type="checkbox" role="switch" data-sound-pref="scroll" checked>
-                    <span class="switch-track" aria-hidden="true"></span>
-                    <span data-i18n="sound.scroll">Son du défilement</span>
-                </label>
-                <label class="switch switch-sub">
                     <input type="checkbox" role="switch" data-sound-pref="theme" checked>
                     <span class="switch-track" aria-hidden="true"></span>
                     <span data-i18n="sound.theme">Son du changement de thème</span>
@@ -930,36 +932,29 @@
                 </div>
             </div>
 
-            <!-- Password: a code sent to the account e-mail, checked by Supabase Auth first (passwordChange.js) -->
-            <form class="profile-card" id="profilePasswordForm" novalidate>
-                <h3 class="profile-card-title">
+            <!-- Messages with the salon about a booking (messagesCenter.js; table booking_messages). Replaces the
+                 « Sécurité » card for customers (password change stays in the dashboard for staff). -->
+            <section class="profile-card" id="messagesCard" aria-labelledby="messagesTitle">
+                <h3 class="profile-card-title" id="messagesTitle">
                     <svg class="icon" aria-hidden="true">
-                        <use href="#i-lock" />
+                        <use href="#i-chat" />
                     </svg>
-                    <span data-i18n="password.securityTitle">Sécurité</span>
+                    <span data-i18n="messages.title">Messages avec Zeyd</span>
                 </h3>
-                <p class="field-hint" data-i18n="password.intro">Un code est envoyé à l’adresse e-mail du compte. Le mot
-                    de passe ne change qu’après la vérification de ce code.</p>
-                <button type="button" class="btn btn-ghost btn-sm" id="profilePasswordSend"
-                    data-i18n="password.sendCode">Recevoir un code par e-mail</button>
-                <div class="profile-password-step" id="profilePasswordStep" hidden>
-                    <label class="field-label" for="profilePasswordCode" data-i18n="password.code">Code reçu par
-                        e-mail</label>
-                    <input type="text" id="profilePasswordCode" class="field" inputmode="numeric"
-                        autocomplete="one-time-code" maxlength="10" dir="ltr">
-                    <label class="field-label" for="profilePasswordNew" data-i18n="password.new">Nouveau mot de passe (8
-                        caractères minimum)</label>
-                    <input type="password" id="profilePasswordNew" class="field" autocomplete="new-password"
-                        minlength="8" dir="ltr">
-                    <label class="field-label" for="profilePasswordRepeat" data-i18n="password.repeat">Confirmer le
-                        nouveau mot de passe</label>
-                    <input type="password" id="profilePasswordRepeat" class="field" autocomplete="new-password"
-                        minlength="8" dir="ltr">
-                    <button type="submit" class="btn btn-primary btn-sm" id="profilePasswordSave"
-                        data-i18n="password.save">Changer le mot de passe</button>
-                </div>
-                <div class="form-message" id="profilePasswordMessage" role="status" aria-live="polite" hidden></div>
-            </form>
+                <p class="field-hint" data-i18n="messages.intro">Une question ou un imprévu pour un rendez-vous ?
+                    Écrivez à Zeyd ici : sa réponse s’affichera sur cette page.</p>
+                <form class="messages-form" id="messageForm" novalidate>
+                    <label class="field-label" for="messageBooking" data-i18n="messages.booking">Rendez-vous
+                        concerné</label>
+                    <select id="messageBooking" class="field"></select>
+                    <label class="field-label" for="messageBody" data-i18n="messages.body">Votre message</label>
+                    <textarea id="messageBody" class="field" rows="3" maxlength="1000" dir="auto"></textarea>
+                    <button type="submit" class="btn btn-primary btn-sm" id="messageSend"
+                        data-i18n="messages.send">Envoyer</button>
+                </form>
+                <div class="form-message" id="messagesMessage" role="status" aria-live="polite" hidden></div>
+                <div class="message-threads" id="messageThreads"></div>
+            </section>
 
             <!-- Wide screens have no bottom bar: a way to « Mes rendez-vous » (the bookings are not shown here) -->
             <button type="button" class="btn btn-ghost profile-bookings-link" data-open-bookings>

@@ -12,6 +12,8 @@ const CUSTOMER_FUNCTIONS = [
     'book_appointment',
     'cancel_booking',
     'cancel_my_booking',
+    'customer_send_message',
+    'mark_my_messages_read',
     'my_loyalty',
     'request_custom_time',
     'reschedule_my_booking',
@@ -29,8 +31,10 @@ const STAFF_FUNCTIONS = {
     set_booking_status: "select public.set_booking_status(gen_random_uuid(), 'completed')",
     set_user_role: "select public.set_user_role(gen_random_uuid(), 'admin')",
     staff_cancel_booking: 'select * from public.staff_cancel_booking(gen_random_uuid())',
+    staff_mark_messages_read: 'select public.staff_mark_messages_read(gen_random_uuid())',
     staff_mark_mother_transfer: 'select public.staff_mark_mother_transfer(gen_random_uuid())',
     staff_record_payment: "select * from public.staff_record_payment(gen_random_uuid(), 1500, 'cash')",
+    staff_send_message: "select * from public.staff_send_message(gen_random_uuid(), 'x')",
 };
 
 describe('who can call what', () => {

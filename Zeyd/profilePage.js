@@ -129,8 +129,10 @@ function passwordErrorKey(error) {
     return ctx.t(key) === key ? 'password.error.other' : key;
 }
 
+// The customer « Profil » no longer shows this card (replaced by the messages); kept for pages that still have it
 function initPassword() {
     const send = $('profilePasswordSend');
+    if (!send) return;
     let timer = 0;
     const resetSend = () => {
         clearInterval(timer);

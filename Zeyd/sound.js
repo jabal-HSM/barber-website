@@ -1,18 +1,15 @@
-// Interface sounds (Web Audio). The three files are short cuts of the two recordings in sounds-src/:
+// Interface sounds (Web Audio). The files are short cuts of the two recordings in sounds-src/:
 //   theme-switch.wav  snd2 6.280–6.530 s (press + release)  → theme toggle only
-//   scroll-tick.wav   snd1 6.329–6.374 s (one bright tick)  → scrolling
-//   tap.wav           snd1 6.266–6.421 s (one full unit)    → links, menu, section navigation
+//   tap.wav           snd1 6.266–6.421 s (one full unit)    → buttons, tabs, links, navigation
+// No sound while scrolling, dragging or typing (sounds/scroll-tick.wav is kept but no longer played).
 // Nothing is downloaded before the first tap/key press, and only when sounds are on. Any failure (no Web
 // Audio, blocked, file missing) leaves the site silent and working.
-import { canPlay, createScrollTicker, DEFAULT_SOUND_PREFS, normalizeSoundPrefs } from './soundCore.js';
+import { canPlay, DEFAULT_SOUND_PREFS, normalizeSoundPrefs } from './soundCore.js';
 
 const STORAGE_KEY = 'soundPrefs';
-const FILES = { theme: 'sounds/theme-switch.wav', scroll: 'sounds/scroll-tick.wav', tap: 'sounds/tap.wav' };
+const FILES = { theme: 'sounds/theme-switch.wav', tap: 'sounds/tap.wav' };
 // Quiet on purpose: these are feedback, not music
-const GAIN = { theme: 0.32, tap: 0.22, scroll: 0.16, scrollFast: 0.11 };
-const MAX_SCROLL_VOICES = 2;
-// After a click on an in-page link the page scrolls by itself: no ticks for that movement
-const PROGRAMMATIC_SCROLL_MS = 1200;
+const GAIN = { theme: 0.32, tap: 0.22 };
 
 let prefs = readPrefs();
 const listeners = new Set();
@@ -21,10 +18,6 @@ let ctx = null;
 let loading = null;
 let buffers = null;
 let initialized = false;
-const scrollVoices = [];
-const ticker = createScrollTicker();
-let frame = 0;
-let quietUntil = 0;
 let lastTheme = 0;
 
 function readPrefs() {
@@ -66,7 +59,6 @@ export function onSoundPrefsChange(callback) {
 
 function applyPrefs(source) {
     writePrefs();
-    if (!prefs.enabled || !prefs.scroll) stopScrollVoices();
     if (!prefs.enabled) ctx?.suspend().catch(() => {});
     else if (ctx?.state === 'suspended' && !document.hidden) ctx.resume().catch(() => {});
     renderSettings();
@@ -117,16 +109,6 @@ function play(name, gainValue, rate = 1) {
     }
 }
 
-function stopScrollVoices() {
-    for (const voice of scrollVoices.splice(0)) {
-        try {
-            voice.stop();
-        } catch {
-            // already finished
-        }
-    }
-}
-
 // The very first action of a visit can come before the files are decoded (they start loading on that same
 // gesture): play as soon as they are ready, but only if that is still within FIRST_SOUND_MAX_DELAY_MS, so a
 // late sound never plays out of step with the action. Never blocks the action itself.
@@ -156,51 +138,15 @@ function playTap() {
     playSoon('tap', GAIN.tap);
 }
 
-// --- Scroll ---
-function onScroll() {
-    if (frame || !canPlay(prefs, 'scroll') || !buffers) return;
-    frame = requestAnimationFrame(() => {
-        frame = 0;
-        const now = performance.now();
-        const tick = ticker.update(window.scrollY, now);
-        if (!tick || now < quietUntil) return;
-        const gain = tick.interval < 140 ? GAIN.scrollFast : GAIN.scroll;
-        // ±4 % pitch so a fast scroll does not sound like a machine gun
-        const voice = play('scroll', gain, 0.96 + Math.random() * 0.08);
-        if (!voice) return;
-        scrollVoices.push(voice);
-        voice.onended = () => {
-            const index = scrollVoices.indexOf(voice);
-            if (index >= 0) scrollVoices.splice(index, 1);
-        };
-        while (scrollVoices.length > MAX_SCROLL_VOICES) {
-            try {
-                scrollVoices.shift().stop();
-            } catch {
-                // already finished
-            }
-        }
-    });
-}
-
-// Deliberate actions that get the short "tap": external links (Maps, WhatsApp, Instagram), section links,
-// menu button, tabs of the phone bottom bar. The theme button has its own sound; form fields and typing never
-// make a sound.
-const TAP_SELECTOR = [
-    'a[href^="http"]',
-    'a[href^="#"]',
-    '#menuToggleBtn',
-    '.tabbar-tab',
-    '[data-open-account]',
-    '.lang-btn',
-    '.auth-btn',
-    '.auth-link',
-].join(',');
+// Deliberate actions get the short "tap": buttons, links, tabs, booking chips. The theme button has its own
+// sound; form fields, typing, scrolling and dragging never make a sound.
+const TAP_SELECTOR = ['button', 'a[href]', '[role="button"]', '.choice', '.tabbar-tab'].join(',');
 
 function onClick(event) {
     const target = event.target.closest?.(TAP_SELECTOR);
-    if (!target || target.id === 'themeToggleBtn') return;
-    if (target.matches('a[href^="#"]')) quietUntil = performance.now() + PROGRAMMATIC_SCROLL_MS;
+    if (!target || target.id === 'themeToggleBtn' || target.disabled) return;
+    // A held button (cancel, sign-out) makes no tap: the long press itself is the action
+    if (target.classList.contains('hold-btn')) return;
     playTap();
 }
 
@@ -241,11 +187,8 @@ export function initSound() {
     document.addEventListener('input', (event) => {
         if (event.target.matches?.('input[type="range"][data-sound-pref]')) onSettingChange(event);
     });
-    window.addEventListener('scroll', onScroll, { passive: true });
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
-            stopScrollVoices();
-            ticker.reset();
             ctx?.suspend().catch(() => {});
         } else if (prefs.enabled && ctx) {
             ctx.resume().catch(() => {});

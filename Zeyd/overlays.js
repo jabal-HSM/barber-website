@@ -1,11 +1,11 @@
-// Everything that covers the page — <dialog> windows, the full-screen « Profil » and « Mes RDV » pages, the
+// Everything that covers the page — <dialog> windows, the full-screen « Profil », « Favoris » and « Mes RDV » pages, the
 // welcome screen — goes through here:
 //   * the page behind cannot scroll while one is open, and comes back to the same place when the last closes;
 //   * the phone's back button (and Escape for the pages) closes the top one instead of leaving the site;
 //   * a « layer:close » event is sent on the element when it closes, for the bottom bar.
 // Layers are detected from their state (dialog[open], [hidden]), so the existing code that opens them is unchanged.
 
-const PAGE_IDS = ['profilePage', 'bookingsPage'];
+const PAGE_IDS = ['profilePage', 'bookingsPage', 'favoritesPage'];
 const layers = []; // open layers, last = on top
 let savedY = 0;
 let ownEntry = false; // one history entry stands for « something is open »
@@ -90,6 +90,9 @@ export function closePages() {
 }
 
 export function initOverlays() {
+    // The position is restored here (unlockScroll): the browser must not also jump to the position it saved with
+    // our history entry when it is removed, which would undo a scroll asked just after closing a window
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
     const watched = (node) =>
         node.nodeType === 1 && (node.tagName === 'DIALOG' || isPage(node) || node.id === 'authScreen');
     const observer = new MutationObserver((records) => {
@@ -109,7 +112,7 @@ export function initOverlays() {
         attributes: true,
         attributeFilter: ['open', 'hidden'],
     });
-    for (const node of document.querySelectorAll('dialog, #authScreen, #profilePage, #bookingsPage')) {
+    for (const node of document.querySelectorAll('dialog, #authScreen, .app-page')) {
         if (isOpen(node)) update(node);
     }
 

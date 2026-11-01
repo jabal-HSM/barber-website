@@ -104,6 +104,9 @@
             <button type="button" class="admin-tab" data-panel="hours" data-i18n="tab.hours">Horaires</button>
             <button type="button" class="admin-tab" data-panel="gallery" data-i18n="tab.gallery">Galerie</button>
             <button type="button" class="admin-tab" data-panel="customers" data-i18n="tab.customers">Clients</button>
+            <button type="button" class="admin-tab admin-tab-messages" data-panel="messages"><span
+                    data-i18n="tab.messages">Messages</span><span class="unread-dot" id="messagesDot"
+                    hidden></span></button>
             <button type="button" class="admin-tab" data-panel="settings" data-i18n="tab.settings">Réglages</button>
         </nav>
     </header>
@@ -340,6 +343,18 @@
         </section>
 
         <!-- Customers and roles -->
+        <!-- Messages with customers, per booking (booking_messages; admin.js loaders.messages) -->
+        <section class="admin-panel" data-panel="messages" hidden>
+            <div class="admin-card">
+                <h2 class="admin-h2" data-i18n="messages.title">Messages des clients</h2>
+                <p class="field-hint" data-i18n="messages.intro">Chaque conversation concerne un rendez-vous. Le client
+                    voit votre réponse dans « Mon profil » ; aucun e-mail n’est envoyé. Pour refuser ou déplacer un
+                    rendez-vous, utilisez aussi l’onglet Rendez-vous.</p>
+                <div class="admin-message" id="messagesPanelMessage" role="status" aria-live="polite" hidden></div>
+                <div class="message-threads" id="adminThreads"></div>
+            </div>
+        </section>
+
         <section class="admin-panel" data-panel="customers" hidden>
             <div class="admin-card">
                 <label class="field-label" for="customerSearch" data-i18n="customers.search">Rechercher un

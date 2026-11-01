@@ -5,6 +5,7 @@ import { cameraErrorKey, cameraUnavailable } from './camera.js';
 import { confirmDialog } from './confirmDialog.js';
 import { createHoldButton } from './holdButton.js';
 import { renderLoyaltyCard } from './loyalty.js';
+import { groupThreads } from './messageThreads.js';
 import { confirmPasswordChange, sendPasswordCode } from './passwordChange.js';
 import { getSupabase } from './supabaseClient.js';
 import { formatDateOf, formatTime, parisLocalToIso, SALON_TIME_ZONE } from './time.js';
@@ -246,6 +247,11 @@ async function openDashboard(supabase, session) {
     initGallery();
     initCustomers();
     initSettings();
+    // Red dot on « Messages » while a customer message is unread
+    refreshMessagesDot();
+    setInterval(() => {
+        if (!document.hidden) refreshMessagesDot();
+    }, 60_000);
     initPasswordChange();
     openPanel(location.hash.slice(1) || 'home');
 }
@@ -2001,6 +2007,107 @@ function initCustomers() {
     $('customerFilter').addEventListener('change', renderCustomers);
     $('customerSort').addEventListener('change', renderCustomers);
 }
+
+// --- Messages with customers (booking_messages, migration 20261102110000). Opening the panel marks the customers'
+// messages read; answering goes through staff_send_message (staff only, checked by the database). ---
+const isMissingTable = (error) =>
+    ['42P01', 'PGRST205', 'PGRST202'].includes(error?.code) ||
+    /does not exist|schema cache/i.test(error?.message ?? '');
+
+async function refreshMessagesDot() {
+    const { count, error } = await state.supabase
+        .from('booking_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('from_staff', false)
+        .is('read_at', null);
+    $('messagesDot').hidden = Boolean(error) || !count;
+}
+
+function messageBookingLabel(booking) {
+    if (!booking?.starts_at) return '';
+    const service = (state.lang === 'ar' && booking.services?.name_ar) || booking.services?.name_fr || '';
+    return [formatDateOf(booking.starts_at, state.lang), formatTime(booking.starts_at), service]
+        .filter(Boolean)
+        .join(' · ');
+}
+
+function renderStaffThread(thread) {
+    const card = el('article', 'message-thread');
+    const customer = thread.last.profiles ?? {};
+    const head = el('header', 'message-thread-head');
+    const who = el('div', '');
+    const name = el('p', 'message-thread-title', customer.full_name || customer.email || '—');
+    name.dir = 'auto';
+    who.append(name, el('p', 'admin-item-meta', messageBookingLabel(thread.last.bookings)));
+    head.append(
+        who,
+        el('span', `message-status is-${thread.status}`, at(state.lang, `messages.status.${thread.status}`)),
+    );
+    const list = el('ul', 'message-list');
+    for (const m of thread.messages) {
+        const item = el('li', `message ${m.from_staff ? 'is-mine' : 'is-theirs'}`);
+        const body = el('p', 'message-body', m.body);
+        body.dir = 'auto';
+        item.append(
+            body,
+            el(
+                'p',
+                'message-meta',
+                `${at(state.lang, m.from_staff ? 'messages.fromSalon' : 'messages.fromCustomer')} · ${formatDateOf(m.created_at, state.lang)} ${formatTime(m.created_at)}`,
+            ),
+        );
+        list.append(item);
+    }
+    const reply = el('textarea', 'field');
+    reply.rows = 2;
+    reply.maxLength = 1000;
+    reply.dir = 'auto';
+    reply.setAttribute('aria-label', at(state.lang, 'messages.reply'));
+    reply.placeholder = at(state.lang, 'messages.replyPlaceholder');
+    const send = button(at(state.lang, 'messages.send'), 'btn btn-primary btn-sm', async () => {
+        const body = reply.value.trim();
+        if (!body) return setMessage('messagesPanelMessage', 'error', 'messages.error.message_empty');
+        send.disabled = true;
+        const { error } = await state.supabase.rpc('staff_send_message', {
+            p_booking_id: thread.bookingId,
+            p_body: body,
+        });
+        send.disabled = false;
+        if (error) return setMessage('messagesPanelMessage', 'error', errorKey(error));
+        setMessage('messagesPanelMessage', 'success', 'messages.sent');
+        loaders.messages();
+    });
+    card.append(head, list, reply, send);
+    return card;
+}
+
+loaders.messages = async () => {
+    const box = $('adminThreads');
+    box.replaceChildren(el('p', 'admin-empty', at(state.lang, 'common.loading')));
+    const { data, error } = await state.supabase
+        .from('booking_messages')
+        .select(
+            'id, booking_id, customer_id, from_staff, body, created_at, read_at, bookings:booking_id (starts_at, status, services (name_fr, name_ar)), profiles:customer_id (full_name, email)',
+        )
+        .order('created_at')
+        .limit(500);
+    if (error) {
+        box.replaceChildren(
+            el('p', 'admin-empty', at(state.lang, isMissingTable(error) ? 'messages.unavailable' : 'common.error')),
+        );
+        return;
+    }
+    const threads = groupThreads(data ?? [], 'staff');
+    if (!threads.length) {
+        box.replaceChildren(el('p', 'admin-empty', at(state.lang, 'messages.empty')));
+        return;
+    }
+    box.replaceChildren(...threads.map(renderStaffThread));
+    // Seen now: the customers' messages of every conversation shown become « read »
+    const unread = threads.filter((t) => t.unread);
+    await Promise.all(unread.map((t) => state.supabase.rpc('staff_mark_messages_read', { p_booking_id: t.bookingId })));
+    if (unread.length) refreshMessagesDot();
+};
 
 loaders.customers = async () => {
     const { data } = await state.supabase

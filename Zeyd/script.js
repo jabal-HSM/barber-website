@@ -10,7 +10,7 @@ import { initBottomNav } from './bottomNav.js';
 import { MIN_QUERY_LENGTH, searchCatalog } from './catalogSearch.js';
 import { GALLERY, SERVICES } from './data.js';
 import { DEFAULT_LANG, LANGUAGES, t } from './i18n.js';
-import { closePages, initOverlays } from './overlays.js';
+import { closePages, initOverlays, openPage } from './overlays.js';
 import { initSound, playThemeSound } from './sound.js';
 
 // Same storage keys as the previous version, so saved preferences are kept.
@@ -360,7 +360,8 @@ function hideSheetErrors() {
 }
 
 function showSheetError(btn, key) {
-    const box = btn.closest('dialog')?.querySelector('.sheet-error') ?? document.getElementById('galleryError');
+    const box =
+        btn.closest('dialog, .app-page')?.querySelector('.sheet-error') ?? document.getElementById('galleryError');
     if (!box) return;
     box.textContent = t(currentLang, key);
     box.hidden = false;
@@ -402,7 +403,7 @@ function photoGrid(photos) {
 
 function goToGallery() {
     closeSheets();
-    document.getElementById('gallery')?.scrollIntoView({ behavior: 'smooth' });
+    afterClose(() => document.getElementById('gallery')?.scrollIntoView({ behavior: 'smooth' }));
 }
 
 function renderFavorites() {
@@ -495,7 +496,7 @@ function searchServiceItem(service) {
             sheetButton('search.book', 'btn btn-primary btn-sm', () => {
                 closeSheets();
                 selectBookingService(service.id);
-                document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' });
+                afterClose(() => document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' }));
             }),
         );
     } else {
@@ -511,20 +512,27 @@ function searchServiceItem(service) {
 }
 
 // --- Bottom bar (phones) ---
-const SHEETS = ['favoritesDialog', 'searchDialog'];
+const SHEETS = ['searchDialog'];
+const PAGES = ['profilePage', 'bookingsPage', 'favoritesPage'];
 
+// Closes the search sheet and the full-screen pages (« Profil », « Favoris », « Mes RDV »)
 function closeSheets() {
     for (const id of SHEETS) {
         const dialog = document.getElementById(id);
         if (dialog?.open) dialog.close();
     }
+    closePages();
+}
+
+// A scroll asked right after closing a window waits until overlays.js has put the page back where it was
+function afterClose(action) {
+    setTimeout(action, 0);
 }
 
 function openSheet(id) {
     closeSheets();
     const dialog = document.getElementById(id);
     if (!dialog) return;
-    if (id === 'favoritesDialog') renderFavorites();
     if (id === 'searchDialog') renderSearch();
     dialog.showModal();
     if (id === 'searchDialog') document.getElementById('searchInput')?.focus();
@@ -535,15 +543,14 @@ function initBottomBar() {
         onSelect: (tab) => {
             if (tab === 'home') {
                 closeSheets();
-                closePages();
-                // After overlays.js has put the page back where it was
-                setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
+                afterClose(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
             } else if (tab === 'profile' || tab === 'bookings') {
                 closeSheets();
                 openAccountPanel(tab);
             } else if (tab === 'favorites') {
-                closePages();
-                openSheet('favoritesDialog');
+                closeSheets();
+                renderFavorites();
+                openPage('favoritesPage');
             } else if (tab === 'search') {
                 closePages();
                 openSheet('searchDialog');
@@ -554,8 +561,8 @@ function initBottomBar() {
     // A sheet or a page closed (button, back button, Escape): back to « Accueil », unless another one is open
     const anyOpen = () =>
         SHEETS.some((id) => document.getElementById(id)?.open) ||
-        ['profilePage', 'bookingsPage'].some((id) => document.getElementById(id)?.hidden === false);
-    for (const id of ['profilePage', 'bookingsPage']) {
+        PAGES.some((id) => document.getElementById(id)?.hidden === false);
+    for (const id of PAGES) {
         document.getElementById(id)?.addEventListener('layer:close', () => {
             if (!anyOpen()) backHome();
         });

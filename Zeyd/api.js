@@ -268,6 +268,49 @@ export async function fetchMyBookings(userId) {
     return error ? null : data;
 }
 
+// --- Messages with the salon (booking_messages, migration 20261102110000). RLS: a customer reads only the
+// messages of their own bookings; writing goes through customer_send_message / mark_my_messages_read only. ---
+// Table not created yet on this project (migration not applied): the page says so instead of failing.
+export const isMissingTable = (error) =>
+    ['42P01', 'PGRST205', 'PGRST202'].includes(error?.code) ||
+    /does not exist|schema cache/i.test(error?.message ?? '');
+
+export async function fetchMyMessages() {
+    const supabase = await getSupabase();
+    if (!supabase) return { data: [], error: null };
+    return supabase
+        .from('booking_messages')
+        .select(
+            'id, booking_id, from_staff, body, created_at, read_at, bookings:booking_id (starts_at, status, services (name_fr, name_ar))',
+        )
+        .order('created_at');
+}
+
+export async function sendMyMessage(bookingId, body) {
+    const supabase = await getSupabase();
+    if (!supabase) return NO_BACKEND;
+    return supabase.rpc('customer_send_message', { p_booking_id: bookingId, p_body: body });
+}
+
+export async function markMyMessagesRead() {
+    const supabase = await getSupabase();
+    if (!supabase) return NO_BACKEND;
+    return supabase.rpc('mark_my_messages_read', { p_booking_id: null });
+}
+
+// The customer's bookings that can be written about: upcoming ones and those of the last 30 days
+export async function fetchMyRecentBookings(userId) {
+    const supabase = await getSupabase();
+    if (!supabase || !userId) return [];
+    const { data, error } = await supabase
+        .from('bookings')
+        .select('id, starts_at, status, services (name_fr, name_ar)')
+        .eq('customer_id', userId)
+        .gte('starts_at', new Date(Date.now() - 30 * 86_400_000).toISOString())
+        .order('starts_at', { ascending: false });
+    return error ? [] : data;
+}
+
 // --- Own profile (name and photo of « Profil »). RLS: a customer reads and updates only their own row, and only
 // full_name / avatar_url / preferred_lang can be written; the role never. ---
 export async function fetchMyProfile(userId) {

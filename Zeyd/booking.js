@@ -27,6 +27,7 @@ import { confirmDialog } from './confirmDialog.js';
 import { createHoldButton } from './holdButton.js';
 import { t } from './i18n.js';
 import { renderLoyaltyCard, renderQrCode } from './loyalty.js';
+import { initMessagesCenter, openMessages, refreshMessages, renderMessages } from './messagesCenter.js';
 import { closePages, openPage } from './overlays.js';
 import { initProfilePage, loadProfile, renderProfileLanguage } from './profilePage.js';
 import { buildSlotGrid } from './slotGrid.js';
@@ -164,6 +165,7 @@ export function setBookingLanguage(lang) {
     renderCancelDialog();
     renderReschedule();
     renderProfileLanguage();
+    renderMessages();
     $('signOutBtn')?.setLabels?.(signOutLabels());
     for (const id of Object.keys(state.messages)) renderMessage(id);
 }
@@ -579,6 +581,12 @@ function initAccountPages() {
         t: (key, params) => t(state.lang, key, params),
         setMessage,
     });
+    initMessagesCenter({
+        getUser: () => state.user,
+        getLang: () => state.lang,
+        t: (key, params) => t(state.lang, key, params),
+        setMessage,
+    });
     // Sign out: hold the button, then confirm. Only the session of this device ends; bookings stay saved.
     const hold = createHoldButton({
         ...signOutLabels(),
@@ -627,6 +635,7 @@ export function openAccountPanel(section = 'profile') {
         openPage('profilePage');
         loadProfile();
         loadLoyalty();
+        openMessages();
     }
 }
 
@@ -642,9 +651,8 @@ function onUserChange(user) {
     const firstCall = !state.authKnown;
     state.authKnown = true;
     state.user = user;
-    document.querySelectorAll('.account-dot').forEach((dot) => {
-        dot.hidden = !user;
-    });
+    // Red dot on « Profil » / « Mon compte »: only for unread salon messages (messagesCenter.js)
+    refreshMessages();
     if ($('accountEmail')) $('accountEmail').textContent = user?.email ?? '';
     renderSummary();
     if (user) syncSoundPrefs(user);
@@ -863,7 +871,8 @@ function startRescheduling() {
     renderServiceSelect();
     renderReschedule();
     loadSlots();
-    $('booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // After overlays.js has put the page back where it was (windows just closed)
+    setTimeout(() => $('booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
 }
 
 function stopRescheduling() {
