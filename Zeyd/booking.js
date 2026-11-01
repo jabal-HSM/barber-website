@@ -9,6 +9,7 @@ import {
     fetchMyLoyalty,
     fetchMyPayments,
     fetchPaymentSettings,
+    fetchSchedule,
     fetchSlots,
     notifyStaffOfBooking,
     onAuthChange,
@@ -25,6 +26,7 @@ import { cleanAuthUrl, parseAuthRedirect } from './authRedirect.js';
 import { createHoldButton } from './holdButton.js';
 import { t } from './i18n.js';
 import { renderLoyaltyCard, renderQrCode } from './loyalty.js';
+import { buildSlotGrid } from './slotGrid.js';
 import { adoptSoundPrefs, getSoundPrefs, onSoundPrefsChange } from './sound.js';
 import { mergeSoundPrefs, samePrefs } from './soundCore.js';
 import { formatDateOf, formatDay, formatTime, parisLocalToIso } from './time.js';
@@ -110,7 +112,7 @@ export async function initBooking({ lang, services, priceFormatter }) {
         loadSlots();
     });
     $('bookingSlots')?.addEventListener('change', (e) => {
-        state.slot = state.slots?.find((s) => s.starts_at === e.target.value) ?? null;
+        state.slot = state.slots?.find((s) => s.starts_at === e.target.value && !s.taken) ?? null;
         renderSummary();
     });
     $('bookingForm')?.addEventListener('submit', onBookingSubmit);
@@ -137,6 +139,13 @@ export async function initBooking({ lang, services, priceFormatter }) {
     if (state.days?.length) state.day = state.days[0];
     renderDays();
     loadSlots();
+    // Other customers book and cancel too: the times are refreshed every minute and when the page is shown again
+    setInterval(() => {
+        if (!document.hidden) loadSlots({ quiet: true });
+    }, 60_000);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) loadSlots({ quiet: true });
+    });
 }
 
 export function setBookingLanguage(lang) {
@@ -214,7 +223,8 @@ function renderDays() {
     );
 }
 
-async function loadSlots() {
+// quiet: refresh without the "Chargement…" step (periodic refresh)
+async function loadSlots({ quiet = false } = {}) {
     const service = currentService();
     $('bookingServiceHint').hidden = isBookable(service);
     if (!state.days || !isBookable(service) || !state.day) {
@@ -223,22 +233,39 @@ async function loadSlots() {
         renderSummary();
         return;
     }
-    state.slots = null;
-    renderSlots();
+    if (!quiet) {
+        state.slots = null;
+        renderSlots();
+    }
     const requested = `${service.dbId}|${state.day}`;
     state.slotsRequest = requested;
-    const slots = await fetchSlots(service.dbId, state.day);
+    const [slots, schedule] = await Promise.all([fetchSlots(service.dbId, state.day), fetchSchedule()]);
     if (state.slotsRequest !== requested) return; // a newer choice was made meanwhile
-    state.slots = slots ?? [];
+    if (quiet && slots === null) return; // keep what is shown if the refresh failed
+    // Free times from the database, plus the taken ones (greyed out) when the opening hours are known
+    state.slots = schedule
+        ? buildSlotGrid({
+              day: state.day,
+              hours: schedule.hours,
+              stepMinutes: schedule.stepMinutes,
+              durationMinutes: service.durationMinutes,
+              minNoticeMinutes: schedule.minNoticeMinutes,
+              now: Date.now(),
+              freeSlots: slots ?? [],
+              toIso: parisLocalToIso,
+          })
+        : (slots ?? []);
+    if (slots === null) state.slots = [];
+    const hasFree = state.slots.some((s) => !s.taken);
     const nextDay = state.days[state.days.indexOf(state.day) + 1];
-    if (state.autoAdvanceDay && slots && !slots.length && nextDay) {
+    if (state.autoAdvanceDay && slots && !hasFree && nextDay) {
         state.day = nextDay;
         renderDays();
         loadSlots();
         return;
     }
     state.autoAdvanceDay = false;
-    if (state.slot && !state.slots.some((s) => s.starts_at === state.slot.starts_at)) state.slot = null;
+    if (state.slot && !state.slots.some((s) => s.starts_at === state.slot.starts_at && !s.taken)) state.slot = null;
     renderSlots();
     renderSummary();
 }
@@ -255,12 +282,25 @@ function renderSlots() {
     }
     container.replaceChildren(
         ...state.slots.map((slot) =>
-            radio('slot', slot.starts_at, formatTime(slot.starts_at), slot.starts_at === state.slot?.starts_at),
+            slot.taken
+                ? takenChoice(formatTime(slot.starts_at))
+                : radio('slot', slot.starts_at, formatTime(slot.starts_at), slot.starts_at === state.slot?.starts_at),
         ),
     );
     if (!isBookable(service)) hint.textContent = '';
     else if (!state.day) hint.textContent = t(state.lang, 'booking.chooseDay');
-    else hint.textContent = state.slots.length ? '' : t(state.lang, 'booking.noSlots');
+    else hint.textContent = state.slots.some((s) => !s.taken) ? '' : t(state.lang, 'booking.noSlots');
+}
+
+// A taken time: shown in grey with « Réservé », cannot be chosen (the database refuses it anyway)
+function takenChoice(time) {
+    const wrapper = radio('slot', '', time, false);
+    wrapper.classList.add('is-taken');
+    wrapper.querySelector('input').disabled = true;
+    const label = document.createElement('small');
+    label.textContent = t(state.lang, 'booking.taken');
+    wrapper.querySelector('span').append(label);
+    return wrapper;
 }
 
 function renderSummary() {

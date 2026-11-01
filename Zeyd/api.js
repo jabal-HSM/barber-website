@@ -167,6 +167,22 @@ export async function fetchSlots(serviceDbId, day) {
     return error ? null : data;
 }
 
+// Opening hours, start-time step and notice period (public): used to show taken times next to free ones
+export async function fetchSchedule() {
+    const supabase = await getSupabase();
+    if (!supabase) return null;
+    const [hours, settings] = await Promise.all([
+        supabase.from('business_hours').select('weekday, opens_at, closes_at'),
+        supabase.from('booking_settings').select('slot_step_minutes, min_notice_minutes').maybeSingle(),
+    ]);
+    if (hours.error || settings.error || !settings.data) return null;
+    return {
+        hours: hours.data,
+        stepMinutes: settings.data.slot_step_minutes,
+        minNoticeMinutes: settings.data.min_notice_minutes,
+    };
+}
+
 export async function bookAppointment(serviceDbId, startsAt, note) {
     const supabase = await getSupabase();
     if (!supabase) return NO_BACKEND;

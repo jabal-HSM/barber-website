@@ -37,6 +37,11 @@
     --color-border: #ddd5c6;
     --color-border-strong: #c3baa8;
     --color-focus: var(--plum);
+    --color-slot-free-bg: #e3f2e5;
+    --color-slot-free-border: #9ccaa5;
+    --color-slot-taken-bg: #e6e4e0;
+    --color-slot-taken-border: #d2cfc9;
+    --color-slot-taken-text: #5c5a55;
     --color-header-bg: var(--ivory);
     --color-footer-bg: var(--petrol-900);
     --color-footer-text: #ebe6da;
@@ -99,6 +104,11 @@
     --color-border: #2a3b36;
     --color-border-strong: #3d524b;
     --color-focus: #c7b6d6;
+    --color-slot-free-bg: #1c3a2b;
+    --color-slot-free-border: #3f7d59;
+    --color-slot-taken-bg: #252a28;
+    --color-slot-taken-border: #353c39;
+    --color-slot-taken-text: #9aa19d;
     --color-header-bg: #101917;
     --color-footer-bg: #0b1311;
     --color-footer-text: #e4dfd3;
@@ -4318,4 +4328,36 @@ body.has-overlay {
         max-width: none;
         padding-inline: var(--wide-gutter);
     }
+}
+
+/* Booking times: free ones light green; taken ones grey with « Réservé », not selectable.
+   Kept after the generic .choice rules so they apply on top of them. */
+#bookingSlots .choice span {
+    background: var(--color-slot-free-bg);
+    border-color: var(--color-slot-free-border);
+}
+
+#bookingSlots .choice.is-taken span {
+    flex-direction: column;
+    line-height: 1.15;
+    background: var(--color-slot-taken-bg);
+    border-color: var(--color-slot-taken-border);
+    color: var(--color-slot-taken-text);
+    cursor: not-allowed;
+    transform: none;
+}
+
+#bookingSlots .choice.is-taken small {
+    font-size: var(--text-xs);
+    font-weight: 500;
+}
+
+#bookingSlots .choice input:checked + span {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+#bookingSlots .choice:not(.is-taken) span:hover {
+    border-color: var(--color-primary);
 }
