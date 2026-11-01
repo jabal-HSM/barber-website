@@ -543,14 +543,15 @@ function handleAuthRedirect(redirect) {
     state.confirmTimer = setTimeout(() => confirmFailed(), CONFIRM_TIMEOUT_MS);
 }
 
+// Supabase only sends a link without an error after it has confirmed the address: even when the session
+// cannot be restored here (link opened in another browser, expired session), the account is confirmed.
 function confirmFailed() {
     if (!state.confirmPending) return;
     state.confirmPending = false;
     clearTimeout(state.confirmTimer);
     history.replaceState(null, '', cleanAuthUrl(location.pathname, location.search));
     showAuthScreen('signin');
-    showResend(true);
-    setMessage('authMessage', 'error', 'error.session_failed');
+    setMessage('authMessage', 'success', 'auth.accountConfirmed');
 }
 
 // --- Account dialog (signed in) ---

@@ -169,13 +169,13 @@ export const translations = {
         'sound.theme': 'Son du changement de thème',
         'sound.hint': 'Des sons discrets, jamais nécessaires pour utiliser le site. Vos choix suivent votre compte.',
         'auth.resent': 'Nouvel e-mail envoyé à {email}. Ouvrez le lien sur l’appareil où le site est ouvert.',
-        'account.emailConfirmed': 'Adresse e-mail confirmée : vous êtes connecté.',
+        'account.emailConfirmed': 'Votre compte a été confirmé avec succès : vous êtes connecté.',
+        'auth.accountConfirmed':
+            'Votre compte a été confirmé avec succès. Vous pouvez revenir sur le site et vous connecter maintenant.',
         'error.link_expired':
             'Ce lien de confirmation est invalide ou déjà utilisé. Essayez de vous connecter : si votre adresse est déjà confirmée, cela fonctionnera. Sinon, demandez un nouveau lien.',
         'error.link_failed':
             'La confirmation n’a pas abouti. Connectez-vous avec votre e-mail et votre mot de passe, ou demandez un nouveau lien.',
-        'error.session_failed':
-            'Votre adresse est probablement confirmée, mais la connexion automatique n’a pas abouti. Connectez-vous avec votre e-mail et votre mot de passe.',
         'error.email_required': 'Saisissez d’abord votre adresse e-mail.',
         'loyalty.title': 'Ma carte de fidélité',
         'loyalty.cardLabel': 'Carte de fidélité',
@@ -426,12 +426,11 @@ export const translations = {
         'sound.theme': 'صوت تغيير المظهر',
         'sound.hint': 'أصوات خفيفة، والموقع يعمل بالكامل بدونها. تُحفظ اختياراتك في حسابك.',
         'auth.resent': 'أُرسلت رسالة جديدة إلى {email}. افتح الرابط على الجهاز الذي فتحت عليه الموقع.',
-        'account.emailConfirmed': 'تم تأكيد بريدك الإلكتروني وأنت الآن مسجّل الدخول.',
+        'account.emailConfirmed': 'تم تأكيد حسابك بنجاح، وأنت الآن مسجّل الدخول.',
+        'auth.accountConfirmed': 'تم تأكيد حسابك بنجاح، يمكنك العودة إلى الموقع وتسجيل الدخول الآن.',
         'error.link_expired':
             'رابط التأكيد غير صالح أو استُخدم من قبل. جرّب تسجيل الدخول: إن كان بريدك مؤكَّداً فسينجح. وإلا فاطلب رابطاً جديداً.',
         'error.link_failed': 'لم يكتمل التأكيد. سجّل الدخول ببريدك وكلمة المرور، أو اطلب رابطاً جديداً.',
-        'error.session_failed':
-            'على الأرجح تم تأكيد بريدك، لكن الدخول التلقائي لم يكتمل. سجّل الدخول ببريدك وكلمة المرور.',
         'error.email_required': 'أدخل بريدك الإلكتروني أولاً.',
         'loyalty.title': 'بطاقة الولاء',
         'loyalty.cardLabel': 'بطاقة الولاء',
