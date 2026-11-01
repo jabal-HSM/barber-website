@@ -401,7 +401,6 @@ export const adminTranslations = {
         'settings.paymentsEnabled': 'Afficher le bouton « Payer en ligne »',
         'settings.paymentsWarning':
             'À activer seulement quand Stripe est configuré (clés de test d’abord). Tant que le compte de la maman n’est pas vérifié, les paiements réels sont refusés par le serveur.',
-        'settings.hashemShare': 'Part de Hashem par paiement (centimes)',
         'settings.adminOnly': 'Seul un administrateur peut modifier ces réglages.',
         'settings.save': 'Enregistrer les réglages',
         'settings.saved': 'Réglages enregistrés.',
@@ -815,7 +814,6 @@ export const adminTranslations = {
         'settings.paymentsEnabled': 'إظهار زر «ادفع عبر الموقع»',
         'settings.paymentsWarning':
             'فعّله فقط بعد ضبط Stripe (مفاتيح التجربة أولاً). ما دام حساب الوالدة غير مُتحقَّق منه، يرفض الخادم الدفعات الحقيقية.',
-        'settings.hashemShare': 'حصة هاشم من كل دفعة (سنت)',
         'settings.adminOnly': 'يستطيع المدير فقط تعديل هذه الإعدادات.',
         'settings.save': 'حفظ الإعدادات',
         'settings.saved': 'تم حفظ الإعدادات.',

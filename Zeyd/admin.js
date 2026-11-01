@@ -2206,17 +2206,13 @@ function initSettings() {
             }
             booking[column] = value;
         }
-        const share = Number($('setHashemShare').value);
-        if (!Number.isInteger(share) || share < 0) {
-            setMessage('settingsMessage', 'error', 'error.validation');
-            return;
-        }
         const sb = state.supabase;
+        // The Hashem share is not shown in the dashboard and never sent: it keeps its database value
         const [b, p] = await Promise.all([
             sb.from('booking_settings').update(booking).eq('id', true).select('id'),
             sb
                 .from('payment_settings')
-                .update({ online_payments_enabled: $('setPaymentsEnabled').checked, hashem_share_cents: share })
+                .update({ online_payments_enabled: $('setPaymentsEnabled').checked })
                 .eq('id', true)
                 .select('id'),
         ]);
@@ -2295,7 +2291,6 @@ loaders.settings = async () => {
     }
     if (payment) {
         $('setPaymentsEnabled').checked = payment.online_payments_enabled;
-        $('setHashemShare').value = payment.hashem_share_cents;
     }
     $('settingsAdminOnly').hidden = state.isAdmin;
     for (const control of $('settingsForm').querySelectorAll('input, button')) control.disabled = !state.isAdmin;
