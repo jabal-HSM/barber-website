@@ -104,6 +104,10 @@ export const translations = {
         'account.noBookings': 'Aucun rendez-vous à venir.',
         'account.cancel': 'Annuler',
         'account.cancelAria': 'Annuler le rendez-vous du {day} à {time}',
+        'account.calendar': 'Ajouter à Google Calendar',
+        'account.calendarAria': 'Ajouter le rendez-vous du {day} à {time} à Google Calendar (nouvel onglet)',
+        'account.calendarDetails':
+            'Rendez-vous chez ZEYD BARBER : {service}, le {day} à {time} (heure de Paris). Pour annuler ou changer l’heure : Mon compte sur le site.',
         'account.cancelConfirm': 'Annuler ce rendez-vous ?',
         'cancel.title': 'Pourquoi souhaitez-vous annuler votre rendez-vous ?',
         'cancel.reasonLegend': 'Raison de l’annulation',
@@ -360,6 +364,10 @@ export const translations = {
         'account.noBookings': 'لا توجد مواعيد قادمة.',
         'account.cancel': 'إلغاء',
         'account.cancelAria': 'إلغاء موعد {day} الساعة {time}',
+        'account.calendar': 'أضف إلى Google Calendar',
+        'account.calendarAria': 'إضافة موعد {day} الساعة {time} إلى Google Calendar (نافذة جديدة)',
+        'account.calendarDetails':
+            'موعد في ZEYD BARBER: {service}، يوم {day} الساعة {time} (بتوقيت باريس). للإلغاء أو تغيير الوقت: «حسابي» في الموقع.',
         'account.cancelConfirm': 'هل تريد إلغاء هذا الموعد؟',
         'cancel.title': 'ليش حابب تلغي موعدك؟',
         'cancel.reasonLegend': 'سبب الإلغاء',

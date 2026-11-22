@@ -22,6 +22,7 @@ import {
     startCheckout,
 } from './api.js';
 import { cleanAuthUrl, parseAuthRedirect } from './authRedirect.js';
+import { googleCalendarUrl, SALON_LOCATION } from './calendarLink.js';
 import { createHoldButton } from './holdButton.js';
 import { t } from './i18n.js';
 import { renderLoyaltyCard, renderQrCode } from './loyalty.js';
@@ -839,6 +840,38 @@ async function loadMyBookings() {
     renderBookings();
 }
 
+// "Ajouter à Google Calendar": a plain link opened in a new tab. Nothing is sent to our database, so a
+// failure on Google's side cannot touch the booking. Only for confirmed bookings that have not started yet
+// (a custom request is not shown: Zeyd has not accepted it yet).
+function calendarButton(booking, names, day, time) {
+    if (booking.status !== 'confirmed' || new Date(booking.starts_at) <= new Date()) return null;
+    const service = (state.lang === 'ar' && names.name_ar) || names.name_fr || '';
+    const url = googleCalendarUrl({
+        title: service ? `ZEYD BARBER · ${service}` : 'ZEYD BARBER',
+        startsAt: booking.starts_at,
+        endsAt: booking.ends_at,
+        details: t(state.lang, 'account.calendarDetails', { service, day, time }),
+        location: SALON_LOCATION,
+    });
+    if (!url) return null;
+    const link = document.createElement('a');
+    link.className = 'btn btn-ghost btn-sm';
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.setAttribute('aria-label', t(state.lang, 'account.calendarAria', { day, time }));
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    icon.setAttribute('class', 'icon');
+    icon.setAttribute('aria-hidden', 'true');
+    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use.setAttribute('href', '#i-calendar');
+    icon.append(use);
+    const label = document.createElement('span');
+    label.textContent = t(state.lang, 'account.calendar');
+    link.append(icon, label);
+    return link;
+}
+
 async function onPay(booking, button) {
     button.disabled = true;
     setMessage('accountMessage', 'success', 'pay.redirecting');
@@ -909,6 +942,8 @@ function renderBookings() {
                 pay.addEventListener('click', () => onPay(booking, pay));
                 actions.append(pay);
             }
+            const calendar = calendarButton(booking, names, day, time);
+            if (calendar) actions.append(calendar);
             if (booking.status === 'confirmed' || booking.status === 'requested') {
                 const cancel = document.createElement('button');
                 cancel.type = 'button';
