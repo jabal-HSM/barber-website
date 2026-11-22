@@ -131,6 +131,11 @@ export const translations = {
         'account.cancel': 'Annuler',
         'account.cancelAria': 'Annuler le rendez-vous du {day} à {time}',
         'account.calendar': 'Ajouter à Google Calendar',
+        'install.title': 'Installer l’application',
+        'install.text': 'Réservez en un geste depuis votre écran d’accueil.',
+        'install.ios': 'Touchez « Partager », puis « Sur l’écran d’accueil ».',
+        'install.button': 'Installer',
+        'install.close': 'Fermer',
         'account.calendarAria': 'Ajouter le rendez-vous du {day} à {time} à Google Calendar (nouvel onglet)',
         'account.calendarDetails':
             'Rendez-vous chez ZEYD BARBER : {service}, le {day} à {time} (heure de Paris). Pour annuler ou changer l’heure : Mon compte sur le site.',
@@ -484,6 +489,11 @@ export const translations = {
         'account.cancel': 'إلغاء',
         'account.cancelAria': 'إلغاء موعد {day} الساعة {time}',
         'account.calendar': 'أضف إلى Google Calendar',
+        'install.title': 'ثبّت التطبيق',
+        'install.text': 'احجز بلمسة من الشاشة الرئيسية لهاتفك.',
+        'install.ios': 'اضغط «مشاركة» ثم «إضافة إلى الشاشة الرئيسية».',
+        'install.button': 'تثبيت',
+        'install.close': 'إغلاق',
         'account.calendarAria': 'إضافة موعد {day} الساعة {time} إلى Google Calendar (نافذة جديدة)',
         'account.calendarDetails':
             'موعد في ZEYD BARBER: {service}، يوم {day} الساعة {time} (بتوقيت باريس). للإلغاء أو تغيير الوقت: «حسابي» في الموقع.',

@@ -3305,6 +3305,7 @@ body.has-overlay {
 }
 
 .admin-tabs[hidden],
+.install-banner[hidden],
 .admin-panel[hidden],
 .admin-gate[hidden],
 .gate-form[hidden],
@@ -5223,4 +5224,75 @@ fieldset.profile-card > legend + * {
 .admin-tab-messages .unread-dot {
     top: 0.25rem;
     inset-inline-end: 0.4rem;
+}
+
+/* « Installer l'application » banner (pwa.js) */
+.install-banner {
+    position: fixed;
+    inset-inline: var(--space-3);
+    bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
+    z-index: 160;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    max-width: 30rem;
+    margin-inline: auto;
+    padding: var(--space-3);
+    padding-inline-end: var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: var(--shadow-md);
+}
+
+.install-icon {
+    flex: none;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.7rem;
+    background: #fff;
+}
+
+.install-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.install-title {
+    font-size: var(--text-base);
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.install-hint {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    line-height: 1.35;
+}
+
+.install-banner .btn {
+    flex: none;
+}
+
+/* Small round × on the top corner, so the text keeps the width */
+.install-close {
+    position: absolute;
+    inset-block-start: calc(-1 * var(--space-2));
+    inset-inline-end: calc(-1 * var(--space-2));
+    width: 1.75rem;
+    height: 1.75rem;
+    box-shadow: var(--shadow-sm);
+}
+
+#installClose .icon {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+/* Phones: just above the floating bottom bar */
+@media (max-width: 47.99em) {
+    body:has(> .tabbar) .install-banner {
+        bottom: calc(var(--tabbar-rise) + var(--tabbar-body) + env(safe-area-inset-bottom) + var(--space-2));
+    }
 }

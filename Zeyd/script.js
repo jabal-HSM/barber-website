@@ -11,6 +11,7 @@ import { MIN_QUERY_LENGTH, searchCatalog } from './catalogSearch.js';
 import { GALLERY, SERVICES } from './data.js';
 import { DEFAULT_LANG, LANGUAGES, t } from './i18n.js';
 import { closePages, initOverlays, openPage } from './overlays.js';
+import { initInstall } from './pwa.js';
 import { initSound, playThemeSound } from './sound.js';
 
 // Same storage keys as the previous version, so saved preferences are kept.
@@ -61,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('currentYear').textContent = String(new Date().getFullYear());
     initBooking({ lang: currentLang, services, priceFormatter });
     initBottomBar();
+    initInstall({ translate: (key) => t(currentLang, key) });
     loadRemoteContent();
     // The gallery says which photos the signed-in customer likes: reload it when that person changes
     onAuthChange((user) => {

@@ -8,7 +8,12 @@
     <meta name="description"
         content="ZEYD BARBER, salon de coiffure pour hommes : dégradés, coupes classiques et aux ciseaux, coupe enfant, coupe et barbe. Tarifs, horaires et contact.">
     <meta name="theme-color" content="#F6F2EA">
-    <link rel="icon" href="logozeyd.jpeg" type="image/jpeg">
+    <!-- Installable app (manifest + icons from brand/app-icon-source.jpg, see tools/make-icons.sh) -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/favicon-48.png" type="image/png" sizes="48x48">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-title" content="ZEYD BARBER">
+    <meta name="mobile-web-app-capable" content="yes">
 
     <!-- Apply saved theme and language before first paint (avoids a flash of the wrong mode) -->
     <script>
@@ -624,6 +629,24 @@
             </a>
         </div>
     </footer>
+
+    <!-- « Installer l'application » (pwa.js): above the bottom bar on phones, bottom corner on computers -->
+    <aside class="install-banner" id="installBanner" aria-labelledby="installTitle" hidden>
+        <img class="install-icon" src="icons/icon-192.png" alt="" width="48" height="48">
+        <div class="install-text">
+            <p class="install-title" id="installTitle" data-i18n="install.title">Installer l’application</p>
+            <p class="install-hint" id="installHint" data-i18n="install.text">Réservez en un geste depuis votre
+                écran d’accueil.</p>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="installBtn" data-i18n="install.button"
+            hidden>Installer</button>
+        <button type="button" class="icon-btn install-close" id="installClose"
+            data-i18n-attr="aria-label:install.close; title:install.close" aria-label="Fermer">
+            <svg class="icon" aria-hidden="true">
+                <use href="#i-close" />
+            </svg>
+        </button>
+    </aside>
 
     <!-- Phones: floating notch bottom bar (bottomNav.js; shape from notchGeometry.js). The DOM order follows the
          reading direction: in Arabic « مواعيدي » is on the right, in French « Mes RDV » on the left. -->
