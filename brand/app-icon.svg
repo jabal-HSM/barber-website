@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- ZEYD BARBER app icon (original drawing): open scissors on the site's petrol green.
+       Full-bleed square, everything inside the central circle, so it also works as a maskable icon. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1d5a51"/>
+      <stop offset="1" stop-color="#0f3530"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="176" fill="none" stroke="#a8b9a5" stroke-opacity="0.35" stroke-width="4"/>
+  <g fill="#fffefa">
+    <!-- blades: each starts at its ring and ends in a point at the top -->
+    <path d="M213 318 L322 112 Q330 104 334 114 L247 330 Z"/>
+    <path d="M299 318 L190 112 Q182 104 178 114 L265 330 Z"/>
+  </g>
+  <g fill="none" stroke="#fffefa" stroke-width="20">
+    <circle cx="198" cy="364" r="44"/>
+    <circle cx="314" cy="364" r="44"/>
+  </g>
+  <circle cx="256" cy="262" r="11" fill="#0f3530" stroke="#fffefa" stroke-width="6"/>
+</svg>

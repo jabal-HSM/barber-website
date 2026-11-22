@@ -1,27 +1,33 @@
 #!/usr/bin/env bash
-# Builds the app icons (Zeyd/icons/) from one square logo on a light background.
-# To change the icon: replace brand/app-icon-source.jpg (or pass another file), run this script, deploy.
+# Builds the app icons (Zeyd/icons/) from one square image.
+# To change the icon: put the new image in brand/ (or pass its path), run this script, deploy.
 #   bash tools/make-icons.sh [source-image]
-# Needs ffmpeg. CROP is the square area around the logo, as "size:x:y" in source pixels (default fits the
-# current 736x736 logo); MASK_PAD is the white canvas the maskable icon is centred on (Android round icons).
+# Default source: brand/app-icon-source.png, rendered from brand/app-icon.svg (full-bleed, so it is also
+# used as the maskable icon). For a logo on a white background, set CROP="size:x:y" (the square around
+# the logo, in source pixels) and MASK_PAD=<canvas size> so Android's round mask does not cut it.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-SRC="${1:-brand/app-icon-source.jpg}"
-CROP="${CROP:-600:600:68:68}"
-MASK_PAD="${MASK_PAD:-800}"
+SRC="${1:-brand/app-icon-source.png}"
+CROP="${CROP:-}"
+MASK_PAD="${MASK_PAD:-}"
 FFMPEG="${FFMPEG:-ffmpeg}"
 OUT=Zeyd/icons
 mkdir -p "$OUT"
 
-icon() { # size crop output
-    "$FFMPEG" -v error -y -i "$SRC" -vf "crop=$2,scale=$1:$1:flags=lanczos" -frames:v 1 "$OUT/$3"
+icon() { # size output
+    local filter="scale=$1:$1:flags=lanczos"
+    [ -n "$CROP" ] && filter="crop=$CROP,$filter"
+    "$FFMPEG" -v error -y -i "$SRC" -vf "$filter" -frames:v 1 "$OUT/$2"
 }
-icon 512 "$CROP" icon-512.png
-icon 192 "$CROP" icon-192.png
-icon 180 "$CROP" apple-touch-icon.png
-icon 48 "$CROP" favicon-48.png
-# Maskable: the whole logo inside the central safe circle, on white
-"$FFMPEG" -v error -y -i "$SRC" \
-    -vf "pad=$MASK_PAD:$MASK_PAD:(ow-iw)/2:(oh-ih)/2:white,scale=512:512:flags=lanczos" -frames:v 1 \
-    "$OUT/icon-maskable-512.png"
+icon 512 icon-512.png
+icon 192 icon-192.png
+icon 180 apple-touch-icon.png
+icon 48 favicon-48.png
+if [ -n "$MASK_PAD" ]; then
+    "$FFMPEG" -v error -y -i "$SRC" \
+        -vf "pad=$MASK_PAD:$MASK_PAD:(ow-iw)/2:(oh-ih)/2:white,scale=512:512:flags=lanczos" -frames:v 1 \
+        "$OUT/icon-maskable-512.png"
+else
+    cp "$OUT/icon-512.png" "$OUT/icon-maskable-512.png"
+fi
 ls -l "$OUT"

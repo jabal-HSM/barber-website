@@ -19,5 +19,9 @@
   Content-Type: application/manifest+json
   Cache-Control: no-cache
 
+/admin.webmanifest
+  Content-Type: application/manifest+json
+  Cache-Control: no-cache
+
 /sounds/*
   Cache-Control: public, max-age=604800

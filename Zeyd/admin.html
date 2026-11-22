@@ -7,7 +7,12 @@
     <title>Espace Zeyd | ZEYD BARBER</title>
     <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#F6F2EA">
-    <link rel="icon" href="logozeyd.jpeg" type="image/jpeg">
+    <!-- Installable as its own app (« Espace Zeyd », opens on /admin) -->
+    <link rel="manifest" href="admin.webmanifest">
+    <link rel="icon" href="icons/favicon-48.png" type="image/png" sizes="48x48">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-title" content="Espace Zeyd">
+    <meta name="mobile-web-app-capable" content="yes">
     <script>
         (function () {
             try {
@@ -114,6 +119,10 @@
     <main class="admin-main" id="adminMain">
         <div class="admin-gate" id="adminGate">
             <p id="gateText" data-i18n="gate.loading">Vérification de votre accès…</p>
+            <!-- Signed in with an account that is not staff: say which one, and let them change account -->
+            <p class="field-hint" id="gateAccount" dir="auto" hidden></p>
+            <button type="button" class="btn btn-ghost btn-sm" id="gateSwitch" data-i18n="gate.switch" hidden>Se
+                connecter avec un autre compte</button>
             <!-- Sign-in on this page itself: the session is per address, and the dashboard opens right after -->
             <form class="admin-card gate-form" id="gateForm" novalidate hidden>
                 <div class="field-group">
@@ -447,6 +456,24 @@
             </form>
         </section>
     </main>
+
+    <!-- « Installer l'application » (pwa.js), same banner as the site -->
+    <aside class="install-banner" id="installBanner" aria-labelledby="installTitle" hidden>
+        <img class="install-icon" src="icons/icon-192.png" alt="" width="48" height="48">
+        <div class="install-text">
+            <p class="install-title" id="installTitle" data-i18n="install.title">Installer l’espace Zeyd</p>
+            <p class="install-hint" id="installHint" data-i18n="install.text">Ouvrez votre espace de gestion
+                depuis l’écran d’accueil.</p>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="installBtn" data-i18n="install.button"
+            hidden>Installer</button>
+        <button type="button" class="icon-btn install-close" id="installClose"
+            data-i18n-attr="aria-label:install.close; title:install.close" aria-label="Fermer">
+            <svg class="icon" aria-hidden="true">
+                <use href="#i-close" />
+            </svg>
+        </button>
+    </aside>
 
     <!-- Booking details: side panel on a computer, bottom sheet on a phone -->
     <dialog class="booking-sheet" id="bookingSheet" aria-labelledby="bookingSheetTitle">

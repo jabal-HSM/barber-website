@@ -7,6 +7,7 @@ import { createHoldButton } from './holdButton.js';
 import { renderLoyaltyCard } from './loyalty.js';
 import { groupThreads } from './messageThreads.js';
 import { confirmPasswordChange, sendPasswordCode } from './passwordChange.js';
+import { initInstall } from './pwa.js';
 import { getSupabase } from './supabaseClient.js';
 import { formatDateOf, formatTime, parisLocalToIso, SALON_TIME_ZONE } from './time.js';
 
@@ -157,6 +158,21 @@ function gate(key, withForm = false) {
     $('gateText').textContent = at(state.lang, key);
     $('gateText').dataset.i18n = key;
     $('gateForm').hidden = !withForm;
+    $('gateAccount').hidden = true;
+    $('gateSwitch').hidden = true;
+}
+
+// Signed in, but the database says this account is not staff (role « customer »): show which account it is,
+// since a typo in the e-mail (a missing dot…) is the usual reason, and offer to sign in with another one.
+function gateForbidden(supabase, email) {
+    gate('gate.forbidden');
+    $('gateAccount').textContent = at(state.lang, 'gate.account', { email: email ?? '—' });
+    $('gateAccount').hidden = false;
+    $('gateSwitch').hidden = false;
+    $('gateSwitch').onclick = async () => {
+        await supabase.auth.signOut();
+        gate('gate.signIn', true);
+    };
 }
 
 // Sign-in form shown by the gate: the session is stored per address (127.0.0.1 and 192.168.x.x are two
@@ -187,6 +203,7 @@ function initGateForm(supabase) {
 async function init() {
     applyLanguage(readPref('lang') === 'ar' ? 'ar' : 'fr');
     initTheme();
+    initInstall({ translate: (key) => at(state.lang, key) });
     for (const b of document.querySelectorAll('[data-lang]')) {
         b.addEventListener('click', () => {
             applyLanguage(b.dataset.lang);
@@ -219,7 +236,7 @@ async function openDashboard(supabase, session) {
     }
     if (!staff) {
         state.user = null;
-        return gate('gate.forbidden');
+        return gateForbidden(supabase, session.user?.email);
     }
     state.isAdmin = Boolean(admin);
 
