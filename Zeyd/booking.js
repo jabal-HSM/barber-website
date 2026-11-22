@@ -9,6 +9,7 @@ import {
     fetchMyLoyalty,
     fetchMyPayments,
     fetchPaymentSettings,
+    fetchSchedule,
     fetchSlots,
     notifyStaffOfBooking,
     onAuthChange,
@@ -23,9 +24,14 @@ import {
 } from './api.js';
 import { cleanAuthUrl, parseAuthRedirect } from './authRedirect.js';
 import { googleCalendarUrl, SALON_LOCATION } from './calendarLink.js';
+import { confirmDialog } from './confirmDialog.js';
 import { createHoldButton } from './holdButton.js';
 import { t } from './i18n.js';
 import { renderLoyaltyCard, renderQrCode } from './loyalty.js';
+import { initMessagesCenter, openMessages, refreshMessages, renderMessages } from './messagesCenter.js';
+import { closePages, openPage } from './overlays.js';
+import { initProfilePage, loadProfile, renderProfileLanguage } from './profilePage.js';
+import { buildSlotGrid } from './slotGrid.js';
 import { adoptSoundPrefs, getSoundPrefs, onSoundPrefsChange } from './sound.js';
 import { mergeSoundPrefs, samePrefs } from './soundCore.js';
 import { formatDateOf, formatDay, formatTime, parisLocalToIso } from './time.js';
@@ -111,13 +117,13 @@ export async function initBooking({ lang, services, priceFormatter }) {
         loadSlots();
     });
     $('bookingSlots')?.addEventListener('change', (e) => {
-        state.slot = state.slots?.find((s) => s.starts_at === e.target.value) ?? null;
+        state.slot = state.slots?.find((s) => s.starts_at === e.target.value && !s.taken) ?? null;
         renderSummary();
     });
     $('bookingForm')?.addEventListener('submit', onBookingSubmit);
     $('customForm')?.addEventListener('submit', onCustomSubmit);
     initAuthScreen();
-    initAccountDialog();
+    initAccountPages();
     initCancelDialog();
     // A change made while signed in is saved to the account too (debounced: one request per burst of clicks)
     onSoundPrefsChange((prefs, source) => {
@@ -138,6 +144,13 @@ export async function initBooking({ lang, services, priceFormatter }) {
     if (state.days?.length) state.day = state.days[0];
     renderDays();
     loadSlots();
+    // Other customers book and cancel too: the times are refreshed every minute and when the page is shown again
+    setInterval(() => {
+        if (!document.hidden) loadSlots({ quiet: true });
+    }, 60_000);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) loadSlots({ quiet: true });
+    });
 }
 
 export function setBookingLanguage(lang) {
@@ -152,6 +165,9 @@ export function setBookingLanguage(lang) {
     renderLoyalty();
     renderCancelDialog();
     renderReschedule();
+    renderProfileLanguage();
+    renderMessages();
+    $('signOutBtn')?.setLabels?.(signOutLabels());
     for (const id of Object.keys(state.messages)) renderMessage(id);
 }
 
@@ -215,7 +231,8 @@ function renderDays() {
     );
 }
 
-async function loadSlots() {
+// quiet: refresh without the "Chargement…" step (periodic refresh)
+async function loadSlots({ quiet = false } = {}) {
     const service = currentService();
     $('bookingServiceHint').hidden = isBookable(service);
     if (!state.days || !isBookable(service) || !state.day) {
@@ -224,22 +241,39 @@ async function loadSlots() {
         renderSummary();
         return;
     }
-    state.slots = null;
-    renderSlots();
+    if (!quiet) {
+        state.slots = null;
+        renderSlots();
+    }
     const requested = `${service.dbId}|${state.day}`;
     state.slotsRequest = requested;
-    const slots = await fetchSlots(service.dbId, state.day);
+    const [slots, schedule] = await Promise.all([fetchSlots(service.dbId, state.day), fetchSchedule()]);
     if (state.slotsRequest !== requested) return; // a newer choice was made meanwhile
-    state.slots = slots ?? [];
+    if (quiet && slots === null) return; // keep what is shown if the refresh failed
+    // Free times from the database, plus the taken ones (greyed out) when the opening hours are known
+    state.slots = schedule
+        ? buildSlotGrid({
+              day: state.day,
+              hours: schedule.hours,
+              stepMinutes: schedule.stepMinutes,
+              durationMinutes: service.durationMinutes,
+              minNoticeMinutes: schedule.minNoticeMinutes,
+              now: Date.now(),
+              freeSlots: slots ?? [],
+              toIso: parisLocalToIso,
+          })
+        : (slots ?? []);
+    if (slots === null) state.slots = [];
+    const hasFree = state.slots.some((s) => !s.taken);
     const nextDay = state.days[state.days.indexOf(state.day) + 1];
-    if (state.autoAdvanceDay && slots && !slots.length && nextDay) {
+    if (state.autoAdvanceDay && slots && !hasFree && nextDay) {
         state.day = nextDay;
         renderDays();
         loadSlots();
         return;
     }
     state.autoAdvanceDay = false;
-    if (state.slot && !state.slots.some((s) => s.starts_at === state.slot.starts_at)) state.slot = null;
+    if (state.slot && !state.slots.some((s) => s.starts_at === state.slot.starts_at && !s.taken)) state.slot = null;
     renderSlots();
     renderSummary();
 }
@@ -256,12 +290,25 @@ function renderSlots() {
     }
     container.replaceChildren(
         ...state.slots.map((slot) =>
-            radio('slot', slot.starts_at, formatTime(slot.starts_at), slot.starts_at === state.slot?.starts_at),
+            slot.taken
+                ? takenChoice(formatTime(slot.starts_at))
+                : radio('slot', slot.starts_at, formatTime(slot.starts_at), slot.starts_at === state.slot?.starts_at),
         ),
     );
     if (!isBookable(service)) hint.textContent = '';
     else if (!state.day) hint.textContent = t(state.lang, 'booking.chooseDay');
-    else hint.textContent = state.slots.length ? '' : t(state.lang, 'booking.noSlots');
+    else hint.textContent = state.slots.some((s) => !s.taken) ? '' : t(state.lang, 'booking.noSlots');
+}
+
+// A taken time: shown in grey with « Réservé », cannot be chosen (the database refuses it anyway)
+function takenChoice(time) {
+    const wrapper = radio('slot', '', time, false);
+    wrapper.classList.add('is-taken');
+    wrapper.querySelector('input').disabled = true;
+    const label = document.createElement('small');
+    label.textContent = t(state.lang, 'booking.taken');
+    wrapper.querySelector('span').append(label);
+    return wrapper;
 }
 
 function renderSummary() {
@@ -503,33 +550,53 @@ function handleAuthRedirect(redirect) {
     state.confirmTimer = setTimeout(() => confirmFailed(), CONFIRM_TIMEOUT_MS);
 }
 
+// Supabase only sends a link without an error after it has confirmed the address: even when the session
+// cannot be restored here (link opened in another browser, expired session), the account is confirmed.
 function confirmFailed() {
     if (!state.confirmPending) return;
     state.confirmPending = false;
     clearTimeout(state.confirmTimer);
     history.replaceState(null, '', cleanAuthUrl(location.pathname, location.search));
     showAuthScreen('signin');
-    showResend(true);
-    setMessage('authMessage', 'error', 'error.session_failed');
+    setMessage('authMessage', 'success', 'auth.accountConfirmed');
 }
 
-// --- Account dialog (signed in) ---
-function initAccountDialog() {
-    const dialog = $('accountDialog');
-    if (!dialog) return;
+// --- « Profil » and « Mes RDV » pages (signed in; opened and closed through overlays.js) ---
+const signOutLabels = () => ({
+    label: t(state.lang, 'account.signOutHold'),
+    holdingLabel: t(state.lang, 'account.signOutHolding'),
+    busyLabel: t(state.lang, 'account.signOutBusy'),
+    hint: t(state.lang, 'account.signOutHint'),
+});
+
+function initAccountPages() {
+    if (!$('profilePage')) return;
     document.querySelectorAll('[data-open-account]').forEach((btn) => {
         btn.addEventListener('click', () => openAccount());
     });
-    $('accountCloseBtn').addEventListener('click', () => dialog.close());
-    // Click on the backdrop closes the dialog
-    dialog.addEventListener('click', (e) => {
-        if (e.target === dialog) dialog.close();
+    document.querySelectorAll('[data-open-bookings]').forEach((btn) => {
+        btn.addEventListener('click', () => openAccountPanel('bookings'));
     });
-    $('signOutBtn').addEventListener('click', async () => {
-        await signOut();
-        setMessage('accountMessage', null);
-        dialog.close();
+    initProfilePage({
+        getUser: () => state.user,
+        t: (key, params) => t(state.lang, key, params),
+        setMessage,
     });
+    initMessagesCenter({
+        getUser: () => state.user,
+        getLang: () => state.lang,
+        t: (key, params) => t(state.lang, key, params),
+        setMessage,
+    });
+    // Sign out: hold the button, then confirm. Only the session of this device ends; bookings stay saved.
+    const hold = createHoldButton({
+        ...signOutLabels(),
+        className: 'btn btn-signout',
+        duration: 900,
+        onConfirm: confirmSignOut,
+    });
+    hold.id = 'signOutBtn';
+    $('signOutBtn').replaceWith(hold);
     $('loyaltyQrBtn').addEventListener('click', openQr);
     const qrDialog = $('qrDialog');
     $('qrCloseBtn').addEventListener('click', () => qrDialog.close());
@@ -539,24 +606,54 @@ function initAccountDialog() {
     });
 }
 
+// Returns false when the person chose « Annuler »: the hold button is then ready again
+async function confirmSignOut() {
+    const confirmed = await confirmDialog({
+        message: t(state.lang, 'account.signOutConfirm'),
+        ok: t(state.lang, 'common.yes'),
+        cancel: t(state.lang, 'common.cancel'),
+        cancelIcon: true,
+    });
+    if (!confirmed) return false;
+    await signOut();
+    setMessage('profileMessage', null);
+    setMessage('accountMessage', null);
+    closePages();
+    return true;
+}
+
+// « Profil » (bottom bar, or « Mon compte » on wide screens) and « Mes RDV »: two separate full-screen pages;
+// the welcome / sign-in screen when signed out
+export function openAccountPanel(section = 'profile') {
+    if (!state.user) {
+        showAuthScreen('choices');
+        return;
+    }
+    if (section === 'bookings') {
+        openPage('bookingsPage');
+        loadMyBookings();
+    } else {
+        openPage('profilePage');
+        loadProfile();
+        loadLoyalty();
+        openMessages();
+    }
+}
+
 function openAccount(mode) {
     if (!state.user) {
         showAuthScreen(mode ?? 'choices');
         return;
     }
-    const dialog = $('accountDialog');
-    if (!dialog.open) dialog.showModal();
-    loadMyBookings();
-    loadLoyalty();
+    openAccountPanel('profile');
 }
 
 function onUserChange(user) {
     const firstCall = !state.authKnown;
     state.authKnown = true;
     state.user = user;
-    document.querySelectorAll('.account-dot').forEach((dot) => {
-        dot.hidden = !user;
-    });
+    // Red dot on « Profil » / « Mon compte »: only for unread salon messages (messagesCenter.js)
+    refreshMessages();
     if ($('accountEmail')) $('accountEmail').textContent = user?.email ?? '';
     renderSummary();
     if (user) syncSoundPrefs(user);
@@ -572,13 +669,14 @@ function onUserChange(user) {
         history.replaceState(null, '', cleanAuthUrl(location.pathname, location.search));
         hideAuthScreen();
         openAccount();
-        setMessage('accountMessage', 'success', 'account.emailConfirmed');
+        setMessage('profileMessage', 'success', 'account.emailConfirmed');
         return;
     }
     if (user) {
         hideAuthScreen();
         loadMyBookings();
         loadLoyalty();
+        loadProfile();
     } else if (state.confirmPending) {
         // The link carried a session that could not be restored
         confirmFailed();
@@ -590,7 +688,7 @@ function onUserChange(user) {
         if ($('qrDialog')?.open) $('qrDialog').close();
         renderBookings();
         renderLoyalty();
-        if ($('accountDialog')?.open) $('accountDialog').close();
+        closePages();
         // First visit: welcome screen once (only when accounts can actually be used)
         // (not over the sign-in form already opened by a confirmation link)
         if (firstCall && returnTo()) showAuthScreen('signin');
@@ -709,9 +807,8 @@ function renderCancelDialog() {
     $('cancelSummary').textContent =
         `${day} · ${time} · ${(state.lang === 'ar' && names.name_ar) || names.name_fr || ''}`;
     const reason = selectedReason();
-    const other = reason === 'other';
-    $('cancelDetailsLabel').textContent = t(state.lang, other ? 'cancel.detailsRequired' : 'cancel.detailsOptional');
-    $('cancelDetails').required = other;
+    // Details are optional for every reason, « Autre raison » included
+    $('cancelDetailsLabel').textContent = t(state.lang, 'cancel.detailsOptional');
     const offer = reason === 'reschedule' && canReschedule(booking);
     $('rescheduleOffer').hidden = !offer;
     $('cancelWarning').textContent = t(state.lang, 'cancel.warning', { day, time });
@@ -727,16 +824,10 @@ function cancelLabels(withoutNew) {
     };
 }
 
-// Checked before the hold starts: a reason is required, and a few words for "other"
+// Checked before the hold starts: a reason is required; the details are optional
 function validateCancel() {
-    const reason = selectedReason();
-    if (!reason) {
+    if (!selectedReason()) {
         setMessage('cancelMessage', 'error', 'error.invalid_reason');
-        return false;
-    }
-    if (reason === 'other' && !$('cancelDetails').value.trim()) {
-        setMessage('cancelMessage', 'error', 'error.details_required');
-        $('cancelDetails').focus();
         return false;
     }
     setMessage('cancelMessage', null);
@@ -773,7 +864,7 @@ function startRescheduling() {
     }
     state.rescheduling = { booking, details: $('cancelDetails').value.trim() };
     $('cancelDialog').close();
-    if ($('accountDialog')?.open) $('accountDialog').close();
+    closePages();
     state.serviceId = service.id;
     state.slot = null;
     state.autoAdvanceDay = true;
@@ -781,7 +872,8 @@ function startRescheduling() {
     renderServiceSelect();
     renderReschedule();
     loadSlots();
-    $('booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // After overlays.js has put the page back where it was (windows just closed)
+    setTimeout(() => $('booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
 }
 
 function stopRescheduling() {

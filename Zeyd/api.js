@@ -167,6 +167,22 @@ export async function fetchSlots(serviceDbId, day) {
     return error ? null : data;
 }
 
+// Opening hours, start-time step and notice period (public): used to show taken times next to free ones
+export async function fetchSchedule() {
+    const supabase = await getSupabase();
+    if (!supabase) return null;
+    const [hours, settings] = await Promise.all([
+        supabase.from('business_hours').select('weekday, opens_at, closes_at'),
+        supabase.from('booking_settings').select('slot_step_minutes, min_notice_minutes').maybeSingle(),
+    ]);
+    if (hours.error || settings.error || !settings.data) return null;
+    return {
+        hours: hours.data,
+        stepMinutes: settings.data.slot_step_minutes,
+        minNoticeMinutes: settings.data.min_notice_minutes,
+    };
+}
+
 export async function bookAppointment(serviceDbId, startsAt, note) {
     const supabase = await getSupabase();
     if (!supabase) return NO_BACKEND;
@@ -250,6 +266,75 @@ export async function fetchMyBookings(userId) {
         .gte('starts_at', new Date().toISOString())
         .order('starts_at');
     return error ? null : data;
+}
+
+// --- Messages with the salon (booking_messages, migration 20261102110000). RLS: a customer reads only the
+// messages of their own bookings; writing goes through customer_send_message / mark_my_messages_read only. ---
+// Table not created yet on this project (migration not applied): the page says so instead of failing.
+export const isMissingTable = (error) =>
+    ['42P01', 'PGRST205', 'PGRST202'].includes(error?.code) ||
+    /does not exist|schema cache/i.test(error?.message ?? '');
+
+export async function fetchMyMessages() {
+    const supabase = await getSupabase();
+    if (!supabase) return { data: [], error: null };
+    return supabase
+        .from('booking_messages')
+        .select(
+            'id, booking_id, from_staff, body, created_at, read_at, bookings:booking_id (starts_at, status, services (name_fr, name_ar))',
+        )
+        .order('created_at');
+}
+
+export async function sendMyMessage(bookingId, body) {
+    const supabase = await getSupabase();
+    if (!supabase) return NO_BACKEND;
+    return supabase.rpc('customer_send_message', { p_booking_id: bookingId, p_body: body });
+}
+
+export async function markMyMessagesRead() {
+    const supabase = await getSupabase();
+    if (!supabase) return NO_BACKEND;
+    return supabase.rpc('mark_my_messages_read', { p_booking_id: null });
+}
+
+// The customer's bookings that can be written about: upcoming ones and those of the last 30 days
+export async function fetchMyRecentBookings(userId) {
+    const supabase = await getSupabase();
+    if (!supabase || !userId) return [];
+    const { data, error } = await supabase
+        .from('bookings')
+        .select('id, starts_at, status, services (name_fr, name_ar)')
+        .eq('customer_id', userId)
+        .gte('starts_at', new Date(Date.now() - 30 * 86_400_000).toISOString())
+        .order('starts_at', { ascending: false });
+    return error ? [] : data;
+}
+
+// --- Own profile (name and photo of « Profil »). RLS: a customer reads and updates only their own row, and only
+// full_name / avatar_url / preferred_lang can be written; the role never. ---
+export async function fetchMyProfile(userId) {
+    const supabase = await getSupabase();
+    if (!supabase || !userId) return null;
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, avatar_url')
+        .eq('id', userId)
+        .maybeSingle();
+    return error ? null : data;
+}
+
+// Success only when the database returns the saved row
+export async function updateMyProfile(userId, change) {
+    const supabase = await getSupabase();
+    if (!supabase) return NO_BACKEND;
+    const { data, error } = await supabase
+        .from('profiles')
+        .update(change)
+        .eq('id', userId)
+        .select('full_name, avatar_url');
+    if (error) return { data: null, error };
+    return data?.length ? { data: data[0], error: null } : { data: null, error: { message: 'forbidden' } };
 }
 
 // --- Likes (one per user and photo; the database rejects duplicates and anonymous likes) ---

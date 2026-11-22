@@ -1,8 +1,12 @@
 // Barber / admin dashboard. Every action is checked by the database (RLS policies and functions
 // that verify the role): this page only shows what the signed-in account is allowed to do.
 import { at } from './admin-i18n.js';
+import { cameraErrorKey, cameraUnavailable } from './camera.js';
+import { confirmDialog } from './confirmDialog.js';
 import { createHoldButton } from './holdButton.js';
 import { renderLoyaltyCard } from './loyalty.js';
+import { groupThreads } from './messageThreads.js';
+import { confirmPasswordChange, sendPasswordCode } from './passwordChange.js';
 import { getSupabase } from './supabaseClient.js';
 import { formatDateOf, formatTime, parisLocalToIso, SALON_TIME_ZONE } from './time.js';
 
@@ -223,6 +227,13 @@ async function openDashboard(supabase, session) {
     $('adminTabs').hidden = false;
     $('adminSignOut').hidden = false;
     $('adminSignOut').addEventListener('click', async () => {
+        // Signing out only ends the session on this device: bookings are not touched
+        const confirmed = await confirmDialog({
+            message: at(state.lang, 'header.signOutConfirm'),
+            ok: at(state.lang, 'common.ok'),
+            cancel: at(state.lang, 'common.cancel'),
+        });
+        if (!confirmed) return;
         await supabase.auth.signOut();
         location.href = 'index.html';
     });
@@ -236,6 +247,12 @@ async function openDashboard(supabase, session) {
     initGallery();
     initCustomers();
     initSettings();
+    // Red dot on « Messages » while a customer message is unread
+    refreshMessagesDot();
+    setInterval(() => {
+        if (!document.hidden) refreshMessagesDot();
+    }, 60_000);
+    initPasswordChange();
     openPanel(location.hash.slice(1) || 'home');
 }
 
@@ -1199,6 +1216,11 @@ function initLoyalty() {
         e.preventDefault();
         searchCustomers($('loyaltySearchInput').value);
     });
+    // The camera is released as soon as the page is hidden or left
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stopScan();
+    });
+    window.addEventListener('pagehide', stopScan);
 }
 
 let jsqrPromise = null;
@@ -1215,18 +1237,33 @@ function loadJsQr() {
 
 async function startScan() {
     setMessage('loyaltyMessage', null);
+    const unavailable = cameraUnavailable({
+        isSecureContext: window.isSecureContext,
+        mediaDevices: navigator.mediaDevices,
+    });
+    if (unavailable) {
+        setMessage('loyaltyMessage', 'error', unavailable);
+        return;
+    }
     try {
+        // Back camera when the phone has one; any camera otherwise
         state.scanStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment' },
+            video: { facingMode: { ideal: 'environment' } },
             audio: false,
         });
-    } catch {
-        setMessage('loyaltyMessage', 'error', 'loyalty.cameraError');
+    } catch (error) {
+        setMessage('loyaltyMessage', 'error', cameraErrorKey(error));
         return;
     }
     const video = $('scannerVideo');
     video.srcObject = state.scanStream;
-    await video.play();
+    try {
+        await video.play();
+    } catch {
+        stopScan();
+        setMessage('loyaltyMessage', 'error', 'loyalty.cameraError');
+        return;
+    }
     $('scanner').hidden = false;
     $('scanBtnText').textContent = at(state.lang, 'loyalty.stopScan');
 
@@ -1352,7 +1389,13 @@ function renderCustomerCard(card) {
     const confirm = button(at(state.lang, 'loyalty.confirmVisit'), 'btn btn-primary', async () => {
         confirm.disabled = true;
         const { data, error } = await state.supabase.rpc('loyalty_confirm_visit', { p_code: state.loyaltyCode });
-        if (error) setMessage('loyaltyMessage', 'error', errorKey(error));
+        // 50 hours between two stamps: the database gives the time of the next possible stamp in the hint
+        if (error?.message === 'cooldown_active' && error.hint)
+            setMessage('loyaltyMessage', 'error', 'error.cooldown_active', {
+                date: formatDateOf(error.hint, state.lang),
+                time: formatTime(error.hint),
+            });
+        else if (error) setMessage('loyaltyMessage', 'error', errorKey(error));
         else if (data?.[0]?.reward_earned) setMessage('loyaltyMessage', 'success', 'loyalty.rewardEarned');
         else
             setMessage('loyaltyMessage', 'success', 'loyalty.visitConfirmed', {
@@ -1965,6 +2008,107 @@ function initCustomers() {
     $('customerSort').addEventListener('change', renderCustomers);
 }
 
+// --- Messages with customers (booking_messages, migration 20261102110000). Opening the panel marks the customers'
+// messages read; answering goes through staff_send_message (staff only, checked by the database). ---
+const isMissingTable = (error) =>
+    ['42P01', 'PGRST205', 'PGRST202'].includes(error?.code) ||
+    /does not exist|schema cache/i.test(error?.message ?? '');
+
+async function refreshMessagesDot() {
+    const { count, error } = await state.supabase
+        .from('booking_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('from_staff', false)
+        .is('read_at', null);
+    $('messagesDot').hidden = Boolean(error) || !count;
+}
+
+function messageBookingLabel(booking) {
+    if (!booking?.starts_at) return '';
+    const service = (state.lang === 'ar' && booking.services?.name_ar) || booking.services?.name_fr || '';
+    return [formatDateOf(booking.starts_at, state.lang), formatTime(booking.starts_at), service]
+        .filter(Boolean)
+        .join(' · ');
+}
+
+function renderStaffThread(thread) {
+    const card = el('article', 'message-thread');
+    const customer = thread.last.profiles ?? {};
+    const head = el('header', 'message-thread-head');
+    const who = el('div', '');
+    const name = el('p', 'message-thread-title', customer.full_name || customer.email || '—');
+    name.dir = 'auto';
+    who.append(name, el('p', 'admin-item-meta', messageBookingLabel(thread.last.bookings)));
+    head.append(
+        who,
+        el('span', `message-status is-${thread.status}`, at(state.lang, `messages.status.${thread.status}`)),
+    );
+    const list = el('ul', 'message-list');
+    for (const m of thread.messages) {
+        const item = el('li', `message ${m.from_staff ? 'is-mine' : 'is-theirs'}`);
+        const body = el('p', 'message-body', m.body);
+        body.dir = 'auto';
+        item.append(
+            body,
+            el(
+                'p',
+                'message-meta',
+                `${at(state.lang, m.from_staff ? 'messages.fromSalon' : 'messages.fromCustomer')} · ${formatDateOf(m.created_at, state.lang)} ${formatTime(m.created_at)}`,
+            ),
+        );
+        list.append(item);
+    }
+    const reply = el('textarea', 'field');
+    reply.rows = 2;
+    reply.maxLength = 1000;
+    reply.dir = 'auto';
+    reply.setAttribute('aria-label', at(state.lang, 'messages.reply'));
+    reply.placeholder = at(state.lang, 'messages.replyPlaceholder');
+    const send = button(at(state.lang, 'messages.send'), 'btn btn-primary btn-sm', async () => {
+        const body = reply.value.trim();
+        if (!body) return setMessage('messagesPanelMessage', 'error', 'messages.error.message_empty');
+        send.disabled = true;
+        const { error } = await state.supabase.rpc('staff_send_message', {
+            p_booking_id: thread.bookingId,
+            p_body: body,
+        });
+        send.disabled = false;
+        if (error) return setMessage('messagesPanelMessage', 'error', errorKey(error));
+        setMessage('messagesPanelMessage', 'success', 'messages.sent');
+        loaders.messages();
+    });
+    card.append(head, list, reply, send);
+    return card;
+}
+
+loaders.messages = async () => {
+    const box = $('adminThreads');
+    box.replaceChildren(el('p', 'admin-empty', at(state.lang, 'common.loading')));
+    const { data, error } = await state.supabase
+        .from('booking_messages')
+        .select(
+            'id, booking_id, customer_id, from_staff, body, created_at, read_at, bookings:booking_id (starts_at, status, services (name_fr, name_ar)), profiles:customer_id (full_name, email)',
+        )
+        .order('created_at')
+        .limit(500);
+    if (error) {
+        box.replaceChildren(
+            el('p', 'admin-empty', at(state.lang, isMissingTable(error) ? 'messages.unavailable' : 'common.error')),
+        );
+        return;
+    }
+    const threads = groupThreads(data ?? [], 'staff');
+    if (!threads.length) {
+        box.replaceChildren(el('p', 'admin-empty', at(state.lang, 'messages.empty')));
+        return;
+    }
+    box.replaceChildren(...threads.map(renderStaffThread));
+    // Seen now: the customers' messages of every conversation shown become « read »
+    const unread = threads.filter((t) => t.unread);
+    await Promise.all(unread.map((t) => state.supabase.rpc('staff_mark_messages_read', { p_booking_id: t.bookingId })));
+    if (unread.length) refreshMessagesDot();
+};
+
 loaders.customers = async () => {
     const { data } = await state.supabase
         .from('profiles')
@@ -2136,7 +2280,7 @@ async function toggleCustomerDetails(c, item) {
             button(at(state.lang, 'customers.saveNote'), 'btn btn-ghost btn-sm', async () => {
                 const value = text.value.trim();
                 const { error } = value
-                    ? await sb.from('customer_notes').upsert({ customer_id: c.id, note: value })
+                    ? await saveCustomerNote(sb, c.id, value)
                     : await sb.from('customer_notes').delete().eq('customer_id', c.id);
                 setMessage(
                     'customersMessage',
@@ -2146,6 +2290,21 @@ async function toggleCustomerDetails(c, item) {
             }),
         );
     }
+}
+
+// Staff may only change the note column of customer_notes: an upsert also sets customer_id on conflict
+// and is refused (42501), so the existing note is updated, or a new one inserted. Success only when the
+// database returns the saved row.
+async function saveCustomerNote(sb, customerId, note) {
+    const updated = await sb
+        .from('customer_notes')
+        .update({ note })
+        .eq('customer_id', customerId)
+        .select('customer_id');
+    if (updated.error || updated.data?.length) return updated;
+    const inserted = await sb.from('customer_notes').insert({ customer_id: customerId, note }).select('customer_id');
+    if (!inserted.error && !inserted.data?.length) return { error: { message: 'forbidden' } };
+    return inserted;
 }
 
 // --- Settings (admin only, enforced by RLS) ---
@@ -2170,22 +2329,97 @@ function initSettings() {
             }
             booking[column] = value;
         }
-        const share = Number($('setHashemShare').value);
-        if (!Number.isInteger(share) || share < 0) {
-            setMessage('settingsMessage', 'error', 'error.validation');
-            return;
-        }
         const sb = state.supabase;
+        // The Hashem share is not shown in the dashboard and never sent: it keeps its database value
         const [b, p] = await Promise.all([
             sb.from('booking_settings').update(booking).eq('id', true).select('id'),
             sb
                 .from('payment_settings')
-                .update({ online_payments_enabled: $('setPaymentsEnabled').checked, hashem_share_cents: share })
+                .update({ online_payments_enabled: $('setPaymentsEnabled').checked })
                 .eq('id', true)
                 .select('id'),
         ]);
         const error = b.error ?? p.error ?? (!b.data?.length || !p.data?.length ? { message: 'forbidden' } : null);
         setMessage('settingsMessage', error ? 'error' : 'success', error ? errorKey(error) : 'settings.saved');
+    });
+}
+
+// Password of the signed-in account (passwordChange.js): code by e-mail, checked by Supabase Auth, then the new
+// password. Nothing typed here is kept: the fields are emptied after each attempt that reached Supabase.
+const RESEND_DELAY_S = 60;
+
+function passwordErrorKey(error) {
+    const key = `password.error.${error?.code ?? ''}`;
+    return at(state.lang, key) === key ? 'password.error.other' : key;
+}
+
+function initPasswordChange() {
+    const form = $('passwordForm');
+    const send = $('passwordSendCode');
+    if (!form || !send) return;
+    const email = state.user?.email ?? '';
+    let timer = 0;
+
+    const waitBeforeResend = () => {
+        let left = RESEND_DELAY_S;
+        send.disabled = true;
+        clearInterval(timer);
+        const tick = () => {
+            send.textContent = at(state.lang, 'password.resendIn', { s: left });
+            if (left-- <= 0) {
+                clearInterval(timer);
+                send.disabled = false;
+                send.textContent = at(state.lang, 'password.resend');
+            }
+        };
+        tick();
+        timer = setInterval(tick, 1000);
+    };
+
+    send.addEventListener('click', async () => {
+        send.disabled = true;
+        setMessage('passwordMessage', null);
+        const { error } = await sendPasswordCode(state.supabase.auth, email);
+        if (error) {
+            send.disabled = false;
+            setMessage('passwordMessage', 'error', passwordErrorKey(error), {
+                detail: [error.code, error.status].filter(Boolean).join(' · '),
+            });
+            return;
+        }
+        $('passwordStep').hidden = false;
+        $('passwordCode').focus();
+        setMessage('passwordMessage', 'success', 'password.codeSent', { email });
+        waitBeforeResend();
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        $('passwordSave').disabled = true;
+        const result = await confirmPasswordChange(state.supabase.auth, {
+            email,
+            userId: state.user?.id,
+            code: $('passwordCode').value,
+            password: $('passwordNew').value,
+            repeat: $('passwordRepeat').value,
+        });
+        $('passwordSave').disabled = false;
+        // Only « other » has a detail here: the code was valid but for a different account
+        if (result.errorKey) {
+            return setMessage('passwordMessage', 'error', result.errorKey, { detail: 'account_mismatch' });
+        }
+        // Supabase answered: the typed code and passwords are not kept on the page
+        for (const id of ['passwordCode', 'passwordNew', 'passwordRepeat']) $(id).value = '';
+        if (result.error) {
+            return setMessage('passwordMessage', 'error', passwordErrorKey(result.error), {
+                detail: [result.error.code, result.error.status].filter(Boolean).join(' · '),
+            });
+        }
+        $('passwordStep').hidden = true;
+        clearInterval(timer);
+        send.disabled = false;
+        send.textContent = at(state.lang, 'password.sendCode');
+        setMessage('passwordMessage', 'success', 'password.changed');
     });
 }
 
@@ -2259,7 +2493,6 @@ loaders.settings = async () => {
     }
     if (payment) {
         $('setPaymentsEnabled').checked = payment.online_payments_enabled;
-        $('setHashemShare').value = payment.hashem_share_cents;
     }
     $('settingsAdminOnly').hidden = state.isAdmin;
     for (const control of $('settingsForm').querySelectorAll('input, button')) control.disabled = !state.isAdmin;

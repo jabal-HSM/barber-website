@@ -1,7 +1,7 @@
 // Interface sounds (Web Audio). The three files are short cuts of the two recordings in sounds-src/:
 //   theme-switch.wav  snd2 6.280–6.530 s (press + release)  → theme toggle only
-//   scroll-tick.wav   snd1 6.329–6.374 s (one bright tick)  → scrolling
-//   tap.wav           snd1 6.266–6.421 s (one full unit)    → links, menu, section navigation
+//   scroll-tick.wav   snd1 6.329–6.374 s (one bright tick)  → scrolling the page
+//   tap.wav           snd1 6.266–6.421 s (one full unit)    → buttons, tabs, links, navigation
 // Nothing is downloaded before the first tap/key press, and only when sounds are on. Any failure (no Web
 // Audio, blocked, file missing) leaves the site silent and working.
 import { canPlay, createScrollTicker, DEFAULT_SOUND_PREFS, normalizeSoundPrefs } from './soundCore.js';
@@ -11,8 +11,9 @@ const FILES = { theme: 'sounds/theme-switch.wav', scroll: 'sounds/scroll-tick.wa
 // Quiet on purpose: these are feedback, not music
 const GAIN = { theme: 0.32, tap: 0.22, scroll: 0.16, scrollFast: 0.11 };
 const MAX_SCROLL_VOICES = 2;
-// After a click on an in-page link the page scrolls by itself: no ticks for that movement
+// After a click on an in-page link, or when a window closes, the page moves by itself: no ticks for that movement
 const PROGRAMMATIC_SCROLL_MS = 1200;
+const RESTORE_QUIET_MS = 300;
 
 let prefs = readPrefs();
 const listeners = new Set();
@@ -47,7 +48,7 @@ export function getSoundPrefs() {
     return { ...prefs };
 }
 
-// change = one or more of { enabled, scroll, theme }, chosen by the person
+// change = one or more of { enabled, scroll, theme, volume }, chosen by the person
 export function setSoundPrefs(change) {
     prefs = normalizeSoundPrefs({ ...prefs, ...change, updatedAt: Date.now() });
     applyPrefs('local');
@@ -108,7 +109,7 @@ function play(name, gainValue, rate = 1) {
         source.buffer = buffers[name];
         source.playbackRate.value = rate;
         const gain = ctx.createGain();
-        gain.gain.value = gainValue;
+        gain.gain.value = gainValue * prefs.volume;
         source.connect(gain).connect(ctx.destination);
         source.start();
         return source;
@@ -161,6 +162,11 @@ function onScroll() {
     if (frame || !canPlay(prefs, 'scroll') || !buffers) return;
     frame = requestAnimationFrame(() => {
         frame = 0;
+        // A window is open (the page behind is locked by overlays.js): its own movement is not a scroll
+        if (document.documentElement.classList.contains('is-scroll-locked')) {
+            ticker.reset();
+            return;
+        }
         const now = performance.now();
         const tick = ticker.update(window.scrollY, now);
         if (!tick || now < quietUntil) return;
@@ -183,30 +189,25 @@ function onScroll() {
     });
 }
 
-// Deliberate actions that get the short "tap": external links (Maps, WhatsApp, Instagram), section links,
-// menu button. The theme button has its own sound; form fields and typing never make a sound.
-const TAP_SELECTOR = [
-    'a[href^="http"]',
-    'a[href^="#"]',
-    '#menuToggleBtn',
-    '[data-open-account]',
-    '.lang-btn',
-    '.auth-btn',
-    '.auth-link',
-].join(',');
+// Deliberate actions get the short "tap": buttons, links, tabs, booking chips. The theme button has its own
+// sound and scrolling its tick; form fields and typing never make a sound.
+const TAP_SELECTOR = ['button', 'a[href]', '[role="button"]', '.choice', '.tabbar-tab'].join(',');
 
 function onClick(event) {
     const target = event.target.closest?.(TAP_SELECTOR);
-    if (!target || target.id === 'themeToggleBtn') return;
+    if (!target || target.id === 'themeToggleBtn' || target.disabled) return;
+    // A held button (cancel, sign-out) makes no tap: the long press itself is the action
+    if (target.classList.contains('hold-btn')) return;
     if (target.matches('a[href^="#"]')) quietUntil = performance.now() + PROGRAMMATIC_SCROLL_MS;
     playTap();
 }
 
-// --- Settings (switches in the account dialog and in the footer) ---
+// --- Settings (switches and volume slider in « Profil », switch in the footer) ---
 function renderSettings() {
     for (const input of document.querySelectorAll('[data-sound-pref]')) {
         const key = input.dataset.soundPref;
-        input.checked = Boolean(prefs[key]);
+        if (input.type === 'range') input.value = String(Math.round(prefs.volume * 100));
+        else input.checked = Boolean(prefs[key]);
         input.disabled = key !== 'enabled' && !prefs.enabled;
     }
 }
@@ -214,6 +215,12 @@ function renderSettings() {
 function onSettingChange(event) {
     const input = event.target.closest?.('[data-sound-pref]');
     if (!input) return;
+    if (input.type === 'range') {
+        setSoundPrefs({ volume: Number(input.value) / 100 });
+        ensureAudio();
+        if (event.type === 'change') playTap(); // a short sample of the chosen level
+        return;
+    }
     setSoundPrefs({ [input.dataset.soundPref]: input.checked });
     if (input.checked) ensureAudio();
 }
@@ -229,7 +236,15 @@ export function initSound() {
     }
     document.addEventListener('click', onClick, { capture: true, passive: true });
     document.addEventListener('change', onSettingChange);
+    document.addEventListener('input', (event) => {
+        if (event.target.matches?.('input[type="range"][data-sound-pref]')) onSettingChange(event);
+    });
     window.addEventListener('scroll', onScroll, { passive: true });
+    // overlays.js puts the page back where it was when a window closes: that jump makes no tick
+    window.addEventListener('zeyd:scroll-restore', () => {
+        ticker.reset();
+        quietUntil = performance.now() + RESTORE_QUIET_MS;
+    });
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
             stopScrollVoices();

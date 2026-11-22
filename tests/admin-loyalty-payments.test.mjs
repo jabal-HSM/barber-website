@@ -19,9 +19,12 @@ async function insertBooking(db, customer, service, daysAhead = 3, status = 'con
     return b.id;
 }
 
-// Simulates the next calendar day for the once-per-day visit rule
+// Simulates a visit 3 days later: clear of the once-per-day rule and of the 50-hour wait between stamps
 const shiftVisitsBack = (db, customer) =>
-    db.query('update public.loyalty_visits set visit_date = visit_date - 1 where customer_id = $1', [customer]);
+    db.query(
+        "update public.loyalty_visits set visit_date = visit_date - 3, created_at = created_at - interval '3 days' where customer_id = $1",
+        [customer],
+    );
 
 describe('roles and dashboard permissions', () => {
     let db;
@@ -177,10 +180,10 @@ describe('loyalty card', () => {
 
         const [first] = await confirm(qr);
         assert.equal(first.stamps_total, 1);
-        await assert.rejects(confirm(qr), /already_counted/, 'scanning again the same day does nothing');
+        await assert.rejects(confirm(qr), /cooldown_active/, 'scanning again the same day does nothing');
         await assert.rejects(
             confirm(aliceCard.short_code.toLowerCase()),
-            /already_counted/,
+            /cooldown_active/,
             'same with the short code',
         );
         await assert.rejects(confirm('ZEYD-LOYALTY:00000000-0000-0000-0000-000000000000'), /invalid_code/);

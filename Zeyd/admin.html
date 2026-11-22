@@ -73,7 +73,8 @@
     <header class="admin-header">
         <div class="admin-header-inner">
             <a href="index.html" class="brand" data-i18n-attr="aria-label:header.site" aria-label="Voir le site">
-                <img src="logozeyd.jpeg" alt="" class="brand-logo" width="40" height="40">
+                <span class="admin-logo" aria-hidden="true"><img src="logo-mark-light.png" alt="" width="234"
+                        height="396"></span>
                 <span class="admin-title"><span class="brand-name">ZEYD BARBER</span><span class="admin-subtitle"
                         data-i18n="header.space">Espace Zeyd</span></span>
             </a>
@@ -103,6 +104,9 @@
             <button type="button" class="admin-tab" data-panel="hours" data-i18n="tab.hours">Horaires</button>
             <button type="button" class="admin-tab" data-panel="gallery" data-i18n="tab.gallery">Galerie</button>
             <button type="button" class="admin-tab" data-panel="customers" data-i18n="tab.customers">Clients</button>
+            <button type="button" class="admin-tab admin-tab-messages" data-panel="messages"><span
+                    data-i18n="tab.messages">Messages</span><span class="unread-dot" id="messagesDot"
+                    hidden></span></button>
             <button type="button" class="admin-tab" data-panel="settings" data-i18n="tab.settings">Réglages</button>
         </nav>
     </header>
@@ -339,6 +343,18 @@
         </section>
 
         <!-- Customers and roles -->
+        <!-- Messages with customers, per booking (booking_messages; admin.js loaders.messages) -->
+        <section class="admin-panel" data-panel="messages" hidden>
+            <div class="admin-card">
+                <h2 class="admin-h2" data-i18n="messages.title">Messages des clients</h2>
+                <p class="field-hint" data-i18n="messages.intro">Chaque conversation concerne un rendez-vous. Le client
+                    voit votre réponse dans « Mon profil » ; aucun e-mail n’est envoyé. Pour refuser ou déplacer un
+                    rendez-vous, utilisez aussi l’onglet Rendez-vous.</p>
+                <div class="admin-message" id="messagesPanelMessage" role="status" aria-live="polite" hidden></div>
+                <div class="message-threads" id="adminThreads"></div>
+            </div>
+        </section>
+
         <section class="admin-panel" data-panel="customers" hidden>
             <div class="admin-card">
                 <label class="field-label" for="customerSearch" data-i18n="customers.search">Rechercher un
@@ -392,8 +408,6 @@
                     configuré.</p>
                 <label class="admin-check"><input type="checkbox" id="setPaymentsEnabled"> <span
                         data-i18n="settings.paymentsEnabled">Afficher le bouton « Payer en ligne »</span></label>
-                <label class="field-label" for="setHashemShare" data-i18n="settings.hashemShare">Part de Hashem</label>
-                <input type="number" id="setHashemShare" class="field" min="0" step="50" inputmode="numeric">
 
                 <button type="submit" class="btn btn-primary" id="settingsSave" data-i18n="settings.save">Enregistrer
                     les réglages</button>
@@ -406,6 +420,31 @@
                 <p class="field-hint" data-i18n="status.soundHint">Les sons de l’interface se règlent depuis le site
                     (Mon compte → Sons).</p>
             </div>
+            <!-- Password of the signed-in account: a code sent to its own e-mail, checked by Supabase Auth first
+                 (passwordChange.js) -->
+            <form class="admin-card admin-password" id="passwordForm" novalidate>
+                <h2 class="admin-h2" data-i18n="password.title">Mot de passe</h2>
+                <p class="field-hint" data-i18n="password.intro">Un code est envoyé à l’adresse e-mail du compte. Le
+                    mot de passe ne change qu’après la vérification de ce code.</p>
+                <button type="button" class="btn btn-ghost" id="passwordSendCode" data-i18n="password.sendCode">Recevoir
+                    un code par e-mail</button>
+                <div class="admin-password-step" id="passwordStep" hidden>
+                    <label class="field-label" for="passwordCode" data-i18n="password.code">Code reçu par e-mail</label>
+                    <input type="text" id="passwordCode" class="field" inputmode="numeric" autocomplete="one-time-code"
+                        maxlength="10" dir="ltr" required>
+                    <label class="field-label" for="passwordNew" data-i18n="password.new">Nouveau mot de passe (8
+                        caractères minimum)</label>
+                    <input type="password" id="passwordNew" class="field" autocomplete="new-password" minlength="8"
+                        dir="ltr" required>
+                    <label class="field-label" for="passwordRepeat" data-i18n="password.repeat">Confirmer le nouveau mot
+                        de passe</label>
+                    <input type="password" id="passwordRepeat" class="field" autocomplete="new-password" minlength="8"
+                        dir="ltr" required>
+                    <button type="submit" class="btn btn-primary" id="passwordSave" data-i18n="password.save">Changer le
+                        mot de passe</button>
+                </div>
+                <div class="admin-message" id="passwordMessage" role="status" aria-live="polite" hidden></div>
+            </form>
         </section>
     </main>
 

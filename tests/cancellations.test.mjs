@@ -56,13 +56,13 @@ describe('customer cancellation with a reason', () => {
 
     after(() => db.close());
 
-    test('the reason is required, must be one of the list, and "other" needs a few words', async () => {
+    test('the reason is required and must be one of the list; details are limited to 500 characters', async () => {
         const id = await book(db, alice, fade, await at(db, monday, '09:00'));
         await as(db, alice, async () => {
             await assert.rejects(cancel(db, id, null), /invalid_reason/);
             await assert.rejects(cancel(db, id, 'because'), /invalid_reason/);
-            await assert.rejects(cancel(db, id, 'other', '   '), /details_required/);
             await assert.rejects(cancel(db, id, 'unavailable', 'x'.repeat(501)), /details_too_long/);
+            await assert.rejects(cancel(db, id, 'other', 'x'.repeat(501)), /details_too_long/);
         });
         const [b] = await rows(db, 'select status from public.bookings where id = $1', [id]);
         assert.equal(b.status, 'confirmed', 'a refused request changes nothing');
@@ -87,7 +87,7 @@ describe('customer cancellation with a reason', () => {
         const id = await book(db, alice, fade, ts);
         assert.equal(await isOffered(db, fade, monday, ts), false, 'taken while booked');
         await as(db, alice, async () => {
-            await assert.rejects(cancel(db, id, 'other'), /details_required/);
+            await assert.rejects(cancel(db, id, 'because'), /invalid_reason/);
         });
         assert.equal(await isOffered(db, fade, monday, ts), false, 'still taken after a refused cancellation');
 
@@ -105,6 +105,19 @@ describe('customer cancellation with a reason', () => {
         assert.equal(await isOffered(db, fade, monday, ts), true, 'free again for everybody');
         // Bob can now book it: the database, not the page, decides
         assert.ok(await book(db, bob, fade, ts));
+    });
+
+    test('« Autre raison » can be chosen without writing anything (20261102090000)', async () => {
+        const ts = await at(db, monday, '15:00');
+        const id = await book(db, alice, fade, ts);
+        await as(db, alice, () => cancel(db, id, 'other', '   '));
+        const [b] = await rows(
+            db,
+            'select status, cancel_reason_code, cancel_details from public.bookings where id = $1',
+            [id],
+        );
+        assert.deepEqual(b, { status: 'cancelled', cancel_reason_code: 'other', cancel_details: null });
+        assert.equal(await isOffered(db, fade, monday, ts), true, 'free again');
     });
 
     test('a second click or a second tab cannot cancel twice nor notify twice', async () => {

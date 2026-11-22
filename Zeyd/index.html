@@ -107,6 +107,37 @@
         <symbol id="i-arrow-up" viewBox="0 0 24 24">
             <path d="M12 19V5M6 11l6-6 6 6" />
         </symbol>
+        <symbol id="i-camera" viewBox="0 0 24 24">
+            <path d="M4 8.5h3l1.6-2.5h6.8L17 8.5h3v10.5H4Z" />
+            <circle cx="12" cy="13.5" r="3.5" />
+        </symbol>
+        <symbol id="i-volume" viewBox="0 0 24 24">
+            <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4Z" />
+            <path d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11" />
+        </symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24">
+            <rect x="5" y="10.5" width="14" height="10" rx="2.5" />
+            <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" />
+        </symbol>
+        <symbol id="i-globe" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="8.5" />
+            <path d="M3.5 12h17M12 3.5c2.5 2.6 2.5 14.4 0 17M12 3.5c-2.5 2.6-2.5 14.4 0 17" />
+        </symbol>
+        <symbol id="i-chat" viewBox="0 0 24 24">
+            <path d="M4.5 5.5h15v10h-9l-4.5 3.5v-3.5H4.5Z" />
+            <path d="M8.5 9.5h7M8.5 12.5h4.5" />
+        </symbol>
+        <symbol id="i-home" viewBox="0 0 24 24">
+            <path d="M3.5 11.5 12 4l8.5 7.5" />
+            <path d="M6 10v10h12V10M10 20v-5.5h4V20" />
+        </symbol>
+        <symbol id="i-heart" viewBox="0 0 24 24">
+            <path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.4C19.5 15.4 12 20 12 20Z" />
+        </symbol>
+        <symbol id="i-search" viewBox="0 0 24 24">
+            <circle cx="10.5" cy="10.5" r="6.5" />
+            <path d="M15.5 15.5 20.5 20.5" />
+        </symbol>
     </svg>
 
     <a class="skip-link" href="#main" data-i18n="a11y.skip">Aller au contenu principal</a>
@@ -391,6 +422,7 @@
 
                 <!-- Filled from GALLERY in data.js once real photos of the salon's work exist -->
                 <div class="gallery-grid" id="galleryGrid" hidden></div>
+                <p class="form-message is-error" id="galleryError" role="alert" hidden></p>
 
                 <div class="gallery-empty" id="galleryEmpty">
                     <div class="gallery-empty-art" aria-hidden="true">
@@ -535,7 +567,7 @@
 
             <nav class="footer-col" data-i18n-attr="aria-label:a11y.footerNav" aria-label="Navigation du pied de page">
                 <h2 class="footer-title" data-i18n="footer.navTitle">Navigation</h2>
-                <ul>
+                <ul class="footer-links">
                     <li><a href="#services" data-i18n="nav.services">Prestations</a></li>
                     <li><a href="#gallery" data-i18n="nav.gallery">Galerie</a></li>
                     <li><a href="#about" data-i18n="nav.about">Le barbier</a></li>
@@ -546,22 +578,31 @@
 
             <div class="footer-col">
                 <h2 class="footer-title" data-i18n="footer.contactTitle">Contact</h2>
-                <ul>
-                    <li><a href="https://www.google.com/maps?daddr=46.2074029,5.225510799999999" target="_blank"
-                            rel="noopener noreferrer">Google Maps</a></li>
-                    <li><a href="https://wa.me/qr/CMYWVONTY3QNG1" target="_blank" rel="noopener noreferrer">WhatsApp</a>
-                    </li>
+                <ul class="footer-social">
+                    <li><a href="https://wa.me/qr/CMYWVONTY3QNG1" target="_blank" rel="noopener noreferrer">
+                            <svg class="icon" aria-hidden="true">
+                                <use href="#i-whatsapp" />
+                            </svg>WhatsApp</a></li>
                     <li><a href="https://www.instagram.com/_zeyd_barber?utm_source=qr&amp;srtk=MWZjMmRwMnF6OW84NA=="
-                            target="_blank" rel="noopener noreferrer">Instagram</a></li>
+                            target="_blank" rel="noopener noreferrer">
+                            <svg class="icon" aria-hidden="true">
+                                <use href="#i-instagram" />
+                            </svg>Instagram</a></li>
+                    <li><a href="https://www.google.com/maps?daddr=46.2074029,5.225510799999999" target="_blank"
+                            rel="noopener noreferrer">
+                            <svg class="icon" aria-hidden="true">
+                                <use href="#i-pin" />
+                            </svg>Google Maps</a></li>
                 </ul>
             </div>
 
             <div class="footer-col">
                 <h2 class="footer-title" data-i18n="footer.hoursTitle">Horaires</h2>
                 <ul class="footer-hours">
-                    <li><span dir="ltr">09:00 – 12:00</span></li>
-                    <li><span data-i18n="hours.break">Pause</span> <span dir="ltr">12:00 – 14:00</span></li>
-                    <li><span dir="ltr">14:00 – 19:00</span></li>
+                    <li><span class="footer-hours-dot" aria-hidden="true"></span><span dir="ltr">09:00 – 12:00</span></li>
+                    <li class="is-break"><span data-i18n="hours.break">Pause</span> <span dir="ltr">12:00 – 14:00</span>
+                    </li>
+                    <li><span class="footer-hours-dot" aria-hidden="true"></span><span dir="ltr">14:00 – 19:00</span></li>
                 </ul>
             </div>
         </div>
@@ -583,6 +624,106 @@
             </a>
         </div>
     </footer>
+
+    <!-- Phones: floating notch bottom bar (bottomNav.js; shape from notchGeometry.js). The DOM order follows the
+         reading direction: in Arabic « مواعيدي » is on the right, in French « Mes RDV » on the left. -->
+    <nav class="tabbar" id="tabbar" data-i18n-attr="aria-label:tabbar.label" aria-label="Navigation">
+        <svg class="tabbar-shape" aria-hidden="true" focusable="false">
+            <defs>
+                <linearGradient id="tabbarEdgeGradient" x1="0" x2="1" y1="0" y2="0">
+                    <stop offset="0" stop-color="#6b7f67" />
+                    <stop offset="0.5" stop-color="#c7cbb8" />
+                    <stop offset="1" stop-color="#6b7f67" />
+                </linearGradient>
+                <filter id="tabbarGlowFilter" x="-10%" y="-100%" width="120%" height="300%">
+                    <feGaussianBlur stdDeviation="3.5" />
+                </filter>
+            </defs>
+            <path class="tabbar-panel" />
+            <path class="tabbar-glow" filter="url(#tabbarGlowFilter)" />
+            <path class="tabbar-edge" />
+        </svg>
+        <span class="tabbar-ball" aria-hidden="true">
+            <svg class="icon">
+                <use href="#i-home" />
+            </svg>
+        </span>
+        <ul class="tabbar-list">
+            <li><button type="button" class="tabbar-tab" data-tab="bookings">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-calendar" />
+                    </svg>
+                    <span class="tabbar-label" data-i18n="tabbar.bookings">Mes RDV</span>
+                </button></li>
+            <li><button type="button" class="tabbar-tab" data-tab="search">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-search" />
+                    </svg>
+                    <span class="tabbar-label" data-i18n="tabbar.search">Recherche</span>
+                </button></li>
+            <li><button type="button" class="tabbar-tab" data-tab="home" aria-current="page">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-home" />
+                    </svg>
+                    <span class="tabbar-label" data-i18n="tabbar.home">Accueil</span>
+                </button></li>
+            <li><button type="button" class="tabbar-tab" data-tab="favorites">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-heart" />
+                    </svg>
+                    <span class="tabbar-label" data-i18n="tabbar.favorites">Favoris</span>
+                </button></li>
+            <li><button type="button" class="tabbar-tab" data-tab="profile">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-user" />
+                    </svg>
+                    <span class="tabbar-label" data-i18n="tabbar.profile">Profil</span>
+                    <span class="unread-dot" hidden></span>
+                </button></li>
+        </ul>
+    </nav>
+
+    <!-- « Favoris »: full-screen page of the signed-in customer's favourite haircuts (haircut_likes) -->
+    <section class="app-page" id="favoritesPage" role="dialog" aria-modal="true" aria-labelledby="favoritesTitle"
+        tabindex="-1" hidden>
+        <header class="app-page-head">
+            <h2 id="favoritesTitle" data-i18n="favorites.title">Mes coupes favorites</h2>
+            <button type="button" class="icon-btn app-page-close" data-close-page
+                data-i18n-attr="aria-label:account.close" aria-label="Fermer">
+                <svg class="icon" aria-hidden="true">
+                    <use href="#i-close" />
+                </svg>
+            </button>
+        </header>
+        <div class="app-page-body">
+            <p class="form-message is-error sheet-error" role="alert" hidden></p>
+            <div id="favoritesBody" aria-live="polite"></div>
+        </div>
+    </section>
+
+    <!-- Search in the services and the published gallery photos -->
+    <dialog class="dialog" id="searchDialog" aria-labelledby="searchTitle">
+        <div class="dialog-head">
+            <h2 id="searchTitle" data-i18n="search.title">Rechercher</h2>
+            <button type="button" class="icon-btn" data-close-dialog data-i18n-attr="aria-label:account.close"
+                aria-label="Fermer">
+                <svg class="icon" aria-hidden="true">
+                    <use href="#i-close" />
+                </svg>
+            </button>
+        </div>
+        <form class="search-form" id="searchForm" role="search">
+            <label class="visually-hidden" for="searchInput" data-i18n="search.label">Rechercher une coupe ou une
+                prestation</label>
+            <svg class="icon search-form-icon" aria-hidden="true">
+                <use href="#i-search" />
+            </svg>
+            <input type="search" id="searchInput" class="field" autocomplete="off" enterkeyhint="search"
+                data-i18n-attr="placeholder:search.placeholder" placeholder="Dégradé, barbe, enfant…">
+        </form>
+        <p class="form-message is-error sheet-error" role="alert" hidden></p>
+        <div id="searchResults" aria-live="polite"></div>
+    </dialog>
 
     <!-- Sign in / sign up: full-screen welcome with the barber chair -->
     <div class="auth-screen" id="authScreen" role="dialog" aria-modal="true" aria-labelledby="authScreenTitle" hidden>
@@ -677,23 +818,63 @@
     </div>
 
     <!-- Account (signed in): loyalty card, upcoming bookings -->
-    <dialog class="dialog" id="accountDialog" aria-labelledby="accountTitle">
-        <div class="dialog-head">
-            <h2 id="accountTitle" data-i18n="account.title">Mon compte</h2>
-            <button type="button" class="icon-btn" id="accountCloseBtn" data-i18n-attr="aria-label:account.close"
-                aria-label="Fermer">
+    <!-- « Profil » (bottom bar) / « Mon compte » (header on wide screens): full-screen page, black and gold.
+         No bookings and no favourites here: « Mes RDV » has its own page below, favourites their sheet.
+         Opened and closed through overlays.js (scroll lock, back button, Escape). -->
+    <section class="app-page profile-page" id="profilePage" role="dialog" aria-modal="true"
+        aria-labelledby="profileTitle" tabindex="-1" hidden>
+        <header class="app-page-head">
+            <h2 id="profileTitle" data-i18n="profile.title">Mon profil</h2>
+            <button type="button" class="icon-btn app-page-close" data-close-page
+                data-i18n-attr="aria-label:account.close" aria-label="Fermer">
                 <svg class="icon" aria-hidden="true">
                     <use href="#i-close" />
                 </svg>
             </button>
-        </div>
+        </header>
+        <div class="app-page-body">
+            <div class="profile-hero">
+                <button type="button" class="profile-avatar" id="profileAvatarBtn"
+                    data-i18n-attr="aria-label:profile.choosePhoto" aria-label="Choisir une photo">
+                    <img id="profileAvatarImg" alt="" hidden>
+                    <svg class="icon profile-avatar-icon" aria-hidden="true">
+                        <use href="#i-user" />
+                    </svg>
+                    <span class="profile-avatar-camera" aria-hidden="true">
+                        <svg class="icon">
+                            <use href="#i-camera" />
+                        </svg>
+                    </span>
+                </button>
+                <input type="file" id="profilePhotoInput" accept="image/*" hidden>
+                <p class="profile-name" id="profileName" dir="auto"></p>
+                <p class="profile-email" id="accountEmail" dir="ltr"></p>
+            </div>
+            <div class="form-message" id="profileMessage" role="status" aria-live="polite" hidden></div>
 
-        <div id="accountView">
-            <p class="account-who"><span data-i18n="account.signedInAs">Connecté avec</span> <strong id="accountEmail"
-                    dir="ltr"></strong></p>
+            <form class="profile-card" id="profileForm" novalidate>
+                <h3 class="profile-card-title">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-user" />
+                    </svg>
+                    <span data-i18n="profile.editTitle">Modifier le profil</span>
+                </h3>
+                <label class="field-label" for="profileNameInput" data-i18n="profile.nameLabel">Nom affiché</label>
+                <input type="text" id="profileNameInput" class="field" maxlength="60" autocomplete="name" dir="auto">
+                <div class="profile-row">
+                    <button type="button" class="btn btn-ghost btn-sm" id="profilePhotoChoose"
+                        data-i18n="profile.choosePhoto">Choisir une photo</button>
+                    <button type="button" class="btn btn-ghost btn-sm" id="profilePhotoRemove"
+                        data-i18n="profile.removePhoto" hidden>Retirer la photo</button>
+                </div>
+                <p class="field-hint" data-i18n="profile.photoHint">Photo facultative, réduite avant l’envoi. Visible
+                    par vous et par le salon.</p>
+                <button type="submit" class="btn btn-primary btn-sm" id="profileSave"
+                    data-i18n="profile.save">Enregistrer</button>
+            </form>
 
-            <section class="loyalty" aria-labelledby="loyaltyTitle">
-                <h3 class="account-subtitle" id="loyaltyTitle" data-i18n="loyalty.title">Ma carte de fidélité</h3>
+            <section class="profile-card loyalty" aria-labelledby="loyaltyTitle">
+                <h3 class="profile-card-title" id="loyaltyTitle" data-i18n="loyalty.title">Ma carte de fidélité</h3>
                 <div id="loyaltyCard"></div>
                 <p class="loyalty-progress" id="loyaltyProgress" aria-live="polite"></p>
                 <button type="button" class="btn loyalty-qr-btn" id="loyaltyQrBtn" aria-haspopup="dialog"
@@ -705,13 +886,18 @@
                 </button>
             </section>
 
-            <h3 class="account-subtitle" data-i18n="account.myBookings">Mes rendez-vous à venir</h3>
-            <ul class="my-bookings" id="myBookings"></ul>
-            <div class="form-message" id="accountMessage" role="status" aria-live="polite" hidden></div>
-
-            <!-- Sound preferences (sound.js binds every [data-sound-pref] switch) -->
-            <fieldset class="sound-settings">
-                <legend class="account-subtitle" data-i18n="sound.title">Sons</legend>
+            <!-- Sound preferences (sound.js binds every [data-sound-pref] control) -->
+            <fieldset class="profile-card sound-settings">
+                <legend class="profile-card-title">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-volume" />
+                    </svg>
+                    <span data-i18n="sound.title">Sons</span>
+                </legend>
+                <label class="profile-volume">
+                    <span data-i18n="profile.volume">Volume</span>
+                    <input type="range" min="0" max="100" step="5" data-sound-pref="volume">
+                </label>
                 <label class="switch">
                     <input type="checkbox" role="switch" data-sound-pref="enabled" checked>
                     <span class="switch-track" aria-hidden="true"></span>
@@ -727,14 +913,85 @@
                     <span class="switch-track" aria-hidden="true"></span>
                     <span data-i18n="sound.theme">Son du changement de thème</span>
                 </label>
-                <p class="field-hint" data-i18n="sound.hint">Des sons discrets, jamais nécessaires pour utiliser le
-                    site. Vos choix suivent votre compte.</p>
+                <p class="field-hint" data-i18n="profile.muteHint">Désactivez « Sons de l’interface » pour tout couper.</p>
             </fieldset>
 
+            <div class="profile-card">
+                <h3 class="profile-card-title">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-globe" />
+                    </svg>
+                    <span data-i18n="profile.displayTitle">Langue et apparence</span>
+                </h3>
+                <div class="profile-row">
+                    <div class="lang-switch" role="group" data-i18n-attr="aria-label:a11y.language"
+                        aria-label="Choisir la langue">
+                        <button type="button" class="lang-btn" data-lang="fr" lang="fr" aria-pressed="true">FR</button>
+                        <button type="button" class="lang-btn" data-lang="ar" lang="ar" aria-pressed="false">ع</button>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" role="switch" data-theme-switch>
+                        <span class="switch-track" aria-hidden="true"></span>
+                        <span data-i18n="profile.darkMode">Mode sombre</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Messages with the salon about a booking (messagesCenter.js; table booking_messages). Replaces the
+                 « Sécurité » card for customers (password change stays in the dashboard for staff). -->
+            <section class="profile-card" id="messagesCard" aria-labelledby="messagesTitle">
+                <h3 class="profile-card-title" id="messagesTitle">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-chat" />
+                    </svg>
+                    <span data-i18n="messages.title">Messages avec Zeyd</span>
+                </h3>
+                <p class="field-hint" data-i18n="messages.intro">Une question ou un imprévu pour un rendez-vous ?
+                    Écrivez à Zeyd ici : sa réponse s’affichera sur cette page.</p>
+                <form class="messages-form" id="messageForm" novalidate>
+                    <label class="field-label" for="messageBooking" data-i18n="messages.booking">Rendez-vous
+                        concerné</label>
+                    <select id="messageBooking" class="field"></select>
+                    <label class="field-label" for="messageBody" data-i18n="messages.body">Votre message</label>
+                    <textarea id="messageBody" class="field" rows="3" maxlength="1000" dir="auto"></textarea>
+                    <button type="submit" class="btn btn-primary btn-sm" id="messageSend"
+                        data-i18n="messages.send">Envoyer</button>
+                </form>
+                <div class="form-message" id="messagesMessage" role="status" aria-live="polite" hidden></div>
+                <div class="message-threads" id="messageThreads"></div>
+            </section>
+
+            <!-- Wide screens have no bottom bar: a way to « Mes rendez-vous » (the bookings are not shown here) -->
+            <button type="button" class="btn btn-ghost profile-bookings-link" data-open-bookings>
+                <svg class="icon" aria-hidden="true">
+                    <use href="#i-calendar" />
+                </svg>
+                <span data-i18n="account.myBookings">Mes rendez-vous à venir</span>
+            </button>
+
+            <!-- Replaced by a « hold to sign out » button (booking.js) -->
             <button type="button" class="btn btn-ghost" id="signOutBtn" data-i18n="account.signOut">Se
                 déconnecter</button>
         </div>
-    </dialog>
+    </section>
+
+    <!-- « Mes RDV »: the customer's bookings only -->
+    <section class="app-page" id="bookingsPage" role="dialog" aria-modal="true" aria-labelledby="bookingsTitle"
+        tabindex="-1" hidden>
+        <header class="app-page-head">
+            <h2 id="bookingsTitle" data-i18n="account.myBookings">Mes rendez-vous à venir</h2>
+            <button type="button" class="icon-btn app-page-close" data-close-page
+                data-i18n-attr="aria-label:account.close" aria-label="Fermer">
+                <svg class="icon" aria-hidden="true">
+                    <use href="#i-close" />
+                </svg>
+            </button>
+        </header>
+        <div class="app-page-body">
+            <div class="form-message" id="accountMessage" role="status" aria-live="polite" hidden></div>
+            <ul class="my-bookings" id="myBookings"></ul>
+        </div>
+    </section>
 
     <!-- Customer cancellation: reason first, then an explicit confirmation (nothing is cancelled before) -->
     <dialog class="qr-dialog cancel-dialog" id="cancelDialog" aria-labelledby="cancelDialogTitle">
