@@ -486,6 +486,17 @@
 - المتصفح (صفحة اختبار ببيانات وهمية، حُذفت): 3 أزرار لثلاثة مواعيد مؤكدة، ولا زر للطلب المخصص والملغى والموعد الذي بدأ والموعد بلا وقت نهاية. الأوقات في الرابط تطابق المعروض. FR/AR، فاتح/داكن، 375px و1024px بلا تجاوز أفقي.
 - **لم يُختبر**: صفحة Google Calendar نفسها (المتصفح المدمج غير مسجَّل في Google، فتحوّل الرابط إلى صفحة التعريف)، ومع حساب حقيقي على Supabase.
 
+## 6ط-نشر. النشر التجريبي على Cloudflare Pages — 2026-11-22
+- دُمج `main` في الفرع (commit `338eae5`) مع ميزة Google Calendar؛ `main` نفسه لم يتغير. `npm test`: 228 (227 ✅ + 1 متخطّى عمداً)، `npm run check` بلا أخطاء.
+- GitHub (خاص): https://github.com/jabal-HSM/barber-website — الفرعان `main` و`claude/zeyd-barber-phase-1-28351e`.
+- Cloudflare Pages، حساب (owner account)، المشروع `zeyd-barber`، رُفع مجلد `Zeyd/` (42 ملفاً + `_headers`):
+  - الموقع: https://zeyd-barber.pages.dev/
+  - لوحة زيد: https://zeyd-barber.pages.dev/admin (`/admin.html` يحوَّل إليها)
+- تحقق فعلي: الصفحات 200، الملفات مطابقة للفرع، `Cache-Control: no-cache` من `_headers`، الفرنسية والعربية RTL، لوحة زيد تعرض نموذج الدخول، لا تجاوز أفقي على 375px.
+- **مانع**: عنوان مشروع Supabase `eyqlptbocufkxcpblpxu.supabase.co` غير موجود في DNS العام (1.1.1.1 و8.8.8.8: NXDOMAIN) ← المشروع غالباً متوقف (paused). الدخول والحجز لا يعملان لأي أحد حتى يُستعاد من لوحة Supabase. الموقع يعرض «الحجز غير متاح مؤقتاً».
+- بعد الاستعادة (في Supabase ← Authentication ← URL Configuration): Site URL = `https://zeyd-barber.pages.dev`، وإضافة `https://zeyd-barber.pages.dev/**` إلى Redirect URLs.
+- إعادة النشر: `npx wrangler@4 pages deploy Zeyd --project-name zeyd-barber --branch main`.
+
 ## 7. الاختبارات المنفذة ونتائجها
 **2026-11-02 (آخر تشغيل):** `npm test` → 221 اختباراً: 220 نجحت، 0 فشل، 1 متخطّى عمداً. `npm run check` → 0 أخطاء، 0 تحذيرات. منها 7 لصلاحيات الرسائل على PGlite و4 لحالات المحادثة.
 
