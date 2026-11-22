@@ -2,8 +2,8 @@
 
 export const adminTranslations = {
     fr: {
-        'meta.title': 'Espace Zeyd | ZEYD BARBER',
-        'header.space': 'Espace Zeyd',
+        'meta.title': 'Tableau de bord | ZEYD BARBER',
+        'header.space': 'Tableau de bord',
         'header.site': 'Voir le site',
         'header.signOut': 'Se déconnecter',
         'header.signOutConfirm': 'Voulez-vous vous déconnecter ? Les rendez-vous ne seront pas annulés.',
@@ -38,7 +38,7 @@ export const adminTranslations = {
         'gate.forbidden': 'Cet espace est réservé à Zeyd et aux administrateurs.',
         'gate.account': 'Compte connecté : {email} (rôle client).',
         'gate.switch': 'Se connecter avec un autre compte',
-        'install.title': 'Installer l’espace Zeyd',
+        'install.title': 'Installer le tableau de bord',
         'install.text': 'Ouvrez votre espace de gestion depuis l’écran d’accueil.',
         'install.ios': 'Touchez « Partager », puis « Sur l’écran d’accueil ».',
         'install.button': 'Installer',

@@ -3286,7 +3286,7 @@ body.has-overlay {
     flex-shrink: 0;
 }
 
-/* Phones: logo + "Espace Zeyd" is enough, the actions keep their room */
+/* Phones: logo + "Tableau de bord" is enough, the actions keep their room */
 @media (max-width: 30em) {
     .admin-title .brand-name {
         display: none;
