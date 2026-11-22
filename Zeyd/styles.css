@@ -3269,6 +3269,7 @@ body.has-overlay {
 
 .admin-header .brand {
     flex-shrink: 1;
+    min-width: 0;
 }
 
 .admin-title {
@@ -3292,6 +3293,21 @@ body.has-overlay {
         display: none;
     }
 
+    /* « Tableau de bord » needs the room more than the small logo next to it */
+    .admin-header .admin-logo {
+        display: none;
+    }
+
+    .admin-header-inner {
+        gap: var(--space-2);
+        padding-inline: var(--space-3);
+    }
+
+    #adminSignOut {
+        padding-inline: var(--space-3);
+        font-size: var(--text-sm);
+    }
+
     .admin-subtitle {
         color: var(--color-heading);
         font-size: var(--text-sm);
@@ -3302,6 +3318,17 @@ body.has-overlay {
     color: var(--color-text-muted);
     font-size: var(--text-xs);
     font-weight: 600;
+}
+
+/* Very narrow phones (320px): the buttons go under the title rather than over it */
+@media (max-width: 22.5em) {
+    .admin-header-inner {
+        flex-wrap: wrap;
+    }
+
+    .admin-header .brand {
+        min-width: 6.5rem;
+    }
 }
 
 .admin-tabs[hidden],
