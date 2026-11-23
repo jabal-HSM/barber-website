@@ -8,16 +8,6 @@ export const LANGUAGES = {
     ar: { dir: 'rtl', locale: 'ar' },
 };
 
-// Language on arrival: the one the visitor picked before (FR / ع), otherwise the phone's own language
-// (Arabic phone → Arabic), otherwise French. The small script in the <head> of each page applies the same rule.
-export function detectLanguage(saved, device = '') {
-    if (saved in LANGUAGES) return saved;
-    return /^ar\b/i.test(String(device)) ? 'ar' : DEFAULT_LANG;
-}
-
-export const deviceLanguage = () =>
-    (typeof navigator !== 'undefined' && (navigator.languages?.[0] ?? navigator.language)) || '';
-
 export const translations = {
     fr: {
         'meta.title': 'ZEYD BARBER | Salon de coiffure pour hommes',

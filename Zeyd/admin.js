@@ -4,7 +4,6 @@ import { at } from './admin-i18n.js';
 import { cameraErrorKey, cameraUnavailable } from './camera.js';
 import { confirmDialog } from './confirmDialog.js';
 import { createHoldButton } from './holdButton.js';
-import { detectLanguage, deviceLanguage } from './i18n.js';
 import { renderLoyaltyCard } from './loyalty.js';
 import { groupThreads } from './messageThreads.js';
 import { confirmPasswordChange, sendPasswordCode } from './passwordChange.js';
@@ -202,7 +201,7 @@ function initGateForm(supabase) {
 }
 
 async function init() {
-    applyLanguage(detectLanguage(readPref('lang'), deviceLanguage()));
+    applyLanguage(readPref('lang') === 'ar' ? 'ar' : 'fr');
     initTheme();
     initInstall({ translate: (key) => at(state.lang, key) });
     for (const b of document.querySelectorAll('[data-lang]')) {
