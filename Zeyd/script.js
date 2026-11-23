@@ -9,7 +9,7 @@ import {
 import { initBottomNav } from './bottomNav.js';
 import { MIN_QUERY_LENGTH, searchCatalog } from './catalogSearch.js';
 import { GALLERY, SERVICES } from './data.js';
-import { DEFAULT_LANG, LANGUAGES, t } from './i18n.js';
+import { DEFAULT_LANG, detectLanguage, deviceLanguage, LANGUAGES, t } from './i18n.js';
 import { closePages, initOverlays, openPage } from './overlays.js';
 import { initInstall } from './pwa.js';
 import { initSound, playThemeSound } from './sound.js';
@@ -97,8 +97,7 @@ async function loadRemoteContent() {
 
 // --- Language ---
 function initLanguage() {
-    const saved = readPref(STORAGE_KEYS.lang);
-    applyLanguage(saved in LANGUAGES ? saved : DEFAULT_LANG);
+    applyLanguage(detectLanguage(readPref(STORAGE_KEYS.lang), deviceLanguage()));
 
     document.querySelectorAll('[data-lang]').forEach((btn) => {
         btn.addEventListener('click', () => {
