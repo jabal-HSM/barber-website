@@ -344,7 +344,7 @@ export const translations = {
         'gallery.title': 'Galerie des coupes',
         'gallery.emptyTitle': 'Les photos arrivent bientôt',
         'gallery.emptyText':
-            'Nous préparons une sélection de photos de nos coupes. En attendant, retrouvez-nous sur Instagram.',
+            'Nous préparons une sélection de photos de nos coupes. Revenez bientôt !',
         'gallery.emptyCta': 'Voir Instagram',
 
         'about.eyebrow': 'Le barbier',
@@ -694,7 +694,7 @@ export const translations = {
         'gallery.eyebrow': 'أعمالنا',
         'gallery.title': 'معرض القصّات',
         'gallery.emptyTitle': 'الصور قريباً',
-        'gallery.emptyText': 'نحضّر مجموعة من صور قصّاتنا. في الأثناء، تابعونا على Instagram.',
+        'gallery.emptyText': 'نحضّر مجموعة من صور قصّاتنا. عودوا قريباً!',
         'gallery.emptyCta': 'زيارة Instagram',
 
         'about.eyebrow': 'الحلاق',
