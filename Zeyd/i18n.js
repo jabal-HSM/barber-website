@@ -343,8 +343,7 @@ export const translations = {
         'gallery.eyebrow': 'Réalisations',
         'gallery.title': 'Galerie des coupes',
         'gallery.emptyTitle': 'Les photos arrivent bientôt',
-        'gallery.emptyText':
-            'Nous préparons une sélection de photos de nos coupes. Revenez bientôt !',
+        'gallery.emptyText': 'Nous préparons une sélection de photos de nos coupes. Revenez bientôt !',
         'gallery.emptyCta': 'Voir Instagram',
 
         'about.eyebrow': 'Le barbier',
