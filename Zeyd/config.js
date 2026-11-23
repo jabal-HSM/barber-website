@@ -12,3 +12,14 @@ const DEV = {
 };
 
 export const BACKEND = DEV;
+
+// The salon's own contact links, filled in for each salon. An empty value hides every button that uses it
+// (and the « Nous trouver » block when none is set): the site never shows a link that leads nowhere.
+//   whatsapp: 'https://wa.me/33612345678'   instagram: 'https://www.instagram.com/votre_salon'
+//   maps: 'https://maps.google.com/?q=…'    address: written address, used in the Google Calendar event
+export const SALON_CONTACT = {
+    whatsapp: '',
+    instagram: '',
+    maps: '',
+    address: '',
+};

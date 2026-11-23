@@ -8,6 +8,7 @@ import {
 } from './booking.js';
 import { initBottomNav } from './bottomNav.js';
 import { MIN_QUERY_LENGTH, searchCatalog } from './catalogSearch.js';
+import { SALON_CONTACT } from './config.js';
 import { GALLERY, SERVICES } from './data.js';
 import { DEFAULT_LANG, LANGUAGES, t } from './i18n.js';
 import { closePages, initOverlays, openPage } from './overlays.js';
@@ -16,7 +17,7 @@ import { initSound, playThemeSound } from './sound.js';
 
 // Same storage keys as the previous version, so saved preferences are kept.
 const STORAGE_KEYS = { lang: 'lang', theme: 'theme' };
-const WHATSAPP_URL = 'https://wa.me/qr/CMYWVONTY3QNG1';
+const WHATSAPP_URL = SALON_CONTACT.whatsapp;
 const DESKTOP_NAV_QUERY = window.matchMedia('(min-width: 64em)');
 
 // Prices are always shown in euros, French format ("15 €"), in both languages.
@@ -63,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initBooking({ lang: currentLang, services, priceFormatter });
     initBottomBar();
     initInstall({ translate: (key) => t(currentLang, key) });
+    applySalonContact();
     loadRemoteContent();
     // The gallery says which photos the signed-in customer likes: reload it when that person changes
     onAuthChange((user) => {
@@ -93,6 +95,20 @@ async function loadRemoteContent() {
         gallery = remoteGallery;
         renderGallery();
     }
+}
+
+// --- Salon contact links (config.js): set ones get their address, missing ones are hidden ---
+function applySalonContact() {
+    for (const link of document.querySelectorAll('[data-contact]')) {
+        const url = SALON_CONTACT[link.dataset.contact];
+        if (url) link.href = url;
+        else (link.closest('li') ?? link).hidden = true;
+    }
+    if (SALON_CONTACT.whatsapp || SALON_CONTACT.instagram || SALON_CONTACT.maps) return;
+    // No contact at all: no empty « Nous trouver » block, no footer column, no menu entry pointing to it
+    document.getElementById('contact').hidden = true;
+    document.getElementById('footerContact').hidden = true;
+    for (const link of document.querySelectorAll('a[href="#contact"]')) (link.closest('li') ?? link).hidden = true;
 }
 
 // --- Language ---
@@ -258,8 +274,10 @@ function renderServices() {
             link.removeAttribute('target');
             link.removeAttribute('rel');
             link.addEventListener('click', () => selectBookingService(service.id));
-        } else {
+        } else if (WHATSAPP_URL) {
             link.href = WHATSAPP_URL;
+        } else {
+            link.hidden = true;
         }
         link.querySelector('use').setAttribute('href', bookable ? '#i-calendar' : '#i-whatsapp');
         link.querySelector('.service-link-text').textContent = t(
@@ -501,7 +519,7 @@ function searchServiceItem(service) {
                 afterClose(() => document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' }));
             }),
         );
-    } else {
+    } else if (WHATSAPP_URL) {
         const link = document.createElement('a');
         link.className = 'btn btn-ghost btn-sm';
         link.href = WHATSAPP_URL;

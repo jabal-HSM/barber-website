@@ -3,6 +3,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { googleCalendarUrl, SALON_LOCATION, toCalendarUtc } from '../Zeyd/calendarLink.js';
+
+const ADDRESS = '12 rue de l’Exemple, 75001 Paris';
+
 import { parisLocalToIso } from '../Zeyd/time.js';
 
 const read = (url) => {
@@ -22,7 +25,7 @@ const link = (startParis, endParis, extra = {}) =>
 test('the official template link with title, UTC dates and the Paris time zone', () => {
     const p = link('2026-11-02T09:00', '2026-11-02T09:35', {
         details: 'Rendez-vous chez ZEYD BARBER',
-        location: SALON_LOCATION,
+        location: ADDRESS,
     });
     assert.equal(p.origin, 'https://calendar.google.com/calendar/render');
     assert.equal(p.action, 'TEMPLATE');
@@ -30,7 +33,7 @@ test('the official template link with title, UTC dates and the Paris time zone',
     assert.equal(p.dates, '20261102T080000Z/20261102T083500Z'); // 09:00 Paris in winter = 08:00 UTC
     assert.equal(p.ctz, 'Europe/Paris');
     assert.equal(p.details, 'Rendez-vous chez ZEYD BARBER');
-    assert.equal(p.location, '46.2074029,5.225510799999999');
+    assert.equal(p.location, ADDRESS);
 });
 
 test('summer time, winter time and the days of the clock change', () => {
@@ -63,6 +66,12 @@ test('Arabic text and special characters survive the link', () => {
     });
     assert.equal(p.text, 'ZEYD BARBER · تدرّج منخفض');
     assert.equal(p.details, 'موعد & ملاحظة #1 ? = +');
+});
+
+test('no salon address configured: the event simply has no location', () => {
+    assert.equal(SALON_LOCATION, '');
+    const p = link('2026-11-02T09:00', '2026-11-02T09:35', { location: SALON_LOCATION });
+    assert.equal(p.location, undefined);
 });
 
 test('no link when the times are missing, invalid or reversed', () => {

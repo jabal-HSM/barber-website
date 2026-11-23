@@ -996,7 +996,8 @@ h2 {
 /* ==========================================================================
    Gallery
    ========================================================================== */
-/* [hidden] must win over the display values below */
+/* [hidden] must win over the display values below (a service link is hidden when the salon has no WhatsApp) */
+.service-link[hidden],
 .gallery-grid[hidden],
 .gallery-empty[hidden] {
     display: none;
