@@ -5315,6 +5315,16 @@ fieldset.profile-card > legend + * {
     height: 0.875rem;
 }
 
+/* Never in the way of booking or signing in: hidden while a page, a window or the sign-in screen is open, and
+   while the visitor is filling in the booking form */
+body:has(dialog[open]) #installBanner,
+body:has(.app-page:not([hidden])) #installBanner,
+body:has(#bookingForm:focus-within) #installBanner,
+body:has(#customForm:focus-within) #installBanner,
+body:has(#authScreen:not([hidden])) #installBanner {
+    display: none;
+}
+
 /* Phones: just above the floating bottom bar */
 @media (max-width: 47.99em) {
     body:has(> .tabbar) .install-banner {
