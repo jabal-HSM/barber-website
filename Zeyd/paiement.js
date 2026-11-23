@@ -12,7 +12,7 @@ const lang = document.documentElement.lang in LANGUAGES ? document.documentEleme
 const priceFormatter = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0 });
 
 for (const el of document.querySelectorAll('[data-i18n]')) el.textContent = t(lang, el.dataset.i18n);
-document.title = `${t(lang, 'pay.pageTitle')} | ZEYD BARBER`;
+document.title = `${t(lang, 'pay.pageTitle')} | Votre salon`;
 
 function show(kind, key, values = {}) {
     document.getElementById('paymentSpinner').hidden = kind !== 'waiting';

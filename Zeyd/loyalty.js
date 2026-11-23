@@ -40,17 +40,17 @@ function el(tag, className, text) {
     return node;
 }
 
-// Brand block: the scissors-Z monogram (logo-mark-ink.png, cut from logozeyd.jpeg) + ZEYD / BARBER
+// Brand block: the salon's monogram (salon-mark-ink.svg, a placeholder each salon replaces) + its name
 function brandBlock() {
     const logo = el('div', 'lc-logo');
     logo.lang = 'en';
     logo.dir = 'ltr';
     const mark = el('img', 'lc-mark');
-    mark.src = 'logo-mark-ink.png';
+    mark.src = 'salon-mark-ink.svg';
     mark.alt = '';
     mark.width = 234;
     mark.height = 396;
-    logo.append(mark, el('span', 'lc-logo-name', 'ZEYD'), el('span', 'lc-logo-sub', 'BARBER'));
+    logo.append(mark, el('span', 'lc-logo-name', 'VOTRE'), el('span', 'lc-logo-sub', 'SALON'));
     return logo;
 }
 

@@ -939,7 +939,9 @@ function calendarButton(booking, names, day, time) {
     if (booking.status !== 'confirmed' || new Date(booking.starts_at) <= new Date()) return null;
     const service = (state.lang === 'ar' && names.name_ar) || names.name_fr || '';
     const url = googleCalendarUrl({
-        title: service ? `ZEYD BARBER · ${service}` : 'ZEYD BARBER',
+        title: service
+            ? `${t(state.lang, 'account.calendarTitle')} · ${service}`
+            : t(state.lang, 'account.calendarTitle'),
         startsAt: booking.starts_at,
         endsAt: booking.ends_at,
         details: t(state.lang, 'account.calendarDetails', { service, day, time }),

@@ -2,7 +2,7 @@
 
 export const adminTranslations = {
     fr: {
-        'meta.title': 'Tableau de bord | ZEYD BARBER',
+        'meta.title': 'Tableau de bord | Votre salon',
         'header.space': 'Tableau de bord',
         'header.site': 'Voir le site',
         'header.signOut': 'Se déconnecter',
@@ -34,8 +34,8 @@ export const adminTranslations = {
         'common.ok': 'OK',
         'common.cancel': 'Annuler',
         'gate.loading': 'Vérification de votre accès…',
-        'gate.signIn': 'Connectez-vous avec le compte de Zeyd pour ouvrir l’espace de gestion.',
-        'gate.forbidden': 'Cet espace est réservé à Zeyd et aux administrateurs.',
+        'gate.signIn': 'Connectez-vous avec le compte du salon pour ouvrir l’espace de gestion.',
+        'gate.forbidden': 'Cet espace est réservé à l’équipe du salon et aux administrateurs.',
         'gate.account': 'Compte connecté : {email} (rôle client).',
         'gate.switch': 'Se connecter avec un autre compte',
         'install.title': 'Installer le tableau de bord',
@@ -230,9 +230,9 @@ export const adminTranslations = {
         'status.completed': 'Terminé',
         'status.no_show': 'Absent',
 
-        'email.subject': 'ZEYD BARBER — votre rendez-vous du {day}',
+        'email.subject': 'Votre rendez-vous du {day}',
         'email.body':
-            'Bonjour {name},\n\nNous sommes sincèrement désolés : Zeyd a un empêchement important{reason} et ne pourra pas vous recevoir le {day} à {time}. Votre rendez-vous a donc été annulé.\n\nNous serions vraiment heureux de vous accueillir un autre jour : vous pouvez choisir un nouveau créneau sur notre site.\n\nMerci pour votre compréhension, et encore pardon pour ce contretemps.\n\nZeyd — ZEYD BARBER',
+            'Bonjour {name},\n\nNous sommes sincèrement désolés : le salon a un empêchement important{reason} et ne pourra pas vous recevoir le {day} à {time}. Votre rendez-vous a donc été annulé.\n\nNous serions vraiment heureux de vous accueillir un autre jour : vous pouvez choisir un nouveau créneau sur notre site.\n\nMerci pour votre compréhension, et encore pardon pour ce contretemps.\n\nL’équipe du salon',
         'email.reason': ' ({reason})',
         'email.defaultName': 'cher client',
 
@@ -350,7 +350,7 @@ export const adminTranslations = {
         'status.liveAllowed': 'autorisés',
         'status.liveBlocked': 'bloqués (sécurité)',
         'status.telegramBot': 'Bot Telegram',
-        'status.telegramZeyd': 'Telegram de Zeyd (annulations)',
+        'status.telegramZeyd': 'Telegram du salon (annulations)',
         'status.set': 'configuré',
         'status.notSet': 'non configuré',
         'status.soundHint': 'Les sons de l’interface se règlent depuis le site (Mon compte → Sons).',
@@ -358,7 +358,7 @@ export const adminTranslations = {
         'customers.show': 'Afficher',
         'customers.filterAll': 'Tous les comptes',
         'customers.filterCustomers': 'Clients',
-        'customers.filterStaff': 'Salon (Zeyd, admins)',
+        'customers.filterStaff': 'Salon (barbiers, admins)',
         'customers.filterReward': 'Avec coupe offerte',
         'customers.sort': 'Trier',
         'customers.sortRecent': 'Inscription récente',
@@ -462,7 +462,7 @@ export const adminTranslations = {
         'error.validation': 'Vérifiez les champs (valeurs manquantes ou invalides).',
     },
     ar: {
-        'meta.title': 'لوحة التحكم | ZEYD BARBER',
+        'meta.title': 'لوحة التحكم | صالونك',
         'header.space': 'لوحة التحكم',
         'header.site': 'عرض الموقع',
         'header.signOut': 'تسجيل الخروج',
@@ -491,8 +491,8 @@ export const adminTranslations = {
         'common.ok': 'موافق',
         'common.cancel': 'إلغاء',
         'gate.loading': 'جارٍ التحقق من صلاحيتك…',
-        'gate.signIn': 'سجّل الدخول بحساب زيد لفتح لوحة الإدارة.',
-        'gate.forbidden': 'هذه اللوحة مخصّصة لزيد وللمديرين فقط.',
+        'gate.signIn': 'سجّل الدخول بحساب الصالون لفتح لوحة الإدارة.',
+        'gate.forbidden': 'هذه اللوحة مخصّصة لفريق الصالون وللمديرين فقط.',
         'gate.account': 'الحساب المسجَّل: {email} (صلاحية زبون).',
         'gate.switch': 'الدخول بحساب آخر',
         'install.title': 'ثبّت لوحة التحكم',
@@ -684,9 +684,9 @@ export const adminTranslations = {
         'status.completed': 'انتهى',
         'status.no_show': 'لم يحضر',
 
-        'email.subject': 'ZEYD BARBER — موعدك يوم {day}',
+        'email.subject': 'موعدك يوم {day}',
         'email.body':
-            'مرحباً {name}،\n\nنعتذر منك بصدق: لدى زيد ظرف مهم{reason} ولن يتمكن من استقبالك يوم {day} الساعة {time}، لذلك أُلغي موعدك.\n\nيسعدنا كثيراً أن نستقبلك في يوم آخر: يمكنك اختيار موعد جديد من موقعنا.\n\nشكراً لتفهّمك، ونعتذر مرة أخرى عن هذا الإزعاج.\n\nزيد — ZEYD BARBER',
+            'مرحباً {name}،\n\nنعتذر منك بصدق: لدى الصالون ظرف مهم{reason} ولن يتمكن من استقبالك يوم {day} الساعة {time}، لذلك أُلغي موعدك.\n\nيسعدنا كثيراً أن نستقبلك في يوم آخر: يمكنك اختيار موعد جديد من موقعنا.\n\nشكراً لتفهّمك، ونعتذر مرة أخرى عن هذا الإزعاج.\n\nفريق الصالون',
         'email.reason': ' ({reason})',
         'email.defaultName': 'عزيزنا الزبون',
 
@@ -800,7 +800,7 @@ export const adminTranslations = {
         'status.liveAllowed': 'مسموحة',
         'status.liveBlocked': 'ممنوعة (حماية)',
         'status.telegramBot': 'بوت Telegram',
-        'status.telegramZeyd': 'Telegram زيد (الإلغاءات)',
+        'status.telegramZeyd': 'Telegram الصالون (الإلغاءات)',
         'status.set': 'مضبوط',
         'status.notSet': 'غير مضبوط',
         'status.soundHint': 'أصوات الواجهة تُضبط من الموقع (حسابي ← الأصوات).',
@@ -808,7 +808,7 @@ export const adminTranslations = {
         'customers.show': 'عرض',
         'customers.filterAll': 'كل الحسابات',
         'customers.filterCustomers': 'الزبائن',
-        'customers.filterStaff': 'الصالون (زيد، المدراء)',
+        'customers.filterStaff': 'الصالون (الحلاقون، المدراء)',
         'customers.filterReward': 'لديهم قصّة مجانية',
         'customers.sort': 'الترتيب',
         'customers.sortRecent': 'الأحدث تسجيلاً',

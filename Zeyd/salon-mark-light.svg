@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 234 396" width="234" height="396">
+  <!-- Placeholder monogram (open scissors): each salon replaces it with its own logo. Same size as the old mark. -->
+  <g transform="translate(-139 -62)">
+    <g fill="#fffefa">
+      <path d="M213 318 L322 112 Q330 104 334 114 L247 330 Z"/>
+      <path d="M299 318 L190 112 Q182 104 178 114 L265 330 Z"/>
+    </g>
+    <g fill="none" stroke="#fffefa" stroke-width="20">
+      <circle cx="198" cy="364" r="44"/>
+      <circle cx="314" cy="364" r="44"/>
+    </g>
+    <circle cx="256" cy="262" r="9" fill="#fffefa"/>
+  </g>
+</svg>

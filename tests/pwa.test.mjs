@@ -30,7 +30,7 @@ test('« Fermer » hides the banner for 14 days, then it may come back', () => {
 
 test('manifest: installable name, start page, standalone display and the three icons exist', () => {
     const manifest = JSON.parse(readFileSync(join(ZEYD, 'manifest.webmanifest'), 'utf8'));
-    assert.equal(manifest.name, 'ZEYD BARBER');
+    assert.equal(manifest.name, 'Votre salon'); // placeholder: each salon puts its own name
     assert.equal(manifest.start_url, '/');
     assert.equal(manifest.display, 'standalone');
     const sizes = manifest.icons.map((i) => `${i.sizes} ${i.purpose}`);
