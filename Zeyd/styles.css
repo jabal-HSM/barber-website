@@ -4156,16 +4156,14 @@ body.has-overlay {
     border-inline-start-color: var(--color-border-strong);
 }
 
-.status-badge.is-payment-paid,
-.status-badge.is-transfer-transferred {
+.status-badge.is-payment-paid {
     background: var(--color-primary);
     color: var(--color-on-primary);
 }
 
 .status-badge.is-payment-failed,
 .status-badge.is-payment-mismatch,
-.status-badge.is-payment-duplicate,
-.status-badge.is-transfer-to_transfer {
+.status-badge.is-payment-duplicate {
     background: var(--color-danger-soft);
     color: var(--color-danger);
 }

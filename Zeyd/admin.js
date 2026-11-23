@@ -577,7 +577,7 @@ function paymentForm(b, actions) {
             return;
         }
         confirm.disabled = true;
-        const { data, error } = await state.supabase.rpc('staff_record_payment', {
+        const { error } = await state.supabase.rpc('staff_record_payment', {
             p_booking_id: b.id,
             p_amount_cents: value,
             p_method: method.value,
@@ -589,17 +589,8 @@ function paymentForm(b, actions) {
             setMessage('sheetMessage', 'error', errorKey(error));
             return;
         }
-        const r = data?.[0];
         await refreshAfterAction();
-        setMessage(
-            'sheetMessage',
-            'success',
-            r?.allocation_status === 'recorded' ? 'payments.recorded' : 'payments.recordedReview',
-            {
-                zeyd: cents(r?.zeyd_cents ?? 0),
-                mother: cents(r?.mother_cents ?? 0),
-            },
-        );
+        setMessage('sheetMessage', 'success', 'payments.recorded');
     });
     return form;
 }
@@ -646,35 +637,28 @@ loaders.home = async () => {
     $('activityList').replaceChildren(loading());
     $('loyaltyTodoList').replaceChildren(loading());
 
-    const [
-        { data: earnings },
-        todays,
-        { data: nextRows },
-        { data: recent, error: recentError },
-        { data: visits },
-        summary,
-    ] = await Promise.all([
-        sb.rpc('barber_earnings'),
-        fetchBookingsBetween(today, nextDay(today)),
-        sb
-            .from('bookings')
-            .select('starts_at, profiles:customer_id (full_name), services (name_fr, name_ar)')
-            .eq('status', 'confirmed')
-            .gte('starts_at', new Date().toISOString())
-            .order('starts_at')
-            .limit(1),
-        sb
-            .from('bookings')
-            .select(
-                'id, status, starts_at, created_at, updated_at, cancelled_by, customer_id, profiles:customer_id (full_name)',
-            )
-            .order('updated_at', { ascending: false })
-            .limit(8),
-        sb.from('loyalty_visits').select('customer_id').eq('visit_date', today),
-        sb.rpc('allocation_summary'),
-    ]);
+    const [todays, { data: nextRows }, { data: recent, error: recentError }, { data: visits }, summary] =
+        await Promise.all([
+            fetchBookingsBetween(today, nextDay(today)),
+            sb
+                .from('bookings')
+                .select('starts_at, profiles:customer_id (full_name), services (name_fr, name_ar)')
+                .eq('status', 'confirmed')
+                .gte('starts_at', new Date().toISOString())
+                .order('starts_at')
+                .limit(1),
+            sb
+                .from('bookings')
+                .select(
+                    'id, status, starts_at, created_at, updated_at, cancelled_by, customer_id, profiles:customer_id (full_name)',
+                )
+                .order('updated_at', { ascending: false })
+                .limit(8),
+            sb.from('loyalty_visits').select('customer_id').eq('visit_date', today),
+            sb.rpc('allocation_summary'),
+        ]);
 
-    renderEarnings(earnings, summary.error ? null : summary.data);
+    renderEarnings(summary.error ? null : summary.data);
 
     const day = todays.data ?? [];
     const count = (status) => day.filter((b) => b.status === status).length;
@@ -787,18 +771,14 @@ async function renderOverview() {
         sb.rpc('payment_records', { p_limit: 500 }),
     ]);
 
-    // Money: payments the database marked "paid" in the period, and what was calculated for each side
+    // Money: payments the database marked "paid" in the period, and the ones with a problem
     let money = null;
     if (!records.error) {
         const inPeriod = records.data.filter((p) => (p.paid_at ?? p.created_at) >= since);
         const paid = inPeriod.filter((p) => p.status === 'paid');
         money = {
             received: paid.reduce((s, p) => s + p.amount_cents, 0),
-            zeyd: paid.reduce((s, p) => s + (p.zeyd_cents ?? 0), 0),
-            mother: paid.reduce((s, p) => s + (p.mother_cents ?? 0), 0),
-            review: inPeriod.filter(
-                (p) => p.allocation_status === 'needs_review' || ['mismatch', 'duplicate'].includes(p.status),
-            ).length,
+            review: inPeriod.filter((p) => ['mismatch', 'duplicate'].includes(p.status)).length,
             test: paid.some((p) => !p.livemode),
         };
     }
@@ -818,8 +798,6 @@ async function renderOverview() {
         stat(fmt(cancelled), 'stats.cancelled', periodLabel, cancelled ? 'warn' : ''),
         stat(fmt(customers), 'stats.newCustomers', periodLabel),
         stat(money ? cents(money.received) : null, 'stats.received', periodLabel),
-        stat(money ? cents(money.zeyd) : null, 'stats.zeyd', at(state.lang, 'stats.calculated')),
-        stat(money ? cents(money.mother) : null, 'stats.mother', at(state.lang, 'stats.calculated')),
         stat(money ? fmt(money.review) : null, 'stats.review', periodLabel, money?.review ? 'warn' : ''),
         stat(fmt(rewards), 'stats.rewards', at(state.lang, 'stats.now')),
     );
@@ -829,29 +807,13 @@ async function renderOverview() {
     $('statsNote').textContent = notes.join(' ');
 }
 
-function renderEarnings(earnings, summary) {
-    if (summary?.length) {
-        const live = summary.find((row) => row.livemode);
-        const test = summary.find((row) => !row.livemode);
-        $('earningsAmount').textContent = cents(live?.zeyd_cents ?? 0);
-        const meta = [at(state.lang, 'home.payments', { count: live?.payments_count ?? 0 })];
-        if (test)
-            meta.push(at(state.lang, 'home.test', { amount: cents(test.zeyd_cents), count: test.payments_count }));
-        $('earningsMeta').textContent = meta.join(' · ');
-        return;
-    }
-    const live = earnings?.find((row) => row.livemode) ?? { payments_count: 0, barber_share_cents: 0 };
-    const test = earnings?.find((row) => !row.livemode);
-    $('earningsAmount').textContent = euros.format(Number(live.barber_share_cents ?? 0) / 100);
-    const meta = [at(state.lang, 'home.payments', { count: live.payments_count ?? 0 })];
-    if (test) {
-        meta.push(
-            at(state.lang, 'home.test', {
-                amount: euros.format(Number(test.barber_share_cents) / 100),
-                count: test.payments_count,
-            }),
-        );
-    }
+// Total of the payments the database marked "paid" (online and recorded at the salon)
+function renderEarnings(summary) {
+    const live = summary?.find((row) => row.livemode);
+    const test = summary?.find((row) => !row.livemode);
+    $('earningsAmount').textContent = cents(live?.amount_cents ?? 0);
+    const meta = [at(state.lang, 'home.payments', { count: live?.payments_count ?? 0 })];
+    if (test) meta.push(at(state.lang, 'home.test', { amount: cents(test.amount_cents), count: test.payments_count }));
     $('earningsMeta').textContent = meta.join(' · ');
 }
 
@@ -1470,7 +1432,7 @@ loaders.loyalty = () => {
     // The scanner starts only on demand (camera permission)
 };
 
-// --- Payments: received, allocated, really transferred ---
+// --- Payments received (online and at the salon) ---
 const cents = (value) => euros.format(Number(value ?? 0) / 100);
 
 loaders.payments = async () => {
@@ -1493,21 +1455,10 @@ loaders.payments = async () => {
                 el('p', 'next-label', at(state.lang, s.livemode ? 'payments.real' : 'payments.test')),
                 el(
                     'p',
-                    '',
+                    'admin-item-title',
                     at(state.lang, 'payments.received', { amount: cents(s.amount_cents), count: s.payments_count }),
                 ),
-                el('p', '', at(state.lang, 'payments.zeydTotal', { amount: cents(s.zeyd_cents) })),
-                el('p', '', at(state.lang, 'payments.motherTotal', { amount: cents(s.mother_cents) })),
-                el(
-                    'p',
-                    'admin-item-title',
-                    at(state.lang, 'payments.toTransfer', { amount: cents(s.mother_to_transfer_cents) }),
-                ),
             );
-            if (s.needs_review_count)
-                box.append(
-                    el('p', 'cancel-reason', at(state.lang, 'payments.needsReview', { count: s.needs_review_count })),
-                );
             return box;
         }),
     );
@@ -1544,50 +1495,8 @@ function paymentItem(p) {
     );
     const badges = el('p');
     badges.append(el('span', `status-badge is-payment-${p.status}`, at(state.lang, `paystatus.${p.status}`)));
-    if (p.allocation_status === 'recorded') {
-        badges.append(
-            ' ',
-            el(
-                'span',
-                'status-badge',
-                at(state.lang, 'payments.split', { zeyd: cents(p.zeyd_cents), mother: cents(p.mother_cents) }),
-            ),
-        );
-        if (p.mother_transfer !== 'not_due') {
-            badges.append(
-                ' ',
-                el(
-                    'span',
-                    `status-badge is-transfer-${p.mother_transfer}`,
-                    at(state.lang, `transfer.${p.mother_transfer}`),
-                ),
-            );
-        }
-    } else if (p.allocation_status === 'needs_review') {
-        badges.append(' ', el('span', 'status-badge is-payment-mismatch', at(state.lang, 'payments.reviewBadge')));
-    }
     body.append(badges);
     item.append(body);
-    // Recorded by hand once the 5 € have really been sent to the mother (admin only, also checked by the database)
-    if (state.isAdmin && p.mother_transfer === 'to_transfer') {
-        item.append(
-            button(at(state.lang, 'payments.markTransferred'), 'btn btn-ghost btn-sm', async (e) => {
-                const reference = window.prompt(at(state.lang, 'payments.transferPrompt'));
-                if (reference === null) return;
-                e.currentTarget.disabled = true;
-                const { error } = await state.supabase.rpc('staff_mark_mother_transfer', {
-                    p_payment_id: p.payment_id,
-                    p_reference: reference.trim() || null,
-                });
-                setMessage(
-                    'paymentsMessage',
-                    error ? 'error' : 'success',
-                    error ? errorKey(error) : 'payments.transferred',
-                );
-                loaders.payments();
-            }),
-        );
-    }
     return item;
 }
 
@@ -2347,7 +2256,6 @@ function initSettings() {
             booking[column] = value;
         }
         const sb = state.supabase;
-        // The Hashem share is not shown in the dashboard and never sent: it keeps its database value
         const [b, p] = await Promise.all([
             sb.from('booking_settings').update(booking).eq('id', true).select('id'),
             sb

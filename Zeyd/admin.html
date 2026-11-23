@@ -144,7 +144,7 @@
         <!-- Home: earnings card and notifications -->
         <section class="admin-panel" data-panel="home" hidden>
             <div class="earnings-card">
-                <p class="earnings-label" data-i18n="home.earnings">Part de Zeyd</p>
+                <p class="earnings-label" data-i18n="home.earnings">Encaissé</p>
                 <p class="earnings-amount" id="earningsAmount" dir="ltr">0 €</p>
                 <p class="earnings-meta" id="earningsMeta"></p>
                 <p class="earnings-note" data-i18n="home.earningsNote">Montant indicatif.</p>
@@ -271,13 +271,12 @@
             </div>
         </section>
 
-        <!-- Payments: what was received, how it is allocated, what was really transferred -->
+        <!-- Payments received: online and recorded at the salon -->
         <section class="admin-panel" data-panel="payments" hidden>
             <div class="admin-card">
-                <h2 class="admin-h2" data-i18n="payments.title">Paiements et répartition</h2>
-                <p class="field-hint" data-i18n="payments.rule">Règle : paiement de 10 € → 10 € pour Zeyd ; paiement de 15 €
-                    → 10 € pour Zeyd et 5 € pour la mère. La répartition est un calcul enregistré : elle ne déplace pas
-                    d’argent.</p>
+                <h2 class="admin-h2" data-i18n="payments.title">Paiements</h2>
+                <p class="field-hint" data-i18n="payments.rule">Paiements reçus au salon (espèces, carte, virement) et en
+                    ligne, tels qu’enregistrés dans la base de données.</p>
                 <div class="allocation-summary" id="allocationSummary"></div>
                 <div class="admin-message" id="paymentsMessage" role="status" aria-live="polite" hidden></div>
                 <ul class="admin-list" id="paymentsList"></ul>
