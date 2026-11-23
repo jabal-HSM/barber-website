@@ -324,6 +324,11 @@ export const translations = {
         'error.email_taken': 'Un compte existe déjà avec cet e-mail. Connectez-vous.',
         'error.weak_password': 'Mot de passe trop court : 8 caractères minimum.',
         'error.rate_limited': 'Trop de tentatives. Réessayez dans quelques minutes.',
+        'error.invalid_email': 'Cette adresse e-mail n’est pas valide. Vérifiez-la et réessayez.',
+        'error.email_send_failed':
+            'Impossible de créer votre compte pour le moment : l’e-mail de confirmation n’a pas pu être envoyé. Réessayez plus tard.',
+        'error.signup_disabled': 'Les inscriptions sont fermées pour le moment.',
+        'error.network': 'Connexion impossible. Vérifiez votre connexion Internet et réessayez.',
         'error.unknown': 'Une erreur est survenue. Veuillez réessayer.',
         'error.no_backend': 'La réservation en ligne est momentanément indisponible.',
         'error.outside_hours':
@@ -671,6 +676,10 @@ export const translations = {
         'error.email_taken': 'يوجد حساب بهذا البريد. سجّل الدخول.',
         'error.weak_password': 'كلمة المرور قصيرة: 8 أحرف على الأقل.',
         'error.rate_limited': 'محاولات كثيرة. أعد المحاولة بعد دقائق.',
+        'error.invalid_email': 'هذا البريد الإلكتروني غير صالح. تحقّق منه وأعد المحاولة.',
+        'error.email_send_failed': 'تعذّر إنشاء حسابك الآن: لم نتمكن من إرسال رسالة التأكيد. أعد المحاولة لاحقاً.',
+        'error.signup_disabled': 'التسجيل مغلق حالياً.',
+        'error.network': 'تعذّر الاتصال. تحقّق من اتصالك بالإنترنت وأعد المحاولة.',
         'error.unknown': 'حدث خطأ. يُرجى المحاولة مرة أخرى.',
         'error.no_backend': 'الحجز عبر الموقع غير متاح مؤقتاً.',
         'error.outside_hours':

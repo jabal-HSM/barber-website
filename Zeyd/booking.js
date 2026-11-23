@@ -480,7 +480,7 @@ async function onAuthSubmit(event) {
     const email = $('authEmail').value.trim();
     const password = $('authPassword').value;
     if (!$('authEmail').checkValidity() || !email) {
-        setMessage('authMessage', 'error', 'error.invalid_credentials');
+        setMessage('authMessage', 'error', 'error.invalid_email');
         return;
     }
     if (state.authMode === 'signup' && password.length < 8) {
@@ -495,6 +495,14 @@ async function onAuthSubmit(event) {
             : await signIn(email, password);
     button.disabled = false;
     if (result.error) {
+        // For the developer (browser console): the real cause, never the password
+        console.error(
+            '[auth]',
+            state.authMode,
+            result.error.code ?? '',
+            result.error.status ?? '',
+            result.error.message,
+        );
         setMessage('authMessage', 'error', errorKey(result.error));
         showResend(errorCode(result.error) === 'email_not_confirmed');
         return;

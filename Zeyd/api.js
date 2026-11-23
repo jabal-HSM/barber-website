@@ -77,10 +77,31 @@ const KNOWN_ERRORS = [
     'same_time',
 ];
 
+// Supabase Auth error codes (error.code) → message keys. Read before the message text, which is not stable.
+const AUTH_CODES = {
+    user_already_exists: 'email_taken',
+    email_exists: 'email_taken',
+    weak_password: 'weak_password',
+    email_address_invalid: 'invalid_email',
+    email_address_not_authorized: 'email_send_failed',
+    over_email_send_rate_limit: 'rate_limited',
+    over_request_rate_limit: 'rate_limited',
+    signup_disabled: 'signup_disabled',
+    email_provider_disabled: 'signup_disabled',
+    invalid_credentials: 'invalid_credentials',
+    email_not_confirmed: 'email_not_confirmed',
+};
+
 export function errorCode(error) {
     if (!error) return null;
     const message = String(error.message ?? '');
     if (KNOWN_ERRORS.includes(message)) return message;
+    if (AUTH_CODES[error.code]) return AUTH_CODES[error.code];
+    // The confirmation e-mail could not be sent (mail server refused it): the account is not created
+    if (/error sending .*e?mail/i.test(message)) return 'email_send_failed';
+    if (/unable to validate email|invalid format|email address .* is invalid/i.test(message)) return 'invalid_email';
+    if (error.name === 'AuthRetryableFetchError' || /failed to fetch|networkerror|load failed/i.test(message))
+        return 'network';
     if (error.code === '42501' || /permission denied|JWT/i.test(message)) return 'auth_required';
     if (/invalid login credentials/i.test(message)) return 'invalid_credentials';
     if (/email not confirmed/i.test(message)) return 'email_not_confirmed';
