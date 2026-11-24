@@ -363,7 +363,7 @@ export const translations = {
         'hours.days': 'Les jours d’ouverture apparaissent dans la réservation ci-dessous.',
         'contact.title': 'Nous trouver',
         'contact.lead': 'Itinéraire, question ou rendez-vous : choisissez le moyen qui vous convient.',
-        'contact.maps': 'Itinéraire Google Maps',
+        'contact.maps': 'GPS · Itinéraire Google Maps',
         'contact.whatsapp': 'WhatsApp',
         'contact.instagram': 'Instagram',
 
@@ -712,7 +712,7 @@ export const translations = {
         'hours.days': 'أيام العمل تظهر في الحجز أدناه.',
         'contact.title': 'موقعنا',
         'contact.lead': 'للوصول إلينا أو لسؤال أو لحجز موعد: اختر الطريقة التي تناسبك.',
-        'contact.maps': 'الاتجاهات على Google Maps',
+        'contact.maps': 'GPS · الاتجاهات على Google Maps',
         'contact.whatsapp': 'WhatsApp',
         'contact.instagram': 'Instagram',
 
