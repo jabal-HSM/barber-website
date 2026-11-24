@@ -24,6 +24,8 @@ let buffers = null;
 let initialized = false;
 const scrollVoices = [];
 const ticker = createScrollTicker();
+// Full-screen pages (profile, bookings…) scroll inside their own .app-page-body, not the window
+const pageTicker = createScrollTicker();
 let frame = 0;
 let quietUntil = 0;
 let lastTheme = 0;
@@ -159,16 +161,27 @@ function playTap() {
 
 // --- Scroll ---
 function onScroll() {
+    scrolled(ticker, () => window.scrollY, true);
+}
+
+// Same tick, same pace, for a full-screen page scrolling its own body
+function onPageScroll(event) {
+    const body = event.target;
+    if (!(body instanceof Element) || !body.classList.contains('app-page-body')) return;
+    scrolled(pageTicker, () => body.scrollTop, false);
+}
+
+function scrolled(source, position, lockedMeansSilent) {
     if (frame || !canPlay(prefs, 'scroll') || !buffers) return;
     frame = requestAnimationFrame(() => {
         frame = 0;
         // A window is open (the page behind is locked by overlays.js): its own movement is not a scroll
-        if (document.documentElement.classList.contains('is-scroll-locked')) {
-            ticker.reset();
+        if (lockedMeansSilent && document.documentElement.classList.contains('is-scroll-locked')) {
+            source.reset();
             return;
         }
         const now = performance.now();
-        const tick = ticker.update(window.scrollY, now);
+        const tick = source.update(position(), now);
         if (!tick || now < quietUntil) return;
         const gain = tick.interval < 140 ? GAIN.scrollFast : GAIN.scroll;
         // ±4 % pitch so a fast scroll does not sound like a machine gun
@@ -240,9 +253,12 @@ export function initSound() {
         if (event.target.matches?.('input[type="range"][data-sound-pref]')) onSettingChange(event);
     });
     window.addEventListener('scroll', onScroll, { passive: true });
+    // scroll events of inner elements do not bubble: listen during the capture phase
+    document.addEventListener('scroll', onPageScroll, { capture: true, passive: true });
     // overlays.js puts the page back where it was when a window closes: that jump makes no tick
     window.addEventListener('zeyd:scroll-restore', () => {
         ticker.reset();
+        pageTicker.reset();
         quietUntil = performance.now() + RESTORE_QUIET_MS;
     });
     document.addEventListener('visibilitychange', () => {

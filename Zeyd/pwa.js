@@ -4,7 +4,7 @@
 // Never shown once installed (opened from the home screen) or for 14 days after the visitor closes it.
 const DISMISS_KEY = 'installDismissedAt';
 const DISMISS_DAYS = 14;
-const SHOW_DELAY_MS = 3000;
+const SHOW_DELAY_MS = 15000;
 
 const $ = (id) => document.getElementById(id);
 
