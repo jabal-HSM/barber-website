@@ -9,6 +9,14 @@
     <meta name="theme-color" content="#F6F2EA">
     <!-- Installable as its own app (« Tableau de bord », opens on /admin) -->
     <link rel="manifest" href="admin.webmanifest">
+    <!-- Chrome can offer the install (beforeinstallprompt) before the page's modules have loaded: keep the
+         offer here, at once, so pwa.js finds it when it starts (otherwise it is lost and no banner shows) -->
+    <script>
+        window.addEventListener('beforeinstallprompt', function (event) {
+            event.preventDefault();
+            window.__installPrompt = event;
+        });
+    </script>
     <link rel="icon" href="icons/favicon-48.png" type="image/png" sizes="48x48">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <meta name="apple-mobile-web-app-title" content="Tableau de bord">

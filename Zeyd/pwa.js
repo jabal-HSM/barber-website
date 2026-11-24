@@ -68,11 +68,17 @@ export function initInstall({ translate }) {
         banner.hidden = true;
     };
 
+    const offer = (event) => {
+        deferredPrompt = event;
+        window.__installPrompt = null;
+        show('prompt');
+    };
     window.addEventListener('beforeinstallprompt', (event) => {
         event.preventDefault(); // keep it for our button instead of the browser's mini bar
-        deferredPrompt = event;
-        show('prompt');
+        offer(event);
     });
+    // Offer that arrived before this module ran (kept by the small script in the page's <head>)
+    if (window.__installPrompt) offer(window.__installPrompt);
     window.addEventListener('appinstalled', () => {
         deferredPrompt = null;
         hide();
