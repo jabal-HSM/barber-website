@@ -14,3 +14,11 @@ graphify-out/
 
 # Templates without real secrets are committed
 !.env.example
+
+# Local tooling and private notes (kept on the computer, not published)
+.claude/
+CLAUDE.md
+.graphifyignore
+.graphifyrc
+install-graphify.ps1
+PROJECT_STATUS.md
