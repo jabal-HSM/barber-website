@@ -2,7 +2,7 @@
 
 A white-label booking website and admin dashboard for barbershops, ready to be branded for any salon.
 
-**Live demo:** https://zeyd-barber.pages.dev · **Dashboard:** https://zeyd-barber.pages.dev/admin
+**Live demo:** https://barber-website-aq1.pages.dev · **Dashboard:** https://barber-website-aq1.pages.dev/admin
 
 ## Features
 
