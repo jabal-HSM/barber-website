@@ -4405,14 +4405,16 @@ body.has-overlay {
     border-color: var(--color-primary);
 }
 
-/* Dashboard header: the scissors-Z monogram (logo-mark-light.png, cut from logozeyd.jpeg) large enough to read,
-   on the logo's black background */
+/* Dashboard header: the salon's monogram (salon-mark-light.svg) inside a black circle.
+   A fixed height: a percentage of the grid cell did not resolve, so the image kept its own size and
+   came out of the circle. */
 .admin-logo {
     display: grid;
     flex: none;
     place-items: center;
     width: 2.5rem;
     height: 2.5rem;
+    overflow: hidden;
     border: 1px solid var(--color-border);
     border-radius: 50%;
     background: #0b0b0b;
@@ -4420,7 +4422,7 @@ body.has-overlay {
 
 .admin-logo img {
     width: auto;
-    height: 86%;
+    height: 1.75rem;
 }
 
 /* « OK / Annuler » question (confirmDialog.js), in the QR window style */
